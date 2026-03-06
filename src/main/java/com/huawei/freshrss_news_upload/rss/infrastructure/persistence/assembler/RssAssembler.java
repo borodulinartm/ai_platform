@@ -4,19 +4,16 @@ import com.huawei.freshrss_news_upload.rss.infrastructure.persistence.entity.Rss
 import com.huawei.freshrss_news_upload.rss.model.RssCategory;
 import com.huawei.freshrss_news_upload.rss.model.RssData;
 import com.huawei.freshrss_news_upload.rss.model.RssFeed;
-import com.huawei.freshrss_news_upload.utils.Constant;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static com.huawei.freshrss_news_upload.utils.Constant.ZONE;
+import static com.huawei.freshrss_news_upload.common.Constant.ZONE;
 
 /**
  * Mapper class for RSS in the persistence section
@@ -47,11 +44,11 @@ public class RssAssembler {
                     : List.of();
             List<String> tagsList = StringUtils.isNoneBlank(inputItem.getTags())
                     ? Stream.of(inputItem.getTags().split(TAG_SEPARATOR))
-                        .filter(StringUtils::isNoneBlank).map(String::trim).distinct()
-                        .toList()
+                        .filter(StringUtils::isNoneBlank).map(String::trim).distinct().toList()
                     : List.of();
 
             RssFeed feed = RssFeed.builder()
+                    .feedId(inputItem.getFeedId())
                     .description(inputItem.getFeedDescription())
                     .name(inputItem.getFeedName()).url(inputItem.getFeedUrl())
                     .website(inputItem.getFeedWebsite()).priority(inputItem.getFeedPriority())

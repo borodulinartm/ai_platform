@@ -1,7 +1,9 @@
 package com.huawei.freshrss_news_upload.rss.model;
 
+import com.huawei.freshrss_news_upload.rss.enums.RssTypeInfoEnum;
 import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RssData {
+public class RssData implements Serializable {
     private long itemId;
     private String title;
     private List<String> authors;
@@ -26,4 +28,5 @@ public class RssData {
     private LocalDateTime creationDate;
     private RssFeed feed;
     private RssCategory category;
+    private RssTypeInfoEnum typeInfoEnum;
 }

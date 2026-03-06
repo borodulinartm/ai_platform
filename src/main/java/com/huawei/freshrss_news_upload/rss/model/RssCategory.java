@@ -2,6 +2,8 @@ package com.huawei.freshrss_news_upload.rss.model;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /**
  * Rss category data
  *
@@ -13,7 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RssCategory {
+public class RssCategory implements Serializable {
     private int categoryId;
     private String categoryName;
 }

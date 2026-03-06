@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-import static com.huawei.freshrss_news_upload.utils.Constant.ZONE;
+import static com.huawei.freshrss_news_upload.common.Constant.ZONE;
 
 /**
  * Repository layer for RSS subside

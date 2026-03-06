@@ -1,9 +1,10 @@
-package com.huawei.freshrss_news_upload.utils;
+package com.huawei.freshrss_news_upload.common;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import static com.huawei.freshrss_news_upload.utils.OperationResultEnum.FAILURE;
+import static com.huawei.freshrss_news_upload.common.OperationResultEnum.FAILURE;
+import static com.huawei.freshrss_news_upload.common.OperationResultEnum.SUCCESS;
 
 /**
  * Wrapper class for the result of an Operation
@@ -33,5 +34,23 @@ public class OperationResult {
         }
 
         return "Operation SUCCESS: " + reason;
+    }
+
+    /**
+     * Helpful method to check whether it fail or not
+     *
+     * @return true if failed, false otherwise
+     */
+    public boolean isFailed() {
+        return state == FAILURE;
+    }
+
+    /**
+     * Helpful method to check whether it success or not
+     *
+     * @return true if success, false otherwise
+     */
+    public boolean isSuccess() {
+        return state == SUCCESS;
     }
 }

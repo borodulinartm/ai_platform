@@ -2,6 +2,8 @@ package com.huawei.freshrss_news_upload.rss.model;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /**
  * Rss Feed internal structure
  *
@@ -13,7 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RssFeed {
+public class RssFeed implements Serializable {
     private int feedId;
     private String name;
     private String description;

@@ -1,4 +1,4 @@
-package com.huawei.freshrss_news_upload.utils;
+package com.huawei.freshrss_news_upload.common;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

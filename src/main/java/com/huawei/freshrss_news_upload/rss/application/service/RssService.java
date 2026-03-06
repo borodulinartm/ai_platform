@@ -1,8 +1,8 @@
 package com.huawei.freshrss_news_upload.rss.application.service;
 
-import com.huawei.freshrss_news_upload.rss.infrastructure.RssFacade;
+import com.huawei.freshrss_news_upload.rss.application.repo.RssRepository;
 import com.huawei.freshrss_news_upload.rss.model.RssData;
-import com.huawei.freshrss_news_upload.utils.OperationResult;
+import com.huawei.freshrss_news_upload.common.OperationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static com.huawei.freshrss_news_upload.utils.OperationResultEnum.SUCCESS;
+import static com.huawei.freshrss_news_upload.common.OperationResultEnum.SUCCESS;
 
 /**
  * Business logic layer
@@ -25,7 +25,7 @@ import static com.huawei.freshrss_news_upload.utils.OperationResultEnum.SUCCESS;
 @RequiredArgsConstructor
 @Slf4j
 public class RssService {
-    private final RssFacade rssRepository;
+    private final RssRepository rssRepository;
 
     /**
      * Performs uploading new articles into server
@@ -33,11 +33,13 @@ public class RssService {
      * @return OperationResult: success/failure with reason
      */
     public OperationResult uploadNewArticles() {
-        List<RssData> listData = rssRepository.getUnreadRssDataBy(LocalDateTime.now().minusDays(1L));
+        LocalDateTime articlesDateTime = LocalDateTime.now().minusDays(1L);
+        List<RssData> listData = rssRepository.getUnreadItemsBy(articlesDateTime);
 
         if (!CollectionUtils.isEmpty(listData)) {
-            for (RssData article : listData) {
-                // SEND TO FS ACCORDING TO MOUNT POINT
+            OperationResult resultUploading = rssRepository.sendToCloud(listData, articlesDateTime);
+            if (resultUploading.isFailed()) {
+                return resultUploading;
             }
 
             return OperationResult.builder().state(SUCCESS).reason("The operation has completed successfully").build();

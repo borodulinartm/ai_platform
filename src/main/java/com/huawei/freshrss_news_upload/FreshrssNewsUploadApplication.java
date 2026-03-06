@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan({
-        "com.huawei.freshrss_news_upload.rss"
+        "com.huawei.freshrss_news_upload.rss.infrastructure.persistence"
 })
 public class FreshrssNewsUploadApplication {
 
