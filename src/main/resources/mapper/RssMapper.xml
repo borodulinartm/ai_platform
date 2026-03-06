@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huawei.freshrss_news_upload.rss.infrastructure.persistence.dao.RssDao">
+    <select id="queryUnreadItemsByDate" resultType="com.huawei.freshrss_news_upload.rss.infrastructure.persistence.entity.RssFetchData">
+        select
+            entry.id,
+            entry.title,
+            entry.author,
+            entry.content,
+            entry.link,
+            entry.date,
+            entry.tags,
+            feed.name as feedName,
+            feed.priority as feedPriority,
+            feed.description as feedDescription,
+            feed.url as feedUrl,
+            feed.website as feedWebsite,
+            entry.id_feed as feedId,
+            aCategory.id as categoryId,
+            aCategory.name as categoryName
+        from admin_entry entry
+        left join admin_feed feed ON entry.id_feed = feed.id
+        left join admin_category aCategory ON feed.category = aCategory.id
+        <where>
+            entry.is_read = 0
+            <if test="startTime != null">
+                AND entry.date &gt;= #{startTime}
+            </if>
+
+            <if test="endTime != null">
+                AND entry.date &lt;= #{endTime}
+            </if>
+        </where>
+    </select>
+</mapper>

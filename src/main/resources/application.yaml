@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: freshrss_news_upload
+  datasource:
+    url: jdbc:postgresql://183.87.45.129:5432/freshrss
+    username: freshrss
+    password: freshrss
+    driver-class-name: org.postgresql.Driver
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
