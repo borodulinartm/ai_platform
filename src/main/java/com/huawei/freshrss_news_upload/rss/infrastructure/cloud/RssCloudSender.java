@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -64,11 +65,11 @@ public class RssCloudSender {
         Map<CategoryFeeKey, List<RssData>> rssMap = data.stream()
                 .collect(
                         Collectors.groupingBy(v -> CategoryFeeKey.of(v.getCategory().getCategoryId(),
-                                v.getFeed().getFeedId()))
+                                v.getFeed().getFeedId(), v.getTypeInfoEnum()))
                 );
 
         for (Map.Entry<CategoryFeeKey, List<RssData>> entryItem : rssMap.entrySet()) {
-            String pathInCloud = basePathFiles + "news" + File.separator +
+            String pathInCloud = basePathFiles + entryItem.getKey().getTypeInfoEnum().name().toLowerCase(Locale.ENGLISH) + File.separator +
                     reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")) + File.separator +
                     entryItem.getKey().getCategoryId() + File.separator + entryItem.getKey().getFeedId() + File.separator;
             try {

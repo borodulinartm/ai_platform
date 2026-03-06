@@ -26,7 +26,7 @@ public interface RssRepository {
      * Performs sending to Rss Data
      *
      * @param rssData    rss data item
-     * @param dateToSend
+     * @param dateToSend date when it needs to send
      * @return OperationResult: SUCCESS/FAILURE
      */
     OperationResult sendToCloud(Collection<RssData> rssData, LocalDateTime dateToSend);

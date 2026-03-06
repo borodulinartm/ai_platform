@@ -1,5 +1,6 @@
 package com.huawei.freshrss_news_upload.rss.infrastructure.persistence.assembler;
 
+import com.huawei.freshrss_news_upload.rss.enums.RssTypeInfoEnum;
 import com.huawei.freshrss_news_upload.rss.infrastructure.persistence.entity.RssFetchData;
 import com.huawei.freshrss_news_upload.rss.model.RssCategory;
 import com.huawei.freshrss_news_upload.rss.model.RssData;
@@ -59,6 +60,7 @@ public class RssAssembler {
 
             RssData data = RssData.builder()
                     .itemId(inputItem.getId()).title(inputItem.getTitle())
+                    .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
                     .content(inputItem.getContent()).link(inputItem.getLink())
                     .creationDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
                     .authors(authorList).tags(tagsList).feed(feed).category(category)
