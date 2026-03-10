@@ -42,7 +42,7 @@ public class RssService {
                 return resultUploading;
             }
 
-            return OperationResult.builder().state(SUCCESS).reason("The operation has completed successfully").build();
+            return OperationResult.builder().state(SUCCESS).reason(String.format("Uploaded %s news to the server", listData.size())).build();
         } else {
             return OperationResult.builder().state(SUCCESS).reason(
                         String.format("Nothing to upload into server for date %s", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))

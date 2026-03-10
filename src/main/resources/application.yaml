@@ -7,6 +7,11 @@ spring:
     password: freshrss
     driver-class-name: org.postgresql.Driver
 
+server:
+  servlet:
+    context-path: /api
+  port: 8888
+
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
 

@@ -1,11 +1,9 @@
 package com.huawei.freshrss_news_upload.rss.infrastructure.job;
 
-import com.huawei.freshrss_news_upload.rss.application.service.RssService;
 import com.huawei.freshrss_news_upload.common.OperationResult;
+import com.huawei.freshrss_news_upload.rss.application.service.RssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +19,10 @@ import org.springframework.stereotype.Component;
 public class RssUploaderJob {
     private final RssService rssService;
 
-    @Scheduled(cron = "0 0 6 * * ?")
+    /**
+     * Job which runs updating
+     */
+    @Scheduled(cron = "* * 6 * * ?")
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
@@ -29,10 +30,5 @@ public class RssUploaderJob {
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish RssUploaderJob");
-    }
-
-    @Bean
-    public CommandLineRunner runner() {
-        return args -> runScheduler();
     }
 }
