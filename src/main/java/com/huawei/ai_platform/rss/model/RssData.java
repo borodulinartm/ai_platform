@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.huawei.ai_platform.rss.enums.RssTypeInfoEnum;
 import lombok.*;
 
@@ -25,7 +26,10 @@ public class RssData implements Serializable {
     private String content;
     private String link;
     private List<String> tags;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDateTime creationDate;
+
     private RssFeed feed;
     private RssCategory category;
     private RssTypeInfoEnum typeInfoEnum;

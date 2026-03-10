@@ -1,8 +1,8 @@
 package com.huawei.ai_platform.rss.application.service;
 
+import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.model.RssData;
-import com.huawei.ai_platform.common.OperationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
