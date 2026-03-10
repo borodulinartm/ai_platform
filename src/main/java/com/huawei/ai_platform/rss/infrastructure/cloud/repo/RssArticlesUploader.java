@@ -1,20 +1,17 @@
-package com.huawei.ai_platform.rss.infrastructure.cloud;
+package com.huawei.ai_platform.rss.infrastructure.cloud.repo;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.CategoryFeeKey;
-import com.huawei.ai_platform.rss.model.RssData;
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssArticleCloud;
+import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -25,61 +22,53 @@ import java.util.stream.Collectors;
 
 import static com.huawei.ai_platform.common.OperationResultEnum.FAILURE;
 import static com.huawei.ai_platform.common.OperationResultEnum.SUCCESS;
+import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.ARTICLES;
 
 /**
- * Component that uploads to HUAWEI Cloud
+ * Rss articles uploader repo layer
  *
  * @author Borodulin Artem
- * @since 2026.03.07
+ * @since 2026.03.10
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
-public class RssCloudSender {
+@Slf4j
+public class RssArticlesUploader {
+    public static final String FILE_NAME = "report";
     private final ObjectMapper objectMapper;
+    private final CloudSender cloudSender;
 
     @Value("${app.base-path-files}")
     private String basePathFiles;
 
     /**
-     * Performs uploading to Huawei Cloud service
-     * It uses mounted directory from the Huawei Cloud service
+     * Uploads data to cloud
      *
-     * @param data item to send
-     * @return OperationResult with status: success/failure
+     * @param dataItems  list of the article clouds
+     * @param reportDate date of creating new fields
+     * @return OperationResult: success if ok, failed otherwise
      */
-    public OperationResult upload(Collection<RssData> data, LocalDateTime reportDate) {
-        if (data == null) {
-            return OperationResult.builder().state(FAILURE).reason("Data is null").build();
-        }
+    public OperationResult upload(@Nonnull List<RssArticleCloud> dataItems, @Nonnull LocalDateTime reportDate) {
+        OperationResult validationResult = checkBeforeSave(dataItems);
 
-        if (reportDate == null) {
-            return OperationResult.builder().state(FAILURE).reason("Report date is null").build();
-        }
-
-        OperationResult validationResult = checkBeforeSave(data);
         if (validationResult.isFailed()) {
             return validationResult;
         }
 
-        Map<CategoryFeeKey, List<RssData>> rssMap = data.stream()
+        Map<CategoryFeeKey, List<RssArticleCloud>> rssMap = dataItems.stream()
                 .collect(
-                        Collectors.groupingBy(v -> CategoryFeeKey.of(v.getCategory().getCategoryId(),
-                                v.getFeed().getFeedId(), v.getTypeInfoEnum()))
+                        Collectors.groupingBy(v -> CategoryFeeKey.of(v.getCategoryId(),
+                                v.getFeedId(), ARTICLES))
                 );
 
-        for (Map.Entry<CategoryFeeKey, List<RssData>> entryItem : rssMap.entrySet()) {
+        for (Map.Entry<CategoryFeeKey, List<RssArticleCloud>> entryItem : rssMap.entrySet()) {
             String pathInCloud = basePathFiles + entryItem.getKey().getTypeInfoEnum().name().toLowerCase(Locale.ENGLISH) + File.separator +
                     reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")) + File.separator +
                     entryItem.getKey().getCategoryId() + File.separator + entryItem.getKey().getFeedId() + File.separator;
             try {
-                Files.createDirectories(Path.of(pathInCloud));
-
-                OutputStream stream = Files.newOutputStream(Path.of(pathInCloud + "report"));
-                stream.write(objectMapper.writeValueAsString(entryItem.getValue()).getBytes(StandardCharsets.UTF_8));
-                stream.close();
-            } catch (IOException e) {
-                log.error("Output stream error");
+                return cloudSender.upload(pathInCloud, objectMapper.writeValueAsString(entryItem.getValue()), FILE_NAME);
+            } catch (JsonProcessingException e) {
+                return OperationResult.builder().state(FAILURE).reason("Bad situation. " + e.getMessage()).build();
             }
         }
 
@@ -92,13 +81,13 @@ public class RssCloudSender {
      * @param rssDataCollection collection of the RSS data collection
      * @return OperationResult: success/failure
      */
-    private OperationResult checkBeforeSave(Collection<RssData> rssDataCollection) {
-        for (RssData data : rssDataCollection) {
-            if (data.getCategory() == null) {
+    private OperationResult checkBeforeSave(Collection<RssArticleCloud> rssDataCollection) {
+        for (RssArticleCloud data : rssDataCollection) {
+            if (data.getCategoryId() == 0) {
                 return OperationResult.builder().state(FAILURE).reason("Category is null").build();
             }
 
-            if (data.getFeed() == null) {
+            if (data.getFeedId() == 0) {
                 return OperationResult.builder().state(FAILURE).reason("Feed is null").build();
             }
         }

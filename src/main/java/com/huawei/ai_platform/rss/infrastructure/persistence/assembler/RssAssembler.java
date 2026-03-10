@@ -59,11 +59,11 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .itemId(inputItem.getId()).title(inputItem.getTitle())
+                    .articleId(inputItem.getId()).articleTitle(inputItem.getTitle())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
-                    .content(inputItem.getContent()).link(inputItem.getLink())
-                    .creationDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
-                    .authors(authorList).tags(tagsList).feed(feed).category(category)
+                    .articleContent(inputItem.getContent()).articleLink(inputItem.getLink())
+                    .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
+                    .articleAuthors(authorList).articleTags(tagsList).feed(feed).rssCategory(category)
                     .build();
             resultList.add(data);
         }

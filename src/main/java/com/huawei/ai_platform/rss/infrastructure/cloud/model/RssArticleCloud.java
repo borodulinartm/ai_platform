@@ -1,33 +1,33 @@
-package com.huawei.ai_platform.rss.model;
+package com.huawei.ai_platform.rss.infrastructure.cloud.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.huawei.ai_platform.rss.enums.RssTypeInfoEnum;
 import lombok.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Rss internal structure (aggregate from the persistence)
+ * Article structure that will use to upload data into cloud
  *
- * @author Borodulin Artem
- * @since 2026.03.05
+ * @author Borodulin Arterm
+ * @since 2026.03.10
  */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RssData implements Serializable {
+public class RssArticleCloud {
     private long articleId;
     private String articleTitle;
     private List<String> articleAuthors;
     private String articleContent;
     private String articleLink;
     private List<String> articleTags;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDateTime createDate;
-    private RssFeed feed;
-    private RssCategory rssCategory;
-    private RssTypeInfoEnum typeInfoEnum;
+
+    private int categoryId;
+    private int feedId;
 }

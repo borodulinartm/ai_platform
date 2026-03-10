@@ -4,6 +4,8 @@ import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.application.service.RssService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,5 +32,10 @@ public class RssUploaderJob {
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish RssUploaderJob");
+    }
+
+    @Bean
+    public CommandLineRunner runner() {
+        return args -> runScheduler();
     }
 }

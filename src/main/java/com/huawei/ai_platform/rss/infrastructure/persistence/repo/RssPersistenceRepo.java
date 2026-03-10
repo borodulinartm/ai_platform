@@ -1,15 +1,19 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
+import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
+import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssFeedDao;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
 import com.huawei.ai_platform.rss.model.RssData;
+import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -28,6 +32,9 @@ import static com.huawei.ai_platform.common.Constant.ZONE;
 @RequiredArgsConstructor
 public class RssPersistenceRepo {
     private final RssDao rssDao;
+    private final RssCategoryDao rssCategoryDao;
+    private final RssFeedDao rssFeedDao;
+
     private final RssAssembler rssAssembler;
 
     /**
@@ -50,8 +57,24 @@ public class RssPersistenceRepo {
      * @param rssDataCollection Collection of the RSS data
      * @return Operation Result: success if operation has completed with OK, failed otherwise
      */
-    public OperationResult markAsRead(@NonNull Collection<Long> rssDataCollection) {
+    public OperationResult markAsRead(@Nonnull Collection<Long> rssDataCollection) {
         rssDao.markAsReadNews(rssDataCollection);
         return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Successfully read news").build();
+    }
+
+    /**
+     * Extracts list of categories
+     * @return list of categories
+     */
+    public List<RssCategoryEntity> getCategories() {
+        return rssCategoryDao.selectList(new LambdaQueryWrapper<>());
+    }
+
+    /**
+     * Extracts list of categories
+     * @return list of categories
+     */
+    public List<RssFeedEntity> getFeedEntity() {
+        return rssFeedDao.selectList(new LambdaQueryWrapper<>());
     }
 }
