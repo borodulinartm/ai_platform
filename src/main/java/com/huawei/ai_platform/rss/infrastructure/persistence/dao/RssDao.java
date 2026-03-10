@@ -6,6 +6,7 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -27,4 +28,11 @@ public interface RssDao extends BaseMapper<RssEntity> {
             @Param("startTime") long start,
             @Param("endTime") long end
     );
+
+    /**
+     * Marks news as read
+     *
+     * @param rssDataCollection collection of news
+     */
+    void markAsReadNews(@Param("news") Collection<Long> rssDataCollection);
 }

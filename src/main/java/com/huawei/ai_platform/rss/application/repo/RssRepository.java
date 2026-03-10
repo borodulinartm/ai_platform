@@ -30,4 +30,12 @@ public interface RssRepository {
      * @return OperationResult: SUCCESS/FAILURE
      */
     OperationResult sendToCloud(Collection<RssData> rssData, LocalDateTime dateToSend);
+
+    /**
+     * Performs marking as read
+     *
+     * @param rssData rss data
+     * @return OperationResult: success if operation has completed with OK, failed otherwise
+     */
+    OperationResult markAsRead(Collection<RssData> rssData);
 }

@@ -42,6 +42,8 @@ public class RssService {
                 return resultUploading;
             }
 
+            rssRepository.markAsRead(listData);
+
             return OperationResult.builder().state(SUCCESS).reason(String.format("Uploaded %s news to the server", listData.size())).build();
         } else {
             return OperationResult.builder().state(SUCCESS).reason(

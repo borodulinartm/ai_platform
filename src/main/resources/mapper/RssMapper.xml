@@ -32,4 +32,18 @@
             </if>
         </where>
     </select>
+
+    <update id="markAsReadNews" parameterType="arraylist">
+        UPDATE admin_entry SET is_read=1
+
+        <where>
+            <if test="news != null">
+                id in (
+                    <foreach collection="news" item="item" separator=",">
+                        #{item}
+                    </foreach>
+                )
+            </if>
+        </where>
+    </update>
 </mapper>
