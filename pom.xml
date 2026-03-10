@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.huawei</groupId>
-	<artifactId>freshrss_news_upload</artifactId>
+	<artifactId>ai_platform</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>freshrss_news_upload</name>
-	<description>Fresh RSS news uploader</description>
+	<name>ai_platform</name>
+	<description>AI platform</description>
 	<url/>
 	<licenses>
 		<license/>
