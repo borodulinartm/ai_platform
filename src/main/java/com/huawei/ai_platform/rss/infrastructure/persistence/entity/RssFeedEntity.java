@@ -19,6 +19,5 @@ public class RssFeedEntity {
     private String name;
     private String website;
     private String description;
-    private long lastUpdate;
     private int priority;
 }

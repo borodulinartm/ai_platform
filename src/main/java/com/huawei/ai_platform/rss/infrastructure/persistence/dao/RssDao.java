@@ -24,7 +24,7 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @param end   end time
      * @return list of the fetched rss data
      */
-    List<RssFetchData> queryUnreadItemsByDate(
+    List<RssFetchData> queryArticlesBy(
             @Param("startTime") long start,
             @Param("endTime") long end
     );

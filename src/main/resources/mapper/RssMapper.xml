@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
-    <select id="queryUnreadItemsByDate" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         select
             entry.id,
             entry.title,
@@ -22,7 +22,6 @@
         left join admin_feed feed ON entry.id_feed = feed.id
         left join admin_category aCategory ON feed.category = aCategory.id
         <where>
-            entry.is_read = 0
             <if test="startTime != null">
                 AND entry.date &gt;= #{startTime}
             </if>

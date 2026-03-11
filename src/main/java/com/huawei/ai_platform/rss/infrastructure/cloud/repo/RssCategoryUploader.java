@@ -34,6 +34,7 @@ public class RssCategoryUploader {
      * Method uploads data to cloud service
      *
      * @param categoryClouds category clouds arr
+     * @return OperationResult: success/failure
      */
     public OperationResult uploadRssCategory(@Nonnull List<RssCategoryCloud> categoryClouds) {
         String path = basePathFiles + "/" + FOLDER_CATEGORY + "/";

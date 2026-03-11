@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
@@ -21,6 +22,9 @@ public class RssCategoryEntity {
     public int id;
     private String name;
     private int kind;
-    private long lastUpdate;
+
+//    @TableField(value = "lastUpdate")
+//    private long lastUpdate;
+
     private int error;
 }

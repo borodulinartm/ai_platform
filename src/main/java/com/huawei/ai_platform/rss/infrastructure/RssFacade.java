@@ -49,8 +49,8 @@ public class RssFacade implements RssRepository {
     private final RssFeedCloudAssembler rssFeedCloudAssembler;
 
     @Override
-    public List<RssData> getUnreadItemsBy(@Nonnull LocalDateTime dateToFind) {
-        return persistenceRepo.getUnreadRssDataBy(dateToFind);
+    public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
+        return persistenceRepo.getArticles(dateToFind);
     }
 
     @Override

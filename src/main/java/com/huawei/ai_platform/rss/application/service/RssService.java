@@ -54,15 +54,13 @@ public class RssService {
      */
     private OperationResult uploadArticles() {
         LocalDateTime articlesDateTime = LocalDateTime.now().minusDays(1L);
-        List<RssData> listData = rssRepository.getUnreadItemsBy(articlesDateTime);
+        List<RssData> listData = rssRepository.getArticlesBy(articlesDateTime);
 
         if (!CollectionUtils.isEmpty(listData)) {
             OperationResult resultUploading = rssRepository.uploadArticles(listData, articlesDateTime);
             if (resultUploading.isFailed()) {
                 return resultUploading;
             }
-
-            //            rssRepository.markAsRead(listData);
 
             return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason(String.format("Uploaded %s news to the server", listData.size())).build();
         } else {

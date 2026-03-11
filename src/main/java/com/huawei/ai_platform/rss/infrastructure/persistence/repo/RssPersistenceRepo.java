@@ -43,11 +43,11 @@ public class RssPersistenceRepo {
      * @param dateToFind for which date do you want to find records?
      * @return list of RSS data
      */
-    public List<RssData> getUnreadRssDataBy(LocalDateTime dateToFind) {
+    public List<RssData> getArticles(LocalDateTime dateToFind) {
         long milliStart = dateToFind.with(LocalTime.MIN).atZone(ZONE).toEpochSecond();
         long milliEnd = dateToFind.with(LocalTime.MAX).atZone(ZONE).toEpochSecond();
 
-        List<RssFetchData> fetchedData = rssDao.queryUnreadItemsByDate(milliStart, milliEnd);
+        List<RssFetchData> fetchedData = rssDao.queryArticlesBy(milliStart, milliEnd);
         return rssAssembler.convertFromFetchToRssData(fetchedData);
     }
 

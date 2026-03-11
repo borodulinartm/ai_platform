@@ -23,7 +23,7 @@ public interface RssRepository {
      * @param dateToFind provided date
      * @return list of the rss data
      */
-    List<RssData> getUnreadItemsBy(@Nonnull LocalDateTime dateToFind);
+    List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind);
 
     /**
      * Extracts list of categories
