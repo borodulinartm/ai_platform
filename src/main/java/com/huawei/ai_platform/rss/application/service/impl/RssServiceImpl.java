@@ -1,11 +1,15 @@
-package com.huawei.ai_platform.rss.application.service;
+package com.huawei.ai_platform.rss.application.service.impl;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
+import com.huawei.ai_platform.rss.application.service.RssConfigService;
+import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.model.RssData;
+import com.huawei.ai_platform.rss.model.RssNewsSummary;
+import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,14 +29,25 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class RssService {
+public class RssServiceImpl implements RssSyncService, RssConfigService {
     private final RssRepository rssRepository;
+
+    @Override
+    public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
+        return rssRepository.uploadReport(reports, reportDate);
+    }
+
+    @Override
+    public List<RssCategoryEntity> listCategories() {
+        return rssRepository.getListCategories();
+    }
 
     /**
      * Performs uploading new articles into server
      *
      * @return OperationResult: success/failure with reason
      */
+    @Override
     public OperationResult uploadNewArticles() {
         OperationResult categoryUploading = uploadCategories();
         if (categoryUploading != null) {

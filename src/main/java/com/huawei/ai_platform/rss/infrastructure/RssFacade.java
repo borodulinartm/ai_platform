@@ -5,21 +5,26 @@ import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssFeedCloudAssembler;
+import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssSummaryNewsAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssArticleCloud;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssCategoryCloud;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssFeedCloud;
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssArticlesUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssCategoryUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssFeedUploader;
+import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssReportUploader;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.common.OperationResult;
+import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +52,9 @@ public class RssFacade implements RssRepository {
 
     private final RssFeedUploader rssFeedUploader;
     private final RssFeedCloudAssembler rssFeedCloudAssembler;
+
+    private final RssSummaryNewsAssembler rssSummaryNewsAssembler;
+    private final RssReportUploader rssReportUploader;
 
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
@@ -80,6 +88,12 @@ public class RssFacade implements RssRepository {
             return OperationResult.builder().state(OperationResultEnum.FAILURE)
                     .reason("An exception has occurred. Reason = " + e.getMessage()).build();
         }
+    }
+
+    @Override
+    public OperationResult uploadReport(@Nonnull List<RssNewsSummary> newsSummaries, @Nonnull LocalDate reportDate) {
+        List<RssNewsSummaryCloud> cloudNews = rssSummaryNewsAssembler.toSummaryCloud(newsSummaries);
+        return rssReportUploader.uploadReport(cloudNews, reportDate);
     }
 
     @Override

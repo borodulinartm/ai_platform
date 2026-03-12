@@ -4,8 +4,10 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryE
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.common.OperationResult;
+import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -71,4 +73,13 @@ public interface RssRepository {
      * @return OperationResult: success if operation has completed with OK, failed otherwise
      */
     OperationResult markAsRead(@Nonnull Collection<RssData> rssData);
+
+    /**
+     * Performs uploading to server for the news summaries
+     *
+     * @param newsSummaries news summaries
+     * @param reportDate    for which date do you want to make report
+     * @return OperationResult: success if good, fail otherwise
+     */
+    OperationResult uploadReport(@Nonnull List<RssNewsSummary> newsSummaries, @Nonnull LocalDate reportDate);
 }
