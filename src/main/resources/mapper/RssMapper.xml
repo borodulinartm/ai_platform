@@ -21,13 +21,14 @@
         from admin_entry entry
         left join admin_feed feed ON entry.id_feed = feed.id
         left join admin_category aCategory ON feed.category = aCategory.id
+
         <where>
             <if test="startTime != null">
-                AND entry.date &gt;= #{startTime}
+                AND entry.id &gt;= #{startTime}
             </if>
 
             <if test="endTime != null">
-                AND entry.date &lt;= #{endTime}
+                AND entry.id &lt;= #{endTime}
             </if>
         </where>
     </select>

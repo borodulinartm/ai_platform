@@ -15,8 +15,11 @@ import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 
@@ -44,11 +47,28 @@ public class RssPersistenceRepo {
      * @return list of RSS data
      */
     public List<RssData> getArticles(LocalDateTime dateToFind) {
-        long milliStart = dateToFind.with(LocalTime.MIN).atZone(ZONE).toEpochSecond();
-        long milliEnd = dateToFind.with(LocalTime.MAX).atZone(ZONE).toEpochSecond();
+        LocalDateTime startDay = dateToFind.with(LocalTime.MIN);
+        LocalDateTime endDay = dateToFind.with(LocalTime.MAX);
+
+        long milliStart = getAsMicro(startDay);
+        long milliEnd = getAsMicro(endDay);
 
         List<RssFetchData> fetchedData = rssDao.queryArticlesBy(milliStart, milliEnd);
         return rssAssembler.convertFromFetchToRssData(fetchedData);
+    }
+
+    /**
+     * Extracts date as micro value
+     *
+     * @param forDate for which date do you want extract data
+     * @return microseconds
+     */
+    private long getAsMicro(LocalDateTime forDate) {
+        Instant instant = forDate.atZone(ZONE).toInstant();
+        long epochSecond = instant.getEpochSecond();
+        int nanoAdjustment = instant.getNano();
+
+        return epochSecond * 1_000_000L + nanoAdjustment / 1_000L;
     }
 
     /**
@@ -64,6 +84,7 @@ public class RssPersistenceRepo {
 
     /**
      * Extracts list of categories
+     *
      * @return list of categories
      */
     public List<RssCategoryEntity> getCategories() {
@@ -72,6 +93,7 @@ public class RssPersistenceRepo {
 
     /**
      * Extracts list of categories
+     *
      * @return list of categories
      */
     public List<RssFeedEntity> getFeedEntity() {

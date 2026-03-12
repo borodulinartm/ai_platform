@@ -66,7 +66,7 @@ public class RssArticlesUploader {
                     reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")) + File.separator +
                     entryItem.getKey().getCategoryId() + File.separator + entryItem.getKey().getFeedId() + File.separator;
             try {
-                return cloudSender.upload(pathInCloud, objectMapper.writeValueAsString(entryItem.getValue()), FILE_NAME);
+                cloudSender.upload(pathInCloud, objectMapper.writeValueAsString(entryItem.getValue()), FILE_NAME);
             } catch (JsonProcessingException e) {
                 return OperationResult.builder().state(FAILURE).reason("Bad situation. " + e.getMessage()).build();
             }
