@@ -18,7 +18,12 @@ import java.util.List;
 public class RssNewsReportDto {
     private int categoryId;
     private String articleTitle;
-    private String articleContent;
     private List<String> authors;
     private String articleLink;
+
+    private String background;
+    private String effects;
+    private String eventSummary;
+    private String technologyAndInnovation;
+    private String valueAndImpact;
 }

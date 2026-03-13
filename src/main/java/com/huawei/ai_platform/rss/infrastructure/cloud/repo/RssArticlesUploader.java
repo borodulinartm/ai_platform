@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -35,6 +37,7 @@ import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.ARTICLES;
 @Slf4j
 public class RssArticlesUploader {
     public static final String FILE_NAME = "report";
+
     private final ObjectMapper objectMapper;
     private final CloudSender cloudSender;
 
@@ -53,6 +56,11 @@ public class RssArticlesUploader {
 
         if (validationResult.isFailed()) {
             return validationResult;
+        }
+
+        OperationResult removingOldData = deleteOldData(reportDate);
+        if (removingOldData.isFailed()) {
+            return removingOldData;
         }
 
         Map<CategoryFeeKey, List<RssArticleCloud>> rssMap = dataItems.stream()
@@ -93,5 +101,19 @@ public class RssArticlesUploader {
         }
 
         return OperationResult.builder().state(SUCCESS).reason("").build();
+    }
+
+    /**
+     * Performs removing old data
+     *
+     * @param reportDate report date
+     * @return OperationResult: success/failure.
+     */
+    private OperationResult deleteOldData(LocalDateTime reportDate) {
+        Path entryPath = Paths.get(basePathFiles + File.separator + ARTICLES.name().toLowerCase(Locale.ENGLISH)
+                + File.separator + reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"))
+        );
+
+        return cloudSender.deleteItems(entryPath);
     }
 }

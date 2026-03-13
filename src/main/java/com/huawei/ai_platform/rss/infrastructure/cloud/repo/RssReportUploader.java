@@ -11,18 +11,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.REPORTS;
 
 /**
  * Component which uploads rss reports
@@ -34,7 +32,6 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class RssReportUploader {
     private static final String REPORT_PATH = "news_summary";
-    private static final String REPORT_FILE = "reports";
 
     @Value("${app.base-path-files}")
     private String basicPath;
@@ -53,7 +50,7 @@ public class RssReportUploader {
         String reportDateFormatted = reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"));
         Path entryPath = Paths.get(basicPath + File.separator + REPORT_PATH + File.separator + reportDateFormatted);
 
-        OperationResult beforeWriting = removeOldContent(entryPath);
+        OperationResult beforeWriting = cloudSender.deleteItems(entryPath);
         if (beforeWriting.isFailed()) {
             return beforeWriting;
         }
@@ -66,7 +63,7 @@ public class RssReportUploader {
                     File.separator + item.getKey() + File.separator;
             try {
                 String jsonRepresentation = objectMapper.writeValueAsString(item.getValue());
-                cloudSender.upload(path, jsonRepresentation, REPORT_FILE);
+                cloudSender.upload(path, jsonRepresentation, REPORTS.name().toLowerCase(Locale.ENGLISH));
             } catch (JsonProcessingException e) {
                 return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("IO error: " + e.getMessage()).build();
             }
@@ -75,25 +72,5 @@ public class RssReportUploader {
         return OperationResult.builder().state(OperationResultEnum.SUCCESS)
                 .reason("Operation has completed successfully")
                 .build();
-    }
-
-    /**
-     * Performs removing old data before writing into cloud
-     *
-     * @param path path
-     * @return OperationResult: if failed, then operation is returned with error
-     */
-    private OperationResult removeOldContent(Path path) {
-        if (Files.exists(path)) {
-            try (Stream<Path> listOfFiles = Files.walk(path)) {
-                List<Path> paths = listOfFiles.sorted(Comparator.reverseOrder()).toList();
-                return cloudSender.deleteItems(paths, Set.of(path));
-            } catch (IOException exception) {
-                return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("IO error: " + exception.getMessage())
-                        .build();
-            }
-        }
-
-        return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("OK!!!").build();
     }
 }

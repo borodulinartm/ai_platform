@@ -14,7 +14,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Low-level cloud sender
@@ -58,11 +61,22 @@ public class CloudSender {
     /**
      * Performs low-level removing items
      *
-     * @param paths collection of path items
+     * @param path entry point of path items
      * @return OperationResult: success/failure
      */
-    public OperationResult deleteItems(@Nonnull Collection<Path> paths) {
-        return deleteItems(paths, Set.of());
+    public OperationResult deleteItems(Path path) {
+        if (Files.exists(path)) {
+            try (Stream<Path> listOfFiles = Files.walk(path)) {
+                List<Path> paths = listOfFiles.sorted(Comparator.reverseOrder()).toList();
+                return deleteItems(paths, Set.of(path));
+            } catch (IOException exception) {
+                return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("IO error: " + exception.getMessage())
+                        .build();
+            }
+        }
+
+        return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                .reason("No data").build();
     }
 
     /**
@@ -72,7 +86,7 @@ public class CloudSender {
      * @param exclude collection of excluded files
      * @return OperationResult with success/failure
      */
-    public OperationResult deleteItems(@Nonnull Collection<Path> paths, Collection<Path> exclude) {
+    private OperationResult deleteItems(@Nonnull Collection<Path> paths, Collection<Path> exclude) {
         try {
             for (Path file : paths) {
                 if (!exclude.contains(file)) {
