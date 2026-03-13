@@ -22,7 +22,7 @@ public class RssUploaderJob {
     /**
      * Job which runs updating
      */
-    @Scheduled(cron = "* * 6 * * ?", zone = "GMT")
+    @Scheduled(cron = "* * 0 * * ?", zone = "GMT")
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
