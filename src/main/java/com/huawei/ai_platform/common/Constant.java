@@ -15,5 +15,5 @@ import java.time.ZoneId;
 @NoArgsConstructor(access = AccessLevel.NONE)
 @AllArgsConstructor(access = AccessLevel.NONE)
 public class Constant {
-    public static final ZoneId ZONE = ZoneId.of("Europe/Moscow");
+    public static final ZoneId ZONE = ZoneId.of("GMT");
 }
