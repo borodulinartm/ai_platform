@@ -1,4 +1,7 @@
 spring:
+  liquibase:
+    enabled: false
+    change-log: db/changelog/changelog-master.xml
   application:
     name: freshrss_news_upload
   datasource:
