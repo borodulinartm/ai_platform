@@ -5,6 +5,7 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -19,7 +20,7 @@ public interface RssSyncService {
      *
      * @return OperationResult: success/failure
      */
-    OperationResult uploadNewArticles();
+    OperationResult uploadNewArticles(LocalDateTime forWhichDate);
 
     /**
      * Uploads report

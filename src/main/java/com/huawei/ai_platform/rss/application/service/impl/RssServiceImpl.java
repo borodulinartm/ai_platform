@@ -48,7 +48,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
      * @return OperationResult: success/failure with reason
      */
     @Override
-    public OperationResult uploadNewArticles() {
+    public OperationResult uploadNewArticles(LocalDateTime forWhichDate) {
         OperationResult categoryUploading = uploadCategories();
         if (categoryUploading != null) {
             return categoryUploading;
@@ -59,7 +59,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
             return uploadFeedResult;
         }
 
-        return uploadArticles();
+        return uploadArticles(forWhichDate);
     }
 
     /**
@@ -67,12 +67,11 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
      *
      * @return operation result if exists, null otherwise
      */
-    private OperationResult uploadArticles() {
-        LocalDateTime articlesDateTime = LocalDateTime.now().minusDays(1L);
-        List<RssData> listData = rssRepository.getArticlesBy(articlesDateTime);
+    private OperationResult uploadArticles(LocalDateTime forWhichDate) {
+        List<RssData> listData = rssRepository.getArticlesBy(forWhichDate);
 
         if (!CollectionUtils.isEmpty(listData)) {
-            OperationResult resultUploading = rssRepository.uploadArticles(listData, articlesDateTime);
+            OperationResult resultUploading = rssRepository.uploadArticles(listData, forWhichDate);
             if (resultUploading.isFailed()) {
                 return resultUploading;
             }

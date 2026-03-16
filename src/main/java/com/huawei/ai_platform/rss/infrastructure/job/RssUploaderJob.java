@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 /**
  * Rss uploader job
  *
@@ -26,10 +28,9 @@ public class RssUploaderJob {
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
-        OperationResult result = rssService.uploadNewArticles();
+        OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(1L));
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish RssUploaderJob");
     }
-
 }
