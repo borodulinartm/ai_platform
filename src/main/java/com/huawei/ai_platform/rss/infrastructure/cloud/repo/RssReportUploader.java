@@ -16,11 +16,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.REPORTS;
 
 /**
  * Component which uploads rss reports
@@ -31,10 +28,15 @@ import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.REPORTS;
 @Component
 @RequiredArgsConstructor
 public class RssReportUploader {
-    private static final String REPORT_PATH = "news_summary";
 
-    @Value("${app.base-path-files}")
+    @Value("${cloud.base-path-files}")
     private String basicPath;
+
+    @Value("${cloud.directories.news_summary}")
+    private String newsSummaryPath;
+
+    @Value("${cloud.file-name}")
+    private String fileName;
 
     private final CloudSender cloudSender;
     private final ObjectMapper objectMapper;
@@ -48,7 +50,7 @@ public class RssReportUploader {
      */
     public OperationResult uploadReport(@Nonnull List<RssNewsSummaryCloud> summaryClouds, @Nonnull LocalDate reportDate) {
         String reportDateFormatted = reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"));
-        Path entryPath = Paths.get(basicPath + File.separator + REPORT_PATH + File.separator + reportDateFormatted);
+        Path entryPath = Paths.get(basicPath + File.separator + newsSummaryPath + File.separator + reportDateFormatted);
 
         OperationResult beforeWriting = cloudSender.deleteItems(entryPath);
         if (beforeWriting.isFailed()) {
@@ -59,11 +61,11 @@ public class RssReportUploader {
                 .collect(Collectors.groupingBy(RssNewsSummaryCloud::getCategoryId));
 
         for (Map.Entry<Integer, List<RssNewsSummaryCloud>> item : mapByCategoryId.entrySet()) {
-            String path = basicPath + File.separator + REPORT_PATH + File.separator + reportDateFormatted +
+            String path = basicPath + File.separator + newsSummaryPath + File.separator + reportDateFormatted +
                     File.separator + item.getKey() + File.separator;
             try {
                 String jsonRepresentation = objectMapper.writeValueAsString(item.getValue());
-                cloudSender.upload(path, jsonRepresentation, REPORTS.name().toLowerCase(Locale.ENGLISH));
+                cloudSender.upload(path, jsonRepresentation, fileName);
             } catch (JsonProcessingException e) {
                 return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("IO error: " + e.getMessage()).build();
             }
