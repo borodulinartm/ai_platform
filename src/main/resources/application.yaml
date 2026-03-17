@@ -23,4 +23,4 @@ cloud:
     news_summary: news_summary
 
   file-name: report.json
-  base-path-files: /tmp/cloud/
+  base-path-files: /tmp/cloud

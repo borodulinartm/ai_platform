@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -50,7 +48,7 @@ public class RssReportUploader {
      */
     public OperationResult uploadReport(@Nonnull List<RssNewsSummaryCloud> summaryClouds, @Nonnull LocalDate reportDate) {
         String reportDateFormatted = reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"));
-        Path entryPath = Paths.get(basicPath + File.separator + newsSummaryPath + File.separator + reportDateFormatted);
+        Path entryPath = Path.of(basicPath, newsSummaryPath, reportDateFormatted);
 
         OperationResult beforeWriting = cloudSender.deleteItems(entryPath);
         if (beforeWriting.isFailed()) {
@@ -61,8 +59,8 @@ public class RssReportUploader {
                 .collect(Collectors.groupingBy(RssNewsSummaryCloud::getCategoryId));
 
         for (Map.Entry<Integer, List<RssNewsSummaryCloud>> item : mapByCategoryId.entrySet()) {
-            String path = basicPath + File.separator + newsSummaryPath + File.separator + reportDateFormatted +
-                    File.separator + item.getKey() + File.separator;
+            Path path = Path.of(basicPath, newsSummaryPath, reportDateFormatted, String.valueOf(item.getKey()));
+
             try {
                 String jsonRepresentation = objectMapper.writeValueAsString(item.getValue());
                 cloudSender.upload(path, jsonRepresentation, fileName);

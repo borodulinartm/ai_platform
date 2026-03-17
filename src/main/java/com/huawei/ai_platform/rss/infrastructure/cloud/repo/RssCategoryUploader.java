@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -40,7 +41,8 @@ public class RssCategoryUploader {
      * @return OperationResult: success/failure
      */
     public OperationResult uploadRssCategory(@Nonnull List<RssCategoryCloud> categoryClouds) {
-        String path = basePathFiles + "/" + categoryPath + "/";
+        Path path = Path.of(basePathFiles, categoryPath);
+
         try {
             String content = objectMapper.writeValueAsString(categoryClouds);
             return cloudSender.upload(path, content, fileName);

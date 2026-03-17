@@ -37,9 +37,9 @@ public class CloudSender {
      * @param fileName file name
      * @return OperationResult: success/failure
      */
-    public OperationResult upload(String path, String text, String fileName) {
+    public OperationResult upload(Path path, String text, String fileName) {
         try {
-            Files.createDirectories(Path.of(path));
+            Files.createDirectories(path);
 
             Path fullPath;
             if (!path.endsWith(File.separator)) {

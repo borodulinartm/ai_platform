@@ -28,7 +28,7 @@ public class RssUploaderJob {
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
-        OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(6L));
+        OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(1L));
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish RssUploaderJob");
