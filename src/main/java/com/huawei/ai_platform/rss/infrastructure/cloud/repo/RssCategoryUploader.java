@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -21,14 +22,17 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class RssCategoryUploader {
-    private static final String FOLDER_CATEGORY = "category";
-    private static final String FILE_NAME = "categories";
-
     private final ObjectMapper objectMapper;
     private final CloudSender cloudSender;
 
-    @Value("${app.base-path-files}")
+    @Value("${cloud.base-path-files}")
     private String basePathFiles;
+
+    @Value("${cloud.directories.category}")
+    private String categoryPath;
+
+    @Value("${cloud.file-name}")
+    private String fileName;
 
     /**
      * Method uploads data to cloud service
@@ -37,10 +41,11 @@ public class RssCategoryUploader {
      * @return OperationResult: success/failure
      */
     public OperationResult uploadRssCategory(@Nonnull List<RssCategoryCloud> categoryClouds) {
-        String path = basePathFiles + "/" + FOLDER_CATEGORY + "/";
+        Path path = Path.of(basePathFiles, categoryPath);
+
         try {
             String content = objectMapper.writeValueAsString(categoryClouds);
-            return cloudSender.upload(path, content, FILE_NAME);
+            return cloudSender.upload(path, content, fileName);
 
         } catch (JsonProcessingException e) {
             return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Exception: " + e.getMessage()).build();

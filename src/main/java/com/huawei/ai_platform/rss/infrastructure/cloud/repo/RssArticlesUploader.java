@@ -11,9 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -36,13 +34,17 @@ import static com.huawei.ai_platform.rss.enums.RssTypeInfoEnum.ARTICLES;
 @RequiredArgsConstructor
 @Slf4j
 public class RssArticlesUploader {
-    public static final String FILE_NAME = "report";
-
     private final ObjectMapper objectMapper;
     private final CloudSender cloudSender;
 
-    @Value("${app.base-path-files}")
+    @Value("${cloud.base-path-files}")
     private String basePathFiles;
+
+    @Value("${cloud.file-name}")
+    private String fileName;
+
+    @Value("${cloud.directories.articles}")
+    private String articles;
 
     /**
      * Uploads data to cloud
@@ -70,11 +72,12 @@ public class RssArticlesUploader {
                 );
 
         for (Map.Entry<CategoryFeeKey, List<RssArticleCloud>> entryItem : rssMap.entrySet()) {
-            String pathInCloud = basePathFiles + entryItem.getKey().getTypeInfoEnum().name().toLowerCase(Locale.ENGLISH) + File.separator +
-                    reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")) + File.separator +
-                    entryItem.getKey().getCategoryId() + File.separator + entryItem.getKey().getFeedId() + File.separator;
+            Path pathInCloud = Path.of(basePathFiles, entryItem.getKey().getTypeInfoEnum().name().toLowerCase(Locale.ENGLISH),
+                    reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")),
+                    String.valueOf(entryItem.getKey().getCategoryId()),
+                    String.valueOf(entryItem.getKey().getFeedId()));
             try {
-                cloudSender.upload(pathInCloud, objectMapper.writeValueAsString(entryItem.getValue()), FILE_NAME);
+                cloudSender.upload(pathInCloud, objectMapper.writeValueAsString(entryItem.getValue()), fileName);
             } catch (JsonProcessingException e) {
                 return OperationResult.builder().state(FAILURE).reason("Bad situation. " + e.getMessage()).build();
             }
@@ -110,9 +113,8 @@ public class RssArticlesUploader {
      * @return OperationResult: success/failure.
      */
     private OperationResult deleteOldData(LocalDateTime reportDate) {
-        Path entryPath = Paths.get(basePathFiles + File.separator + ARTICLES.name().toLowerCase(Locale.ENGLISH)
-                + File.separator + reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"))
-        );
+        Path entryPath = Path.of(basePathFiles, articles,
+                reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd")));
 
         return cloudSender.deleteItems(entryPath);
     }

@@ -18,5 +18,12 @@ server:
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
 
-app:
-  base-path-files: /tmp/cloud/
+cloud:
+  directories:
+    category: category
+    feed: feed
+    articles: articles
+    news_summary: news_summary
+
+  file-name: report.json
+  base-path-files: ${BASE_PATH_CLOUD}

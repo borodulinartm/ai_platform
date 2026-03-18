@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Переменная с путём к логам -->
+    <property name="LOG_PATH" value="/usr1/logs/ai_platform"/>
+
+    <!-- Rolling файл-логгер -->
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- Активный лог-файл -->
+        <file>${LOG_PATH}/log-current.log</file>
+
+        <!-- Правила ротации -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Архивный шаблон: по дате и времени -->
+            <fileNamePattern>${LOG_PATH}/log-history-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- Храним максимум 30 файлов -->
+            <maxHistory>30</maxHistory>
+
+            <!-- Общий размер архива логов -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+
+        <!-- Формат сообщений -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- Цветной вывод -->
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %cyan([%thread]) %green(%logger) - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- Корневой логгер -->
+    <root level="INFO">
+        <appender-ref ref="ROLLING"/>
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Feed uploader to the Cloud
@@ -22,14 +22,17 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class RssFeedUploader {
-    private static final String FOLDER_CATEGORY = "feed";
-    private static final String FILE_NAME = "feeds";
-
     private final ObjectMapper objectMapper;
     private final CloudSender cloudSender;
 
-    @Value("${app.base-path-files}")
+    @Value("${cloud.base-path-files}")
     private String basePathFiles;
+
+    @Value("${cloud.directories.feed}")
+    private String feedPath;
+
+    @Value("${cloud.file-name}")
+    private String fileName;
 
     /**
      * Method uploads data to cloud service
@@ -37,11 +40,11 @@ public class RssFeedUploader {
      * @param rssFeedCloudList category clouds arr
      */
     public OperationResult uploadRssCategory(@Nonnull Collection<RssFeedCloud> rssFeedCloudList) {
-        String path = basePathFiles + "/" + FOLDER_CATEGORY + "/";
+        Path path = Path.of(basePathFiles, feedPath);
 
         try {
             String content = objectMapper.writeValueAsString(rssFeedCloudList);
-            return cloudSender.upload(path, content, FILE_NAME);
+            return cloudSender.upload(path, content, fileName);
 
         } catch (JsonProcessingException e) {
             return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Exception: " + e.getMessage()).build();
