@@ -25,7 +25,7 @@ public class RssArticleCloud {
     private String articleLink;
     private List<String> articleTags;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createDate;
 
     private int categoryId;

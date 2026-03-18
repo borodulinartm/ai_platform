@@ -7,4 +7,5 @@
     <include file="changesets/v1_0_create_category.sql" relativeToChangelogFile="true"/>
     <include file="changesets/v1_0_create_feed.sql" relativeToChangelogFile="true"/>
     <include file="changesets/v1_0_create_entry.sql" relativeToChangelogFile="true"/>
+    <include file="changesets/v1_1_Import_data.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

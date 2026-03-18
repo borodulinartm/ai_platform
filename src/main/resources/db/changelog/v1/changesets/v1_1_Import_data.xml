@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="v1_1" author="artem" labels="test">
+        <preConditions onError="MARK_RAN">
+            <tableExists tableName="admin_feed"/>
+            <tableExists tableName="admin_category"/>
+            <tableExists tableName="admin_entry"/>
+        </preConditions>
+        
+        <sqlFile path="data/admin_category.sql"/>
+        <sqlFile path="data/admin_feed.sql"/>
+        <sqlFile path="data/admin_entry.sql"/>
+    </changeSet>
+</databaseChangeLog>

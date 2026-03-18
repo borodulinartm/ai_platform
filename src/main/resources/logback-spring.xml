@@ -2,7 +2,13 @@
 <configuration>
 
     <!-- Переменная с путём к логам -->
-    <property name="LOG_PATH" value="/usr1/logs/ai_platform"/>
+    <springProfile name="prod">
+        <property name="LOG_PATH" value="/usr1/logs/ai_platform"/>
+    </springProfile>
+
+    <springProfile name="dev">
+        <property name="LOG_PATH" value="/tmp/logs/ai_platform"/>
+    </springProfile>
 
     <!-- Rolling файл-логгер -->
     <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
