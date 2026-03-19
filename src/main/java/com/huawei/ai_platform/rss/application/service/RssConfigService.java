@@ -1,6 +1,6 @@
 package com.huawei.ai_platform.rss.application.service;
 
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
+import com.huawei.ai_platform.rss.model.RssCategory;
 
 import java.util.List;
 
@@ -16,5 +16,5 @@ public interface RssConfigService {
      *
      * @return List of categories
      */
-    List<RssCategoryEntity> listCategories();
+    List<RssCategory> listCategories();
 }

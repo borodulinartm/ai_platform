@@ -7,7 +7,9 @@ import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
+import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +40,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
     }
 
     @Override
-    public List<RssCategoryEntity> listCategories() {
+    public List<RssCategory> listCategories() {
         return rssRepository.getListCategories();
     }
 
@@ -90,7 +92,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
      * @return Operation result if exists, null otherwise
      */
     private OperationResult uploadFeeds() {
-        List<RssFeedEntity> feedEntities = rssRepository.getListFeeds();
+        List<RssFeed> feedEntities = rssRepository.getListFeeds();
         if (!CollectionUtils.isEmpty(feedEntities)) {
             // Something broken while upload categories
             OperationResult resultUploading = rssRepository.uploadFeeds(feedEntities);
@@ -108,7 +110,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
      * @return Operation result if exists, null otherwise
      */
     private OperationResult uploadCategories() {
-        List<RssCategoryEntity> categoryEntities = rssRepository.getListCategories();
+        List<RssCategory> categoryEntities = rssRepository.getListCategories();
         if (!CollectionUtils.isEmpty(categoryEntities)) {
             // Something broken while upload categories
             OperationResult resultUploading = rssRepository.uploadCategories(categoryEntities);

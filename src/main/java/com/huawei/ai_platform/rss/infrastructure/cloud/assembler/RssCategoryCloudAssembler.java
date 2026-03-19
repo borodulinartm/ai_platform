@@ -1,7 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.cloud.assembler;
 
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssCategoryCloud;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
+import com.huawei.ai_platform.rss.model.RssCategory;
 import org.mapstruct.Mapper;
 
 import java.util.Collection;
@@ -21,5 +21,5 @@ public abstract class RssCategoryCloudAssembler {
      * @param input input list. Should be not null
      * @return List of converted structures
      */
-    public abstract List<RssCategoryCloud> convert(Collection<RssCategoryEntity> input);
+    public abstract List<RssCategoryCloud> convert(Collection<RssCategory> input);
 }

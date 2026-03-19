@@ -1,9 +1,9 @@
 package com.huawei.ai_platform.rss.application.repo;
 
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.common.OperationResult;
+import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 
@@ -32,14 +32,14 @@ public interface RssRepository {
      *
      * @return List of categories
      */
-    List<RssCategoryEntity> getListCategories();
+    List<RssCategory> getListCategories();
 
     /**
      * Extracts list of feeds
      *
      * @return List of feeds
      */
-    List<RssFeedEntity> getListFeeds();
+    List<RssFeed> getListFeeds();
 
     /**
      * Performs sending to Rss Data
@@ -56,7 +56,7 @@ public interface RssRepository {
      * @param categoryEntities collection of the categories
      * @return OperationResult: success/failure
      */
-    OperationResult uploadCategories(@Nonnull Collection<RssCategoryEntity> categoryEntities);
+    OperationResult uploadCategories(@Nonnull Collection<RssCategory> categoryEntities);
 
     /**
      * Performs uploading feeds to cloud
@@ -64,7 +64,7 @@ public interface RssRepository {
      * @param feedEntities collection of the categories
      * @return OperationResult: success/failure
      */
-    OperationResult uploadFeeds(@Nonnull Collection<RssFeedEntity> feedEntities);
+    OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities);
 
     /**
      * Performs marking as read

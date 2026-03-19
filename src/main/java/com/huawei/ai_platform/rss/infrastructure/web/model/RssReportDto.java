@@ -1,11 +1,11 @@
-package com.huawei.ai_platform.rss.model;
+package com.huawei.ai_platform.rss.infrastructure.web.model;
 
 import lombok.*;
 
 import java.util.List;
 
 /**
- * Aggregate for the RSS news summary
+ * News report gotten from the web side
  *
  * @author Borodulin Artem
  * @since 2026.03.12
@@ -15,9 +15,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RssNewsSummary {
+public class RssReportDto {
     private int categoryId;
+    private List<RssArticlesReportDto> articlesReport;
     private String articleTopSummary;
-
-    private List<RssArticleSummary> articlesReport;
 }

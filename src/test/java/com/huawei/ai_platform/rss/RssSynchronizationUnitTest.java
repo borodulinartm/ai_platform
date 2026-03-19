@@ -4,9 +4,10 @@ import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.impl.RssServiceImpl;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
+import com.huawei.ai_platform.rss.model.RssFeed;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,10 +49,10 @@ class RssSynchronizationUnitTest {
         );
         when(rssRepository.getArticlesBy(any())).thenReturn(rssDataList);
         when(rssRepository.getListCategories()).thenReturn(
-                List.of(RssCategoryEntity.builder().name("Name1").build())
+                List.of(RssCategory.builder().categoryNameEn("Name1").build())
         );
         when(rssRepository.getListFeeds()).thenReturn(
-                List.of(RssFeedEntity.builder().name("Feed").id(1).build())
+                List.of(RssFeed.builder().feedNameEn("Feed").feedId(1).build())
         );
 
         // Prepare FS mocking
@@ -79,7 +80,7 @@ class RssSynchronizationUnitTest {
     @Test
     public void testUploadReport_shouldCompleteWithFailingBecauseUploadFails() {
         when(rssRepository.getListCategories()).thenReturn(
-                List.of(RssCategoryEntity.builder().name("Name1").build())
+                List.of(RssCategory.builder().categoryNameEn("Name1").build())
         );
         // Prepare FS mocking
         OperationResult failResult = OperationResult.builder().state(FAILURE).reason("Failure for some reason").build();

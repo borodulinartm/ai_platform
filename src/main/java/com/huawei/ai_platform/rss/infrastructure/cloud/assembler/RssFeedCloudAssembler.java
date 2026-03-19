@@ -1,7 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.cloud.assembler;
 
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssFeedCloud;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.model.RssFeed;
 import org.mapstruct.Mapper;
 
 import java.util.Collection;
@@ -14,5 +14,5 @@ import java.util.Collection;
  */
 @Mapper(componentModel = "spring")
 public abstract class RssFeedCloudAssembler {
-    public abstract Collection<RssFeedCloud> convert(Collection<RssFeedEntity> input);
+    public abstract Collection<RssFeedCloud> convert(Collection<RssFeed> input);
 }

@@ -14,10 +14,11 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class RssFeedCloud {
-    public int id;
+    public int feedId;
     private String url;
     private int category;
-    private String name;
+    private String feedNameEn;
+    private String feedNameZh;
     private String website;
     private String description;
     private int priority;

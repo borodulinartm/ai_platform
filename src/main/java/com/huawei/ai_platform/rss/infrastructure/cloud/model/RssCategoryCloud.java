@@ -15,6 +15,8 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class RssCategoryCloud {
-    private int id;
-    private String name;
+    private int categoryId;
+
+    private String categoryNameEn;
+    private String categoryNameZh;
 }

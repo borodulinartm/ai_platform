@@ -14,11 +14,14 @@ import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssArticlesUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssCategoryUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssFeedUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssReportUploader;
+import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
+import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.common.OperationResult;
+import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +29,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RssFacade implements RssRepository {
     private final RssPersistenceRepo persistenceRepo;
+    private final RssAssembler rssAssembler;
 
     private final RssArticlesUploader cloudSender;
     private final RssArticleCloudAssembler rssArticleCloudAssembler;
@@ -62,13 +63,19 @@ public class RssFacade implements RssRepository {
     }
 
     @Override
-    public List<RssCategoryEntity> getListCategories() {
-        return persistenceRepo.getCategories();
+    public List<RssCategory> getListCategories() {
+        List<RssCategoryEntity> categoryEntities =  persistenceRepo.getCategories();
+        if (categoryEntities != null) {
+            return rssAssembler.convertFromPersistenceToRssCategory(categoryEntities);
+        }
+
+        return Collections.emptyList();
     }
 
     @Override
-    public List<RssFeedEntity> getListFeeds() {
-        return persistenceRepo.getFeedEntity();
+    public List<RssFeed> getListFeeds() {
+        List<RssFeedEntity> feedEntities = persistenceRepo.getFeedEntity();
+        return rssAssembler.convertFromPersistenceToRssFeed(feedEntities);
     }
 
     @Override
@@ -97,13 +104,13 @@ public class RssFacade implements RssRepository {
     }
 
     @Override
-    public OperationResult uploadCategories(@Nonnull Collection<RssCategoryEntity> categoryEntities) {
+    public OperationResult uploadCategories(@Nonnull Collection<RssCategory> categoryEntities) {
         List<RssCategoryCloud> cloudCategories = rssCategoryCloudAssembler.convert(categoryEntities);
         return rssCategoryUploader.uploadRssCategory(cloudCategories);
     }
 
     @Override
-    public OperationResult uploadFeeds(@Nonnull Collection<RssFeedEntity> feedEntities) {
+    public OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities) {
         Collection<RssFeedCloud> cloudCategories = rssFeedCloudAssembler.convert(feedEntities);
         return rssFeedUploader.uploadRssCategory(cloudCategories);
     }

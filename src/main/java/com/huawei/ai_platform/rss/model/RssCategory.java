@@ -17,5 +17,7 @@ import java.io.Serializable;
 @Builder
 public class RssCategory implements Serializable {
     private int categoryId;
-    private String categoryName;
+
+    private String categoryNameEn;
+    private String categoryNameZh;
 }
