@@ -18,5 +18,7 @@ import java.util.List;
 public class RssReportDto {
     private int categoryId;
     private List<RssArticlesReportDto> articlesReport;
-    private String articleTopSummary;
+
+    private String articleTopSummaryEn;
+    private String articleTopSummaryZh;
 }

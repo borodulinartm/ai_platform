@@ -63,7 +63,7 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId()).articleTitle(inputItem.getTitle())
+                    .articleId(inputItem.getId()).articleTitleEn(inputItem.getTitle())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
                     .articleContent(inputItem.getContent()).articleLink(inputItem.getLink())
                     .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())

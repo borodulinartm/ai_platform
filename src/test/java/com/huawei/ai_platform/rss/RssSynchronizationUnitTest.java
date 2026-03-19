@@ -4,7 +4,6 @@ import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.impl.RssServiceImpl;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.rss.model.RssFeed;
@@ -44,8 +43,8 @@ class RssSynchronizationUnitTest {
     public void testUploadReport_shouldCompleteSuccessfully() {
         // Prepare DB mocking
         List<RssData> rssDataList = Arrays.asList(
-                RssData.builder().articleId(1L).articleTitle("Title").articleContent("Content").articleAuthors(null).build(),
-                RssData.builder().articleId(2L).articleTitle("Title #2").articleContent("Content #2").articleAuthors(null).build()
+                RssData.builder().articleId(1L).articleTitleEn("Title").articleContent("Content").articleAuthors(null).build(),
+                RssData.builder().articleId(2L).articleTitleEn("Title #2").articleContent("Content #2").articleAuthors(null).build()
         );
         when(rssRepository.getArticlesBy(any())).thenReturn(rssDataList);
         when(rssRepository.getListCategories()).thenReturn(

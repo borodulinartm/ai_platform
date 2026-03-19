@@ -16,7 +16,9 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class RssNewsSummaryCloud {
-    private String articleTopSummary;
+    private String articleTopSummaryEn;
+    private String articleTopSummaryZh;
+
     private int categoryId;
     private List<RssArticleSummaryCloud> articlesReport;
 }

@@ -19,9 +19,15 @@ import java.util.List;
 @Builder
 public class RssArticleCloud {
     private long articleId;
-    private String articleTitle;
+
+    private String articleTitleEn;
+    private String articleTitleZh;
+
     private List<String> articleAuthors;
+
     private String articleContent;
+    private String articleContentZh;
+
     private String articleLink;
     private List<String> articleTags;
 

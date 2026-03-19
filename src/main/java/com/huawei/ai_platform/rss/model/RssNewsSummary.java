@@ -17,7 +17,9 @@ import java.util.List;
 @Builder
 public class RssNewsSummary {
     private int categoryId;
-    private String articleTopSummary;
+
+    private String articleTopSummaryEn;
+    private String articleTopSummaryZh;
 
     private List<RssArticleSummary> articlesReport;
 }

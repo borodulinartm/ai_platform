@@ -16,14 +16,21 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class RssArticleSummary {
-    private String articleTitle;
     private List<String> authors;
-    private String articleLink;
-    private String articleAbstract;
 
-    private String background;
-    private String effects;
-    private String eventSummary;
-    private String technologyAndInnovation;
-    private String valueAndImpact;
+    private String articleTitleEn;
+    private String articleAbstractEn;
+    private String backgroundEn;
+    private String effectsEn;
+    private String eventSummaryEn;
+    private String technologyAndInnovationEn;
+    private String valueAndImpactEn;
+
+    private String articleTitleZh;
+    private String articleAbstractZh;
+    private String backgroundZh;
+    private String effectsZh;
+    private String eventSummaryZh;
+    private String technologyAndInnovationZh;
+    private String valueAndImpactZh;
 }
