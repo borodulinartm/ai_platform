@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
@@ -15,7 +16,10 @@ public class RssFeedEntity {
     public int id;
     private String url;
     private int kind;
-    private int category;
+
+    @TableField("category")
+    private int categoryId;
+
     private String name;
     private String website;
     private String description;

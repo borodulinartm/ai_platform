@@ -39,7 +39,7 @@ public class RssFeedUploader {
      *
      * @param rssFeedCloudList category clouds arr
      */
-    public OperationResult uploadRssCategory(@Nonnull Collection<RssFeedCloud> rssFeedCloudList) {
+    public OperationResult uploadRssFeed(@Nonnull Collection<RssFeedCloud> rssFeedCloudList) {
         Path path = Path.of(basePathFiles, feedPath);
 
         try {

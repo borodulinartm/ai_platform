@@ -116,6 +116,7 @@ public class RssAssembler {
                             .feedNameZh(feedArr.length > 1 ? feedArr[1].trim() : StringUtils.EMPTY)
                             .description(feedEntity.getDescription())
                             .priority(feedEntity.getPriority())
+                            .categoryId(feedEntity.getCategoryId())
                             .url(feedEntity.getUrl())
                             .website(feedEntity.getWebsite())
                             .priority(feedEntity.getPriority())

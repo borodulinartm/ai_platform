@@ -93,6 +93,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
      */
     private OperationResult uploadFeeds() {
         List<RssFeed> feedEntities = rssRepository.getListFeeds();
+
         if (!CollectionUtils.isEmpty(feedEntities)) {
             // Something broken while upload categories
             OperationResult resultUploading = rssRepository.uploadFeeds(feedEntities);

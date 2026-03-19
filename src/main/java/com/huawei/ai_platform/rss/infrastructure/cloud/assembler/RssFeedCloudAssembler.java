@@ -14,5 +14,11 @@ import java.util.Collection;
  */
 @Mapper(componentModel = "spring")
 public abstract class RssFeedCloudAssembler {
+    /**
+     * Performs converting from the aggregate to the cloud section
+     *
+     * @param input collection of an input data
+     * @return collection of cloud items
+     */
     public abstract Collection<RssFeedCloud> convert(Collection<RssFeed> input);
 }

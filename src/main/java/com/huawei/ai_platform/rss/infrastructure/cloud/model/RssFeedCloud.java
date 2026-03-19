@@ -16,7 +16,7 @@ import lombok.*;
 public class RssFeedCloud {
     public int feedId;
     private String url;
-    private int category;
+    private int categoryId;
     private String feedNameEn;
     private String feedNameZh;
     private String website;

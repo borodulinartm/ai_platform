@@ -111,7 +111,7 @@ public class RssFacade implements RssRepository {
 
     @Override
     public OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities) {
-        Collection<RssFeedCloud> cloudCategories = rssFeedCloudAssembler.convert(feedEntities);
-        return rssFeedUploader.uploadRssCategory(cloudCategories);
+        Collection<RssFeedCloud> rssFeedClouds = rssFeedCloudAssembler.convert(feedEntities);
+        return rssFeedUploader.uploadRssFeed(rssFeedClouds);
     }
 }
