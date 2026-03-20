@@ -17,6 +17,7 @@ import java.util.List;
 @Builder
 public class RssArticleSummary {
     private List<String> authors;
+    private String articleLink;
 
     private String articleTitleEn;
     private String articleAbstractEn;

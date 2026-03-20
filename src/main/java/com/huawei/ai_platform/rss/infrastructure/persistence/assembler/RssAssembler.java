@@ -45,11 +45,12 @@ public class RssAssembler {
 
         for (RssFetchData inputItem : inputData) {
             List<String> authorList = StringUtils.isNoneBlank(inputItem.getAuthor())
-                    ? Stream.of(inputItem.getAuthor().split(AUTHOR_SEPARATOR)).filter(StringUtils::isNoneBlank).toList()
+                    ? Stream.of(inputItem.getAuthor().split(AUTHOR_SEPARATOR)).filter(StringUtils::isNoneBlank)
+                        .map(String::trim).toList()
                     : List.of();
             List<String> tagsList = StringUtils.isNoneBlank(inputItem.getTags())
                     ? Stream.of(inputItem.getTags().split(TAG_SEPARATOR))
-                    .filter(StringUtils::isNoneBlank).map(String::trim).distinct().toList()
+                    .filter(StringUtils::isNoneBlank).map(String::trim).map(String::trim).distinct().toList()
                     : List.of();
 
             RssFeed feed = RssFeed.builder()
