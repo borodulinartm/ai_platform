@@ -43,6 +43,7 @@ Return ONLY a valid JSON array with the following structure:
 
 Critical Constraints:
     - The output MUST be valid JSON.
+    - Please make an escaping for the double quot (")
     - The output MUST start with [ and end with ].
     - Do NOT include any text before or after the JSON.
     - Do NOT include trailing commas.

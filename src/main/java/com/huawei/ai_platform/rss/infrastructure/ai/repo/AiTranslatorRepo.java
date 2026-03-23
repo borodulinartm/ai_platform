@@ -16,9 +16,12 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,9 +34,6 @@ import java.util.List;
 @Component
 @Slf4j
 public class AiTranslatorRepo {
-    @Value("${classpath:prompt/system-prompt.txt}")
-    private Resource systemPropmptResource;
-
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
 
@@ -51,7 +51,11 @@ public class AiTranslatorRepo {
      */
     public List<AiTranslationResponse> translate(@Nonnull List<AiTranslationRequest> request) {
         try {
-            Message systemMessage = new SystemMessage(systemPropmptResource.getContentAsString(StandardCharsets.UTF_8));
+            log.info("run translation. {}", Thread.currentThread().getName());
+
+            File file = ResourceUtils.getFile("classpath:prompt/system-prompt.txt");
+
+            Message systemMessage = new SystemMessage(Files.readString(file.toPath()));
             Message userMessage = new UserMessage(objectMapper.writeValueAsString(request));
 
             String res = chatClient.prompt(
@@ -63,8 +67,9 @@ public class AiTranslatorRepo {
             }
 
             return objectMapper.readValue(res, new TypeReference<>() {});
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
+        } catch (Exception exception) {
+            log.error("An error has occurred during extracting data: {}", exception.getMessage());
+            return Collections.emptyList();
         }
     }
 }

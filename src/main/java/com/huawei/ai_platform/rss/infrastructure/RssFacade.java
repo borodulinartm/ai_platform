@@ -1,8 +1,12 @@
 package com.huawei.ai_platform.rss.infrastructure;
 
+import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
+import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
@@ -24,17 +28,18 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
-import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +51,10 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
+    public static final int COUNT_THREADS = 4;
+
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
 
@@ -63,6 +71,7 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     private final RssReportUploader rssReportUploader;
     private final RssDao rssDao;
     private final AiTranslatorRepo aiTranslatorRepo;
+    private final AiTranslationMapper aiTranslationMapper;
 
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
@@ -128,7 +137,44 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
             throw new IllegalArgumentException("Array should not be empty");
         }
 
-        aiTranslatorRepo.translate(Collections.emptyList());
+        int index = 0;
+        int offset = 50;
+
+        List<List<RssData>> rssItems = new ArrayList<>();
+
+        while (index < compacts.size()) {
+            List<RssData> subList = compacts.subList(index, Math.min(index + offset, compacts.size()));
+            index += offset;
+
+            rssItems.add(subList);
+        }
+
+        if (!rssItems.isEmpty()) {
+            try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(COUNT_THREADS)) {
+                List<List<RssData>> splittedList = rssItems.stream().limit(COUNT_THREADS).toList();
+
+                List<ScheduledFuture<List<AiTranslationResponse>>> listFutures = new ArrayList<>();
+
+                for (int i = 0; i < splittedList.size(); ++i) {
+                    List<AiTranslationRequest> listRequests = splittedList.get(i).stream().map(aiTranslationMapper::convert)
+                            .toList();
+                    listFutures.add(scheduledExecutorService.schedule(
+                            () -> aiTranslatorRepo.translate(listRequests),
+                            i * 5L, TimeUnit.SECONDS // Big delay between tasks because rate limiting in the AI side
+                    ));
+                }
+
+                for (ScheduledFuture<List<AiTranslationResponse>> item : listFutures) {
+                    try {
+                        List<AiTranslationResponse> response = item.get();
+                        response.forEach(v -> log.info(v.toString()));
+                    } catch (Exception exception) {
+                        log.error("During extracting data there's an error: {}", exception.getMessage());
+                    }
+                }
+            }
+        }
+
         return Collections.emptyList();
     }
 
