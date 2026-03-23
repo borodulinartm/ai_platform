@@ -1,7 +1,9 @@
 package com.huawei.ai_platform.rss.infrastructure;
 
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssFeedCloudAssembler;
@@ -15,8 +17,10 @@ import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssCategoryUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssFeedUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssReportUploader;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
+import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -26,6 +30,7 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,7 +46,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
-public class RssFacade implements RssRepository {
+public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
 
@@ -56,6 +61,8 @@ public class RssFacade implements RssRepository {
 
     private final RssSummaryNewsAssembler rssSummaryNewsAssembler;
     private final RssReportUploader rssReportUploader;
+    private final RssDao rssDao;
+    private final AiTranslatorRepo aiTranslatorRepo;
 
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
@@ -113,5 +120,23 @@ public class RssFacade implements RssRepository {
     public OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities) {
         Collection<RssFeedCloud> rssFeedClouds = rssFeedCloudAssembler.convert(feedEntities);
         return rssFeedUploader.uploadRssFeed(rssFeedClouds);
+    }
+
+    @Override
+    public List<RssData> translate(List<RssData> compacts) {
+        if (CollectionUtils.isEmpty(compacts)) {
+            throw new IllegalArgumentException("Array should not be empty");
+        }
+
+        aiTranslatorRepo.translate(Collections.emptyList());
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<RssData> getNotTranslatedNews() {
+        Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle);
+
+        return rssAssembler.convertFromFetchToRssData(fetchDataList);
     }
 }

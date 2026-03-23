@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
+    <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        SELECT entry.id, entry.title, entry.content from admin_entry entry
+
+        <where>
+            <if test="timestamp != null">
+                entry.id > #{timestamp}
+            </if>
+        </where>
+
+        order by entry.id
+    </select>
+
     <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         select
             entry.id,
@@ -31,6 +43,11 @@
                 AND entry.id &lt;= #{endTime}
             </if>
         </where>
+    </select>
+
+    <!--  After that ID we'll scan other news that is currently not in the article_translation_table  -->
+    <select id="getMaxTranslatedTimestamp" resultType="long">
+        SELECT MAX(entry.article_create_date) from article_translations entry
     </select>
 
     <update id="markAsReadNews" parameterType="arraylist">

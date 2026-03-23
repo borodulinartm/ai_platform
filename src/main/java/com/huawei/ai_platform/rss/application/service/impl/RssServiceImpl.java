@@ -2,9 +2,11 @@ package com.huawei.ai_platform.rss.application.service.impl;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
+import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -31,8 +33,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class RssServiceImpl implements RssSyncService, RssConfigService {
+public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
     private final RssRepository rssRepository;
+    private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
@@ -121,5 +124,13 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
         }
 
         return null;
+    }
+
+    @Override
+    public OperationResult performTranslate() {
+        List<RssData> rssTranslationList = rssArticleTranslatorRepository.getNotTranslatedNews();
+        rssArticleTranslatorRepository.translate(rssTranslationList);
+
+        return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Good").build();
     }
 }

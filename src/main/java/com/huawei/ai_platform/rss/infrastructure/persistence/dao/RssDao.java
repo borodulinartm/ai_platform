@@ -30,6 +30,21 @@ public interface RssDao extends BaseMapper<RssEntity> {
     );
 
     /**
+     * Extracts list of articles after some timestamp
+     *
+     * @param timestamp timestamp. If is empty, it returns all data
+     * @return List of fetched data
+     */
+    List<RssFetchData> getAfter(@Param("timestamp") Long timestamp);
+
+    /**
+     * Extracts max untranslated article
+     *
+     * @return timestamp
+     */
+    Long getMaxTranslatedTimestamp();
+
+    /**
      * Marks news as read
      *
      * @param rssDataCollection collection of news
