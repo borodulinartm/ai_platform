@@ -3,17 +3,22 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssArticleTranslationMapper;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssFeedDao;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssArticleTranslationEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -35,7 +40,7 @@ public class RssPersistenceRepo {
     private final RssDao rssDao;
     private final RssCategoryDao rssCategoryDao;
     private final RssFeedDao rssFeedDao;
-
+    private final RssArticleTranslationMapper rssArticleTranslationMapper;
     private final RssAssembler rssAssembler;
 
     /**
@@ -96,5 +101,29 @@ public class RssPersistenceRepo {
      */
     public List<RssFeedEntity> getFeedEntity() {
         return rssFeedDao.selectList(new LambdaQueryWrapper<>());
+    }
+
+    /**
+     * Performs inserting data into datasource
+     *
+     * @param rssDataList list of data. Must be not null
+     * @param statusEnum  status. Must be not null
+     */
+    @Transactional
+    public void insertArticleTranslations(@Nonnull List<RssData> rssDataList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
+        List<RssArticleTranslationEntity> translatedToEntity = rssDataList.stream()
+                .map(v -> rssArticleTranslationMapper.convert(v, statusEnum)).toList();
+        rssDao.insertNewArticleTranslations(translatedToEntity);
+    }
+
+    @Transactional
+    public void queryUpdateArticleTranslation(@Nonnull List<AiTranslationResponse> responses,
+                                              @Nonnull ArticleTranslationStatusEnum statusEnum) {
+        responses.forEach(v -> rssDao.queryUpdateArticleTranslation(v, statusEnum));
+    }
+
+    @Transactional
+    public void queryUpdateStatusByListData(@Nonnull List<Long> idList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
+        rssDao.queryUpdateStatusByListData(idList, statusEnum);
     }
 }

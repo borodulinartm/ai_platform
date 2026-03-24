@@ -40,7 +40,7 @@ public class RssJob {
     public void runTranslation() {
         log.info("Run Translation Job");
 
-        OperationResult result = rssTranslationService.performTranslate();
+        OperationResult result = rssTranslationService.syncTranslation();
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish Translation Job");

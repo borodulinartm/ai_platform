@@ -7,8 +7,8 @@ import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.rss.model.RssFeed;
@@ -127,10 +127,38 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     }
 
     @Override
-    public OperationResult performTranslate() {
+    public OperationResult syncTranslation() {
         List<RssData> rssTranslationList = rssArticleTranslatorRepository.getNotTranslatedNews();
-        rssArticleTranslatorRepository.translate(rssTranslationList);
+        rssArticleTranslatorRepository.syncTranslation(rssTranslationList);
 
         return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Good").build();
+    }
+
+    @Override
+    public void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
+                                              ArticleTranslationStatusEnum statusEnum) {
+        if (CollectionUtils.isEmpty(responses) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateArticleTranslation(responses, statusEnum);
+    }
+
+    @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum) {
+        if (CollectionUtils.isEmpty(idList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateStatusByListData(idList, statusEnum);
+    }
+
+    @Override
+    public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
+        if (CollectionUtils.isEmpty(rssDataList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.insertNewArticleTranslations(rssDataList, statusEnum);
     }
 }

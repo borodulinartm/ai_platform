@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -12,18 +14,19 @@ import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.metadata.RateLimit;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ResourceUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
+
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FINISH;
 
 /**
  * AI content generator
@@ -36,11 +39,14 @@ import java.util.List;
 public class AiTranslatorRepo {
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public AiTranslatorRepo(ChatClient.Builder builder, ObjectMapper objectMapper) {
+    public AiTranslatorRepo(ChatClient.Builder builder, ObjectMapper objectMapper,
+                            ApplicationEventPublisher applicationEventPublisher) {
         chatClient = builder.defaultAdvisors(new SimpleLoggerAdvisor())
                 .build();
         this.objectMapper = objectMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -50,13 +56,17 @@ public class AiTranslatorRepo {
      * @return list of response data
      */
     public List<AiTranslationResponse> translate(@Nonnull List<AiTranslationRequest> request) {
+        List<Long> listIds = request.stream().map(AiTranslationRequest::getArticleId).toList();
+
         try {
-            log.info("run translation. {}", Thread.currentThread().getName());
+            applicationEventPublisher.publishEvent(new TranslationProcessingEvent(listIds));
 
             File file = ResourceUtils.getFile("classpath:prompt/system-prompt.txt");
 
             Message systemMessage = new SystemMessage(Files.readString(file.toPath()));
             Message userMessage = new UserMessage(objectMapper.writeValueAsString(request));
+
+            log.info("run translation. {}", Thread.currentThread().getName());
 
             String res = chatClient.prompt(
                     new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
@@ -66,9 +76,20 @@ public class AiTranslatorRepo {
                 throw new IllegalStateException("The result of the response is empty for some reason");
             }
 
-            return objectMapper.readValue(res, new TypeReference<>() {});
+            log.info(res);
+
+            List<AiTranslationResponse> responseList = objectMapper.readValue(res, new TypeReference<>() {});
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(responseList, FINISH));
+
+            return responseList;
         } catch (Exception exception) {
             log.error("An error has occurred during extracting data: {}", exception.getMessage());
+
+            List<AiTranslationResponse> mapToResponseWithEmptyData = listIds.stream()
+                    .map(v -> new AiTranslationResponse(v, StringUtils.EMPTY, StringUtils.EMPTY))
+                    .toList();
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(mapToResponseWithEmptyData, FAILURE));
+
             return Collections.emptyList();
         }
     }

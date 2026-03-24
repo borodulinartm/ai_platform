@@ -7,6 +7,7 @@ import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
@@ -25,6 +26,7 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -33,6 +35,7 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -41,6 +44,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 
 /**
  * Facade class for working with RSS. Encapsulates 'Repo' abstract layer
@@ -53,7 +58,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
-    public static final int COUNT_THREADS = 4;
+    public static final int COUNT_THREADS = 15;
 
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
@@ -73,6 +78,8 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     private final AiTranslatorRepo aiTranslatorRepo;
     private final AiTranslationMapper aiTranslationMapper;
 
+    private final ApplicationEventPublisher applicationEventPublisher;
+
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
         return persistenceRepo.getArticles(dateToFind);
@@ -80,7 +87,7 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
 
     @Override
     public List<RssCategory> getListCategories() {
-        List<RssCategoryEntity> categoryEntities =  persistenceRepo.getCategories();
+        List<RssCategoryEntity> categoryEntities = persistenceRepo.getCategories();
         if (categoryEntities != null) {
             return rssAssembler.convertFromPersistenceToRssCategory(categoryEntities);
         }
@@ -132,13 +139,16 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     }
 
     @Override
-    public List<RssData> translate(List<RssData> compacts) {
+    public List<RssData> syncTranslation(List<RssData> compacts) {
         if (CollectionUtils.isEmpty(compacts)) {
             throw new IllegalArgumentException("Array should not be empty");
         }
 
+        applicationEventPublisher.publishEvent(new TranslationCreatedEvent(compacts, INIT));
+//        persistenceRepo.insertArticleTranslations(compacts, INIT);
+
         int index = 0;
-        int offset = 50;
+        int offset = 10;
 
         List<List<RssData>> rssItems = new ArrayList<>();
 
@@ -150,32 +160,41 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
         }
 
         if (!rssItems.isEmpty()) {
-            try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(COUNT_THREADS)) {
-                List<List<RssData>> splittedList = rssItems.stream().limit(COUNT_THREADS).toList();
-
-                List<ScheduledFuture<List<AiTranslationResponse>>> listFutures = new ArrayList<>();
-
-                for (int i = 0; i < splittedList.size(); ++i) {
-                    List<AiTranslationRequest> listRequests = splittedList.get(i).stream().map(aiTranslationMapper::convert)
-                            .toList();
-                    listFutures.add(scheduledExecutorService.schedule(
-                            () -> aiTranslatorRepo.translate(listRequests),
-                            i * 5L, TimeUnit.SECONDS // Big delay between tasks because rate limiting in the AI side
-                    ));
-                }
-
-                for (ScheduledFuture<List<AiTranslationResponse>> item : listFutures) {
-                    try {
-                        List<AiTranslationResponse> response = item.get();
-                        response.forEach(v -> log.info(v.toString()));
-                    } catch (Exception exception) {
-                        log.error("During extracting data there's an error: {}", exception.getMessage());
-                    }
-                }
-            }
+            runTranslation(rssItems);
         }
 
         return Collections.emptyList();
+    }
+
+    /**
+     * With provided sublist run translation mechanism
+     *
+     * @param rssItems List of the list of the items
+     */
+    private void runTranslation(List<List<RssData>> rssItems) {
+        try (ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(COUNT_THREADS)) {
+            List<List<RssData>> splittedList = rssItems.stream().limit(COUNT_THREADS).toList();
+
+            List<ScheduledFuture<List<AiTranslationResponse>>> listFutures = new ArrayList<>();
+
+            for (int i = 0; i < splittedList.size(); ++i) {
+                List<AiTranslationRequest> listRequests = splittedList.get(i).stream().map(aiTranslationMapper::convert)
+                        .toList();
+                listFutures.add(scheduledExecutorService.schedule(
+                        () -> aiTranslatorRepo.translate(listRequests),
+                        i * 10L, TimeUnit.SECONDS // Big delay between tasks because rate limiting in the AI side
+                ));
+            }
+
+            for (ScheduledFuture<List<AiTranslationResponse>> item : listFutures) {
+                try {
+                    List<AiTranslationResponse> response = item.get();
+//                        response.forEach(v -> log.info(v.toString()));
+                } catch (Exception exception) {
+                    log.error("During extracting data there's an error: {}", exception.getMessage());
+                }
+            }
+        }
     }
 
     @Override
@@ -184,5 +203,21 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
         List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle);
 
         return rssAssembler.convertFromFetchToRssData(fetchDataList);
+    }
+
+    @Override
+    public void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
+                                              ArticleTranslationStatusEnum statusEnum) {
+        persistenceRepo.queryUpdateArticleTranslation(responses, statusEnum);
+    }
+
+    @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum) {
+        persistenceRepo.queryUpdateStatusByListData(idList, statusEnum);
+    }
+
+    @Override
+    public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
+        persistenceRepo.insertArticleTranslations(rssDataList, INIT);
     }
 }

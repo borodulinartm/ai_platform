@@ -1,8 +1,12 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssArticleTranslationEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
+import jakarta.annotation.Nonnull;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -50,4 +54,16 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @param rssDataCollection collection of news
      */
     void markAsReadNews(@Param("news") Collection<Long> rssDataCollection);
+
+    /**
+     * Performs inserting to the datasource list of translation data
+     * @param data list of data. Check for null before insert
+     */
+    void insertNewArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
+
+    void queryUpdateArticleTranslation(@Nonnull @Param("item") AiTranslationResponse response,
+                                       @Nonnull @Param("status") ArticleTranslationStatusEnum statusEnum);
+
+    void queryUpdateStatusByListData(@Param("data") List<Long> items,
+                                     @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum);
 }

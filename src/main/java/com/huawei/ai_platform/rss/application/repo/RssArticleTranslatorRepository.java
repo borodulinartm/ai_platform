@@ -1,5 +1,7 @@
 package com.huawei.ai_platform.rss.application.repo;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
 
 import java.util.List;
@@ -17,7 +19,7 @@ public interface RssArticleTranslatorRepository {
      * @param compacts list of untranslated news
      * @return list of translated news
      */
-    List<RssData> translate(List<RssData> compacts);
+    List<RssData> syncTranslation(List<RssData> compacts);
 
     /**
      * Extracts all untranslated news from datasource
@@ -25,4 +27,11 @@ public interface RssArticleTranslatorRepository {
      * @return untranslated news
      */
     List<RssData> getNotTranslatedNews();
+
+    void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
+                                       ArticleTranslationStatusEnum statusEnum);
+
+    void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum);
+
+    void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum);
 }

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
@@ -34,5 +35,19 @@ public class SchedulerConfig {
         scheduler.initialize();
 
         return scheduler;
+    }
+
+    @Bean
+    public ThreadPoolTaskExecutor taskExecutorAsync() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(1000);
+        executor.setRejectedExecutionHandler((task, thread) -> {
+            log.error("Sorry, for thread = {} task = {} was rejected", thread, task);
+        });
+
+        executor.initialize();
+        return executor;
     }
 }

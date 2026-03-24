@@ -1,6 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
+    <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO article_translations
+            (article_create_date, title_zh, status, content_zh)
+        VALUES
+        <foreach collection="data" separator="," item="item">
+            (
+                #{item.articleCreateDate},
+                #{item.titleZh},
+                #{item.status},
+                #{item.contentZh}
+            )
+        </foreach>
+    </insert>
+    
+    <update id="queryUpdateArticleTranslation">
+        UPDATE article_translations SET title_zh = #{item.articleTitleZh},
+                                        content_zh = #{item.articleContentZh},
+                                        status = #{status}
+        <where>
+            article_create_date = #{item.articleId}
+        </where>
+    </update>
+
+    <update id="queryUpdateStatusByListData">
+        UPDATE article_translations SET status = #{status}
+        <where>
+            article_create_date in
+                <foreach collection="data" item="item" open="(" close=")" separator=",">
+                    #{item}
+                </foreach>
+        </where>
+    </update>
+
     <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         SELECT entry.id, entry.title, entry.content from admin_entry entry
 
