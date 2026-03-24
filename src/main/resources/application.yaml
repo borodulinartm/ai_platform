@@ -10,7 +10,7 @@ spring:
     openai:
       chat:
         options:
-          temperature: 0.7
+          temperature: 1
           model: glm-5
       base-url: https://api.modelarts-maas.com
       api-key: 32C_du4rbvFjq_j3uXHIrZQ6FXwyDIWDsm_a_X2zacPf5c9cA9vpnLFeLrrduuAEBjKSNxR2xK4yhjZ-037Pjw

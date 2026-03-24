@@ -20,4 +20,5 @@ import java.util.List;
 public class TranslationCompletedEvent {
     private List<AiTranslationResponse> responses;
     private ArticleTranslationStatusEnum statusEnum;
+    private String reason;
 }

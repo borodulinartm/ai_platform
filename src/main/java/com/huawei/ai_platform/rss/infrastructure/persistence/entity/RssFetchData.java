@@ -17,8 +17,10 @@ public class RssFetchData {
     private long id;
 
     private String title;
+    private String titleZh;
     private String author;
     private String content;
+    private String contentZh;
     private String link;
     private long date;
     private String tags;

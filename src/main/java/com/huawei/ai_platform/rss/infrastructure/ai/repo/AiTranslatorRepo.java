@@ -24,6 +24,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FINISH;
@@ -66,7 +67,7 @@ public class AiTranslatorRepo {
             Message systemMessage = new SystemMessage(Files.readString(file.toPath()));
             Message userMessage = new UserMessage(objectMapper.writeValueAsString(request));
 
-            log.info("run translation. {}", Thread.currentThread().getName());
+            log.info("Run translation for ID's = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
             String res = chatClient.prompt(
                     new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
@@ -76,10 +77,10 @@ public class AiTranslatorRepo {
                 throw new IllegalStateException("The result of the response is empty for some reason");
             }
 
-            log.info(res);
-
             List<AiTranslationResponse> responseList = objectMapper.readValue(res, new TypeReference<>() {});
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(responseList, FINISH));
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(responseList, FINISH, "Success"));
+
+            log.info("SUCCESSFULLY Finish translation for ID's = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
             return responseList;
         } catch (Exception exception) {
@@ -88,7 +89,10 @@ public class AiTranslatorRepo {
             List<AiTranslationResponse> mapToResponseWithEmptyData = listIds.stream()
                     .map(v -> new AiTranslationResponse(v, StringUtils.EMPTY, StringUtils.EMPTY))
                     .toList();
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(mapToResponseWithEmptyData, FAILURE));
+
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(mapToResponseWithEmptyData, FAILURE,
+                    exception.getMessage())
+            );
 
             return Collections.emptyList();
         }

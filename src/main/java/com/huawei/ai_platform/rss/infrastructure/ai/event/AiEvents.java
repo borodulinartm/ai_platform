@@ -45,7 +45,8 @@ public class AiEvents {
     @EventListener
     public void onCompleteTranslation(TranslationCompletedEvent event) {
         if (event != null) {
-            rssTranslationService.queryUpdateArticleTranslation(event.getResponses(), event.getStatusEnum());
+            rssTranslationService.queryUpdateArticleTranslation(event.getResponses(), event.getStatusEnum(),
+                    event.getReason());
         } else {
             log.warn("For 'onCompleteTranslation' produced empty data");
         }

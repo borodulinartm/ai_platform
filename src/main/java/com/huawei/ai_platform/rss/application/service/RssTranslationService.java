@@ -4,7 +4,6 @@ import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
-import jakarta.annotation.Nonnull;
 
 import java.util.List;
 
@@ -23,7 +22,7 @@ public interface RssTranslationService {
     OperationResult syncTranslation();
 
     void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
-                                       ArticleTranslationStatusEnum statusEnum);
+                                       ArticleTranslationStatusEnum statusEnum, String reason);
 
     void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum);
 

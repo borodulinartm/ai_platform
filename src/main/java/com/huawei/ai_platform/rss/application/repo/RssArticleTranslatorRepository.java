@@ -29,7 +29,7 @@ public interface RssArticleTranslatorRepository {
     List<RssData> getNotTranslatedNews();
 
     void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
-                                       ArticleTranslationStatusEnum statusEnum);
+                                       ArticleTranslationStatusEnum statusEnum, String reason);
 
     void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum);
 

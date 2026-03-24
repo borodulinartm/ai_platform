@@ -18,7 +18,8 @@
     <update id="queryUpdateArticleTranslation">
         UPDATE article_translations SET title_zh = #{item.articleTitleZh},
                                         content_zh = #{item.articleContentZh},
-                                        status = #{status}
+                                        status = #{status},
+                                        reason = #{reason}
         <where>
             article_create_date = #{item.articleId}
         </where>
@@ -55,6 +56,8 @@
             entry.link,
             entry.date,
             entry.tags,
+            aTranslations.content_zh as contentZh,
+            aTranslations.title_zh as titleZh,
             feed.name as feedName,
             feed.priority as feedPriority,
             feed.description as feedDescription,
@@ -64,6 +67,7 @@
             aCategory.id as categoryId,
             aCategory.name as categoryName
         from admin_entry entry
+        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
         left join admin_feed feed ON entry.id_feed = feed.id
         left join admin_category aCategory ON feed.category = aCategory.id
 

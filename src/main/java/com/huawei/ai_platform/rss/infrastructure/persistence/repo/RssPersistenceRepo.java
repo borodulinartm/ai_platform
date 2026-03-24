@@ -20,13 +20,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
 
 import static com.huawei.ai_platform.common.Constant.ZONE;
+import static com.huawei.ai_platform.utils.DateUtils.getAsMicro;
 
 /**
  * Repository layer for RSS subside
@@ -53,25 +53,11 @@ public class RssPersistenceRepo {
         LocalDateTime startDay = dateToFind.with(LocalTime.MIN);
         LocalDateTime endDay = dateToFind.with(LocalTime.MAX);
 
-        long milliStart = getAsMicro(startDay);
-        long milliEnd = getAsMicro(endDay);
+        long milliStart = getAsMicro(startDay, ZONE);
+        long milliEnd = getAsMicro(endDay, ZONE);
 
         List<RssFetchData> fetchedData = rssDao.queryArticlesBy(milliStart, milliEnd);
         return rssAssembler.convertFromFetchToRssData(fetchedData);
-    }
-
-    /**
-     * Extracts date as micro value
-     *
-     * @param forDate for which date do you want extract data
-     * @return microseconds
-     */
-    private long getAsMicro(LocalDateTime forDate) {
-        Instant instant = forDate.atZone(ZONE).toInstant();
-        long epochSecond = instant.getEpochSecond();
-        int nanoAdjustment = instant.getNano();
-
-        return epochSecond * 1_000_000L + nanoAdjustment / 1_000L;
     }
 
     /**
@@ -118,8 +104,9 @@ public class RssPersistenceRepo {
 
     @Transactional
     public void queryUpdateArticleTranslation(@Nonnull List<AiTranslationResponse> responses,
-                                              @Nonnull ArticleTranslationStatusEnum statusEnum) {
-        responses.forEach(v -> rssDao.queryUpdateArticleTranslation(v, statusEnum));
+                                              @Nonnull ArticleTranslationStatusEnum statusEnum,
+                                              String reason) {
+        responses.forEach(v -> rssDao.queryUpdateArticleTranslation(v, statusEnum, reason));
     }
 
     @Transactional

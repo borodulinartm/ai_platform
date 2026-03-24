@@ -136,12 +136,12 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
 
     @Override
     public void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
-                                              ArticleTranslationStatusEnum statusEnum) {
+                                              ArticleTranslationStatusEnum statusEnum, String reason) {
         if (CollectionUtils.isEmpty(responses) || statusEnum == null) {
             throw new IllegalArgumentException("Arguments must be not null");
         }
 
-        rssArticleTranslatorRepository.queryUpdateArticleTranslation(responses, statusEnum);
+        rssArticleTranslatorRepository.queryUpdateArticleTranslation(responses, statusEnum, reason);
     }
 
     @Override

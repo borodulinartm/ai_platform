@@ -62,7 +62,8 @@ public interface RssDao extends BaseMapper<RssEntity> {
     void insertNewArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
 
     void queryUpdateArticleTranslation(@Nonnull @Param("item") AiTranslationResponse response,
-                                       @Nonnull @Param("status") ArticleTranslationStatusEnum statusEnum);
+                                       @Nonnull @Param("status") ArticleTranslationStatusEnum statusEnum,
+                                       @Param("reason") String reason);
 
     void queryUpdateStatusByListData(@Param("data") List<Long> items,
                                      @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum);
