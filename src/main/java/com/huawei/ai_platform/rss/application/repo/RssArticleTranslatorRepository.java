@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.application.repo;
 
+import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -19,7 +20,7 @@ public interface RssArticleTranslatorRepository {
      * @param compacts list of untranslated news
      * @return list of translated news
      */
-    List<RssData> syncTranslation(List<RssData> compacts);
+    OperationResult syncTranslation(List<RssData> compacts);
 
     /**
      * Extracts all untranslated news from datasource

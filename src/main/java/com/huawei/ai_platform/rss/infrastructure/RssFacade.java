@@ -1,12 +1,10 @@
 package com.huawei.ai_platform.rss.infrastructure;
 
-import com.huawei.ai_platform.common.Constant;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
@@ -47,6 +45,7 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.huawei.ai_platform.common.Constant.ZONE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 
 /**
@@ -141,59 +140,39 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     }
 
     @Override
-    public List<RssData> syncTranslation(List<RssData> compacts) {
+    public OperationResult syncTranslation(List<RssData> compacts) {
         if (CollectionUtils.isEmpty(compacts)) {
-            log.warn("Pass empty data, just return original data");
-            return Collections.emptyList();
+            OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Pass empty data, just return original data");
         }
 
         applicationEventPublisher.publishEvent(new TranslationCreatedEvent(compacts, INIT));
 
-        int index = 0;
-        int offset = 10;
-
-        List<List<RssData>> rssItems = new ArrayList<>();
-
-        while (index < compacts.size()) {
-            List<RssData> subList = compacts.subList(index, Math.min(index + offset, compacts.size()));
-            index += offset;
-
-            rssItems.add(subList);
+        boolean success = true;
+        for (RssData v : compacts) {
+            if (aiTranslatorRepo.translate(aiTranslationMapper.convert(v)) == null) {
+                success = false;
+            }
         }
 
-        if (!rssItems.isEmpty()) {
-            runTranslation(rssItems);
+        if (success) {
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Success").build();
         }
 
-        return Collections.emptyList();
-    }
-
-    /**
-     * With provided sublist run translation mechanism
-     *
-     * @param rssItems List of the list of the items
-     */
-    private void runTranslation(List<List<RssData>> rssItems) {
-        List<List<RssData>> splittedList = rssItems.stream().limit(COUNT_THREADS).toList();
-
-        List<List<AiTranslationResponse>> listFutures = new ArrayList<>();
-
-        for (List<RssData> rssDataList : splittedList) {
-            List<AiTranslationRequest> listRequests = rssDataList.stream().map(aiTranslationMapper::convert).toList();
-            listFutures.add(aiTranslatorRepo.translate(listRequests));
-        }
+        return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Some article translations " +
+                "has been finished with error").build();
     }
 
     @Override
     public List<RssData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
+        Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
 
         if (latestRegisteredArticle == null) {
             LocalDateTime currentDateTime = LocalDateTime.now().with(LocalTime.MIN);
-            latestRegisteredArticle = DateUtils.getAsMicro(currentDateTime, Constant.ZONE);
+            latestRegisteredArticle = DateUtils.getAsMicro(currentDateTime, ZONE);
         }
 
-        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle);
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, asSeconds);
 
         return rssAssembler.convertFromFetchToRssData(fetchDataList);
     }

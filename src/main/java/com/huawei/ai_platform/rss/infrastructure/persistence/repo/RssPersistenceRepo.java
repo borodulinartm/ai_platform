@@ -27,6 +27,7 @@ import java.util.List;
 
 import static com.huawei.ai_platform.common.Constant.ZONE;
 import static com.huawei.ai_platform.utils.DateUtils.getAsMicro;
+import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 
 /**
  * Repository layer for RSS subside
@@ -53,10 +54,10 @@ public class RssPersistenceRepo {
         LocalDateTime startDay = dateToFind.with(LocalTime.MIN);
         LocalDateTime endDay = dateToFind.with(LocalTime.MAX);
 
-        long milliStart = getAsMicro(startDay, ZONE);
-        long milliEnd = getAsMicro(endDay, ZONE);
+        long secondsStart = getAsSeconds(startDay, ZONE);
+        long secondsEnd = getAsSeconds(endDay, ZONE);
 
-        List<RssFetchData> fetchedData = rssDao.queryArticlesBy(milliStart, milliEnd);
+        List<RssFetchData> fetchedData = rssDao.queryArticlesBy(secondsStart, secondsEnd);
         return rssAssembler.convertFromFetchToRssData(fetchedData);
     }
 

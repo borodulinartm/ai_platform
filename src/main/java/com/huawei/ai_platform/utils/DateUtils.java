@@ -8,8 +8,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-import static com.huawei.ai_platform.common.Constant.ZONE;
-
 /**
  * Static helpful class for working with datetime section
  */
@@ -23,10 +21,22 @@ public class DateUtils {
      * @return microseconds instant
      */
     public static long getAsMicro(@Nonnull LocalDateTime forDate, @Nonnull ZoneId zoneId) {
-        Instant instant = forDate.atZone(ZONE).toInstant();
+        Instant instant = forDate.atZone(zoneId).toInstant();
         long epochSecond = instant.getEpochSecond();
         int nanoAdjustment = instant.getNano();
 
         return epochSecond * 1_000_000L + nanoAdjustment / 1_000L;
+    }
+
+    /**
+     * Extracts local date time as seconds
+     *
+     * @param forDate which date do you want
+     * @param zoneId  zone id
+     * @return seconds representation
+     */
+    public static long getAsSeconds(@Nonnull LocalDateTime forDate, @Nonnull ZoneId zoneId) {
+        Instant instant = forDate.atZone(zoneId).toInstant();
+        return instant.getEpochSecond();
     }
 }

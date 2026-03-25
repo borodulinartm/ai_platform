@@ -18,5 +18,6 @@ public class RssArticleTranslationEntity {
     private Long articleCreateDate;
     private String titleZh;
     private String contentZh;
+    private String contentEn;
     private ArticleTranslationStatusEnum status;
 }

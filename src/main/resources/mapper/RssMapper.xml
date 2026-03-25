@@ -3,14 +3,15 @@
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
     <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         INSERT INTO article_translations
-            (article_create_date, title_zh, status, content_zh)
+            (article_create_date, title_zh, status, content_zh, content_en)
         VALUES
         <foreach collection="data" separator="," item="item">
             (
                 #{item.articleCreateDate},
                 #{item.titleZh},
                 #{item.status},
-                #{item.contentZh}
+                #{item.contentZh},
+                #{item.contentEn}
             )
         </foreach>
     </insert>
@@ -19,7 +20,7 @@
         UPDATE article_translations SET title_zh = #{item.articleTitleZh},
                                         content_zh = #{item.articleContentZh},
                                         status = #{status},
-                                        reason = #{reason}
+                                        reason = #{reason}, content_en = #{item.articleContentEn}
         <where>
             article_create_date = #{item.articleId}
         </where>
@@ -42,6 +43,10 @@
             <if test="timestamp != null">
                 entry.id > #{timestamp}
             </if>
+
+            <if test="articleDate != null">
+                AND entry.date >= #{articleDate}
+            </if>
         </where>
 
         order by entry.id
@@ -58,6 +63,7 @@
             entry.tags,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
+            aTranslations.content_en as cleanedContentEn,
             feed.name as feedName,
             feed.priority as feedPriority,
             feed.description as feedDescription,
@@ -73,11 +79,11 @@
 
         <where>
             <if test="startTime != null">
-                AND entry.id &gt;= #{startTime}
+                AND entry.date &gt;= #{startTime}
             </if>
 
             <if test="endTime != null">
-                AND entry.id &lt;= #{endTime}
+                AND entry.date &lt;= #{endTime}
             </if>
         </where>
     </select>

@@ -17,6 +17,7 @@ public class AiTranslationResponse {
     private long articleId;
     private String articleTitleZh;
     private String articleContentZh;
+    private String articleContentEn;
 
     @Override
     public String toString() {

@@ -81,7 +81,9 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                 return resultUploading;
             }
 
-            return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason(String.format("Uploaded %s news to the server", listData.size())).build();
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                    .reason(String.format("Uploaded %s news to the server for date = %s", listData.size(), forWhichDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
+                    .build();
         } else {
             return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason(
                     String.format("Nothing to upload into server for date %s", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
@@ -129,9 +131,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     @Override
     public OperationResult syncTranslation() {
         List<RssData> rssTranslationList = rssArticleTranslatorRepository.getNotTranslatedNews();
-        rssArticleTranslatorRepository.syncTranslation(rssTranslationList);
-
-        return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Good").build();
+        return rssArticleTranslatorRepository.syncTranslation(rssTranslationList);
     }
 
     @Override

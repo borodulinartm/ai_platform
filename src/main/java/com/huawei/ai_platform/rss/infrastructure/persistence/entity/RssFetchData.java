@@ -21,6 +21,7 @@ public class RssFetchData {
     private String author;
     private String content;
     private String contentZh;
+    private String cleanedContentEn;
     private String link;
     private long date;
     private String tags;

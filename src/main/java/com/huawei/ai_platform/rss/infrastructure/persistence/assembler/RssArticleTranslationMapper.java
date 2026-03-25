@@ -16,6 +16,7 @@ public abstract class RssArticleTranslationMapper {
     @Mapping(target = "articleCreateDate", source = "articleId")
     @Mapping(target = "titleZh", source = "articleTitleZh")
     @Mapping(target = "contentZh", source = "articleContentZh")
+    @Mapping(target = "contentEn", source = "articleContent")
     public abstract RssArticleTranslationEntity convert(RssData rssData, @Context ArticleTranslationStatusEnum statusEnum);
 
     @AfterMapping

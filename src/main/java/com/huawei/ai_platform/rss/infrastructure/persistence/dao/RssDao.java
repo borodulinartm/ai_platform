@@ -36,10 +36,12 @@ public interface RssDao extends BaseMapper<RssEntity> {
     /**
      * Extracts list of articles after some timestamp
      *
-     * @param timestamp timestamp. If is empty, it returns all data
+     * @param timestamp   timestamp. If is empty, it returns all data
+     * @param articleDate article date
      * @return List of fetched data
      */
-    List<RssFetchData> getAfter(@Param("timestamp") Long timestamp);
+    List<RssFetchData> getAfter(@Param("timestamp") Long timestamp,
+                                @Param("articleDate") Long articleDate);
 
     /**
      * Extracts max untranslated article
@@ -57,6 +59,7 @@ public interface RssDao extends BaseMapper<RssEntity> {
 
     /**
      * Performs inserting to the datasource list of translation data
+     *
      * @param data list of data. Check for null before insert
      */
     void insertNewArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
