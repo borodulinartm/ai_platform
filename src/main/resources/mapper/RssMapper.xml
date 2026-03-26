@@ -1,6 +1,66 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
+    <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO article_translations
+            (article_create_date, title_zh, status, content_zh, content_en)
+        VALUES
+        <foreach collection="data" separator="," item="item">
+            (
+                #{item.articleCreateDate},
+                #{item.titleZh},
+                #{item.status},
+                #{item.contentZh},
+                #{item.contentEn}
+            )
+        </foreach>
+    </insert>
+    
+    <update id="queryUpdateArticleTranslation">
+        UPDATE article_translations SET title_zh = #{item.articleTitleZh},
+                                        content_zh = #{item.articleContentZh},
+                                        status = #{status},
+                                        reason = #{reason}, content_en = #{item.articleContentEn}
+        <where>
+            article_create_date = #{item.articleId}
+        </where>
+    </update>
+
+    <update id="queryUpdateStatusByListData">
+        UPDATE article_translations SET status = #{status}
+        <where>
+            article_create_date in
+                <foreach collection="data" item="item" open="(" close=")" separator=",">
+                    #{item}
+                </foreach>
+        </where>
+    </update>
+
+    <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        SELECT entry.id, entry.title, entry.content, false as translationRecordExists from admin_entry entry
+
+        <where>
+            <if test="timestamp != null">
+                entry.id > #{timestamp}
+            </if>
+
+            <if test="articleDate != null">
+                AND entry.date >= #{articleDate}
+            </if>
+        </where>
+
+        order by entry.id
+    </select>
+
+    <select id="getNewsWithTranslationByStatus" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        SELECT entry.id, entry.title, entry.content, true as translationRecordExists from admin_entry entry
+            INNER JOIN public.article_translations a on entry.id = a.article_create_date
+
+        <where>
+            a.status = #{statusName}
+        </where>
+    </select>
+
     <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         select
             entry.id,
@@ -10,6 +70,9 @@
             entry.link,
             entry.date,
             entry.tags,
+            aTranslations.content_zh as contentZh,
+            aTranslations.title_zh as titleZh,
+            aTranslations.content_en as cleanedContentEn,
             feed.name as feedName,
             feed.priority as feedPriority,
             feed.description as feedDescription,
@@ -19,18 +82,24 @@
             aCategory.id as categoryId,
             aCategory.name as categoryName
         from admin_entry entry
+        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
         left join admin_feed feed ON entry.id_feed = feed.id
         left join admin_category aCategory ON feed.category = aCategory.id
 
         <where>
             <if test="startTime != null">
-                AND entry.id &gt;= #{startTime}
+                AND entry.date &gt;= #{startTime}
             </if>
 
             <if test="endTime != null">
-                AND entry.id &lt;= #{endTime}
+                AND entry.date &lt;= #{endTime}
             </if>
         </where>
+    </select>
+
+    <!--  After that ID we'll scan other news that is currently not in the article_translation_table  -->
+    <select id="getMaxTranslatedTimestamp" resultType="long">
+        SELECT MAX(entry.article_create_date) from article_translations entry
     </select>
 
     <update id="markAsReadNews" parameterType="arraylist">

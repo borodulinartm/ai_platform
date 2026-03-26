@@ -2,11 +2,13 @@ package com.huawei.ai_platform.rss.application.service.impl;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
-import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.application.service.RssTranslationService;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.rss.model.RssFeed;
@@ -31,8 +33,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class RssServiceImpl implements RssSyncService, RssConfigService {
+public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
     private final RssRepository rssRepository;
+    private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
@@ -78,7 +81,9 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
                 return resultUploading;
             }
 
-            return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason(String.format("Uploaded %s news to the server", listData.size())).build();
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                    .reason(String.format("Uploaded %s news to the server for date = %s", listData.size(), forWhichDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
+                    .build();
         } else {
             return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason(
                     String.format("Nothing to upload into server for date %s", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
@@ -121,5 +126,41 @@ public class RssServiceImpl implements RssSyncService, RssConfigService {
         }
 
         return null;
+    }
+
+    @Override
+    public OperationResult syncTranslation() {
+        List<RssData> rssTranslationList = rssArticleTranslatorRepository.getNotTranslatedNews();
+        return rssArticleTranslatorRepository.syncTranslation(rssTranslationList);
+    }
+
+    @Override
+    public void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
+                                              ArticleTranslationStatusEnum statusEnum, String reason) {
+        if (CollectionUtils.isEmpty(responses) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateArticleTranslation(responses, statusEnum, reason);
+    }
+
+    @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum) {
+        if (CollectionUtils.isEmpty(idList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateStatusByListData(idList, statusEnum);
+    }
+
+    @Override
+    public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
+        if (CollectionUtils.isEmpty(rssDataList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        // Only persist not created translations
+        List<RssData> notTranslatedNews = rssDataList.stream().filter(RssData::isNotTranslationExists).toList();
+        rssArticleTranslatorRepository.insertNewArticleTranslations(notTranslatedNews, statusEnum);
     }
 }
