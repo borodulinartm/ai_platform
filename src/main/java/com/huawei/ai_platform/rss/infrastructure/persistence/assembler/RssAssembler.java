@@ -64,9 +64,12 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId()).articleTitleEn(inputItem.getTitle())
+                    .articleId(inputItem.getId()).translationExists(inputItem.isTranslationRecordExists())
+                    .articleTitleEn(inputItem.getTitle()).articleTitleZh(inputItem.getTitleZh())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
-                    .articleContent(inputItem.getContent()).articleLink(inputItem.getLink())
+                    .articleContent(StringUtils.isNoneBlank(inputItem.getCleanedContentEn()) ? inputItem.getCleanedContentEn() : inputItem.getContent())
+                    .articleContentZh(inputItem.getContentZh())
+                    .articleLink(inputItem.getLink())
                     .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
                     .articleAuthors(authorList).articleTags(tagsList).feed(feed).rssCategory(category)
                     .build();
@@ -127,6 +130,4 @@ public class RssAssembler {
 
         return result;
     }
-
-
 }

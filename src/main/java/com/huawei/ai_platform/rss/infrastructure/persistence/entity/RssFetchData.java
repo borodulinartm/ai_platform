@@ -16,18 +16,28 @@ import lombok.*;
 public class RssFetchData {
     private long id;
 
+    private boolean translationRecordExists;
+
     private String title;
+    private String titleZh;
+
     private String author;
+
     private String content;
+    private String contentZh;
+    private String cleanedContentEn;
+
     private String link;
     private long date;
     private String tags;
+
     private String feedName;
     private String feedDescription;
     private int feedId;
     private String feedUrl;
     private int feedPriority;
     private String feedWebsite;
+
     private int categoryId;
     private String categoryName;
 }

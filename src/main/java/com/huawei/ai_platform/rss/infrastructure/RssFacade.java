@@ -1,7 +1,13 @@
 package com.huawei.ai_platform.rss.infrastructure;
 
+import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
+import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssFeedCloudAssembler;
@@ -17,20 +23,30 @@ import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssReportUploader;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.infrastructure.persistence.repo.RssPersistenceRepo;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
-import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 
 /**
  * Facade class for working with RSS. Encapsulates 'Repo' abstract layer
@@ -41,7 +57,10 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
-public class RssFacade implements RssRepository {
+@Slf4j
+public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
+    public static final int COUNT_THREADS = 15;
+
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
 
@@ -56,6 +75,10 @@ public class RssFacade implements RssRepository {
 
     private final RssSummaryNewsAssembler rssSummaryNewsAssembler;
     private final RssReportUploader rssReportUploader;
+    private final AiTranslatorRepo aiTranslatorRepo;
+    private final AiTranslationMapper aiTranslationMapper;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
@@ -64,7 +87,7 @@ public class RssFacade implements RssRepository {
 
     @Override
     public List<RssCategory> getListCategories() {
-        List<RssCategoryEntity> categoryEntities =  persistenceRepo.getCategories();
+        List<RssCategoryEntity> categoryEntities = persistenceRepo.getCategories();
         if (categoryEntities != null) {
             return rssAssembler.convertFromPersistenceToRssCategory(categoryEntities);
         }
@@ -113,5 +136,71 @@ public class RssFacade implements RssRepository {
     public OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities) {
         Collection<RssFeedCloud> rssFeedClouds = rssFeedCloudAssembler.convert(feedEntities);
         return rssFeedUploader.uploadRssFeed(rssFeedClouds);
+    }
+
+    @Override
+    public OperationResult syncTranslation(List<RssData> compacts) {
+        if (CollectionUtils.isEmpty(compacts)) {
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                    .reason("Pass empty data, nothing to translate. Return").build();
+        }
+
+        applicationEventPublisher.publishEvent(new TranslationCreatedEvent(compacts, INIT));
+
+        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
+            List<Future<AiTranslationResponse>> listFutures = new ArrayList<>();
+            for (RssData item : compacts) {
+                listFutures.add(
+                        executorService.submit(() -> aiTranslatorRepo.translate(aiTranslationMapper.convert(item))));
+            }
+
+            boolean success = true;
+            List<Long> failureId = new ArrayList<>();
+
+            for (Future<AiTranslationResponse> response : listFutures) {
+                AiTranslationResponse out = response.get();
+
+                if (!out.isSuccess()) {
+                    success = false;
+                    failureId.add(out.getArticleId());
+                }
+            }
+
+            if (success) {
+                return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                        .reason(String.format("Translation has completed successfully. Count records = %s", compacts.size()))
+                        .build();
+            }
+
+            return OperationResult.builder().state(OperationResultEnum.FAILURE)
+                    .reason(
+                            String.format("Some article translations has been finished with error Please check ID's = %s",
+                                    failureId.stream().map(Objects::toString).collect(Collectors.joining(","))
+                            )).build();
+        } catch (InterruptedException | ExecutionException exception) {
+            return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Foo").build();
+        }
+    }
+
+    @Override
+    public List<RssData> getNotTranslatedNews() {
+        List<RssFetchData> fetchDataList = persistenceRepo.getNotTranslatedNews();
+        return rssAssembler.convertFromFetchToRssData(fetchDataList);
+    }
+
+    @Override
+    public void queryUpdateArticleTranslation(List<AiTranslationResponse> responses,
+                                              ArticleTranslationStatusEnum statusEnum, String reason) {
+        persistenceRepo.queryUpdateArticleTranslation(responses, statusEnum, reason);
+    }
+
+    @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum) {
+        persistenceRepo.queryUpdateStatusByListData(idList, statusEnum);
+    }
+
+    @Override
+    public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
+        persistenceRepo.insertArticleTranslations(rssDataList, INIT);
     }
 }

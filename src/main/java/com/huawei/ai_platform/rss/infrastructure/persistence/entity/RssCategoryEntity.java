@@ -23,8 +23,5 @@ public class RssCategoryEntity {
     private String name;
     private int kind;
 
-//    @TableField(value = "lastUpdate")
-//    private long lastUpdate;
-
     private int error;
 }
