@@ -64,7 +64,7 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId())
+                    .articleId(inputItem.getId()).translationExists(inputItem.isTranslationRecordExists())
                     .articleTitleEn(inputItem.getTitle()).articleTitleZh(inputItem.getTitleZh())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
                     .articleContent(StringUtils.isNoneBlank(inputItem.getCleanedContentEn()) ? inputItem.getCleanedContentEn() : inputItem.getContent())

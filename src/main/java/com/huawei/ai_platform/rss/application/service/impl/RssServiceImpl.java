@@ -159,6 +159,8 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
             throw new IllegalArgumentException("Arguments must be not null");
         }
 
-        rssArticleTranslatorRepository.insertNewArticleTranslations(rssDataList, statusEnum);
+        // Only persist not created translations
+        List<RssData> notTranslatedNews = rssDataList.stream().filter(RssData::isNotTranslationExists).toList();
+        rssArticleTranslatorRepository.insertNewArticleTranslations(notTranslatedNews, statusEnum);
     }
 }

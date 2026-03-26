@@ -35,4 +35,15 @@ public class RssData implements Serializable {
     private RssFeed feed;
     private RssCategory rssCategory;
     private RssTypeInfoEnum typeInfoEnum;
+
+    private boolean translationExists;
+
+    /**
+     * Inversion method for simplicity
+     *
+     * @return true if article is not prepared to translation, false otherwise
+     */
+    public boolean isNotTranslationExists() {
+        return !translationExists;
+    }
 }

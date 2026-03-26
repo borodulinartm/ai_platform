@@ -15,6 +15,7 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntit
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
+import com.huawei.ai_platform.utils.DateUtils;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -26,7 +27,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.huawei.ai_platform.common.Constant.ZONE;
-import static com.huawei.ai_platform.utils.DateUtils.getAsMicro;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 
 /**
@@ -91,6 +92,26 @@ public class RssPersistenceRepo {
     }
 
     /**
+     * Extracts from persistence repo not translated news
+     *
+     * @return List of the news that is not translated
+     */
+    public List<RssFetchData> getNotTranslatedNews() {
+        Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
+        Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
+
+        if (latestRegisteredArticle == null) {
+            LocalDateTime currentDateTime = LocalDateTime.now().with(LocalTime.MIN);
+            latestRegisteredArticle = DateUtils.getAsMicro(currentDateTime, ZONE);
+        }
+
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, asSeconds);
+        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT));
+
+        return fetchDataList;
+    }
+
+    /**
      * Performs inserting data into datasource
      *
      * @param rssDataList list of data. Must be not null
@@ -103,6 +124,13 @@ public class RssPersistenceRepo {
         rssDao.insertNewArticleTranslations(translatedToEntity);
     }
 
+    /**
+     * Transactional method for updating article translations
+     *
+     * @param responses  list of the responses. Must be not null
+     * @param statusEnum status. Must be not null
+     * @param reason     description (text errors)
+     */
     @Transactional
     public void queryUpdateArticleTranslation(@Nonnull List<AiTranslationResponse> responses,
                                               @Nonnull ArticleTranslationStatusEnum statusEnum,
@@ -110,6 +138,12 @@ public class RssPersistenceRepo {
         responses.forEach(v -> rssDao.queryUpdateArticleTranslation(v, statusEnum, reason));
     }
 
+    /**
+     * Updates status for batch of records. Transactional method
+     *
+     * @param idList     list of ID. Must be not null
+     * @param statusEnum status. Also must be not null
+     */
     @Transactional
     public void queryUpdateStatusByListData(@Nonnull List<Long> idList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
         rssDao.queryUpdateStatusByListData(idList, statusEnum);

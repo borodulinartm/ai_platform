@@ -13,12 +13,25 @@ import org.mapstruct.*;
  */
 @Mapper(componentModel = "spring")
 public abstract class RssArticleTranslationMapper {
+    /**
+     * Performs converting data from aggregate to translation entity
+     *
+     * @param rssData    aggregate
+     * @param statusEnum status of the translation article
+     * @return entity
+     */
     @Mapping(target = "articleCreateDate", source = "articleId")
     @Mapping(target = "titleZh", source = "articleTitleZh")
     @Mapping(target = "contentZh", source = "articleContentZh")
     @Mapping(target = "contentEn", source = "articleContent")
     public abstract RssArticleTranslationEntity convert(RssData rssData, @Context ArticleTranslationStatusEnum statusEnum);
 
+    /**
+     * Extra method - article translation
+     *
+     * @param entity     entity
+     * @param statusEnum status
+     */
     @AfterMapping
     public void afterMapping(@MappingTarget RssArticleTranslationEntity entity,
                              @Context ArticleTranslationStatusEnum statusEnum) {

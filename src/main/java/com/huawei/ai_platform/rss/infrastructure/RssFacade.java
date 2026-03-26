@@ -21,7 +21,6 @@ import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssCategoryUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssFeedUploader;
 import com.huawei.ai_platform.rss.infrastructure.cloud.repo.RssReportUploader;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
-import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFeedEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
@@ -31,7 +30,6 @@ import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.rss.model.RssFeed;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
-import com.huawei.ai_platform.utils.DateUtils;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,11 +39,13 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import static com.huawei.ai_platform.common.Constant.ZONE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 
 /**
@@ -59,7 +59,7 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 @RequiredArgsConstructor
 @Slf4j
 public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
-    public static final int COUNT_THREADS = 10;
+    public static final int COUNT_THREADS = 15;
 
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
@@ -75,7 +75,6 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
 
     private final RssSummaryNewsAssembler rssSummaryNewsAssembler;
     private final RssReportUploader rssReportUploader;
-    private final RssDao rssDao;
     private final AiTranslatorRepo aiTranslatorRepo;
     private final AiTranslationMapper aiTranslationMapper;
 
@@ -142,38 +141,50 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     @Override
     public OperationResult syncTranslation(List<RssData> compacts) {
         if (CollectionUtils.isEmpty(compacts)) {
-            OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Pass empty data, just return original data");
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                    .reason("Pass empty data, nothing to translate. Return").build();
         }
 
         applicationEventPublisher.publishEvent(new TranslationCreatedEvent(compacts, INIT));
 
-        boolean success = true;
-        for (RssData v : compacts) {
-            if (aiTranslatorRepo.translate(aiTranslationMapper.convert(v)) == null) {
-                success = false;
+        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
+            List<Future<AiTranslationResponse>> listFutures = new ArrayList<>();
+            for (RssData item : compacts) {
+                listFutures.add(
+                        executorService.submit(() -> aiTranslatorRepo.translate(aiTranslationMapper.convert(item))));
             }
-        }
 
-        if (success) {
-            return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("Success").build();
-        }
+            boolean success = true;
+            List<Long> failureId = new ArrayList<>();
 
-        return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Some article translations " +
-                "has been finished with error").build();
+            for (Future<AiTranslationResponse> response : listFutures) {
+                AiTranslationResponse out = response.get();
+
+                if (!out.isSuccess()) {
+                    success = false;
+                    failureId.add(out.getArticleId());
+                }
+            }
+
+            if (success) {
+                return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                        .reason(String.format("Translation has completed successfully. Count records = %s", compacts.size()))
+                        .build();
+            }
+
+            return OperationResult.builder().state(OperationResultEnum.FAILURE)
+                    .reason(
+                            String.format("Some article translations has been finished with error Please check ID's = %s",
+                                    failureId.stream().map(Objects::toString).collect(Collectors.joining(","))
+                            )).build();
+        } catch (InterruptedException | ExecutionException exception) {
+            return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Foo").build();
+        }
     }
 
     @Override
     public List<RssData> getNotTranslatedNews() {
-        Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
-        Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
-
-        if (latestRegisteredArticle == null) {
-            LocalDateTime currentDateTime = LocalDateTime.now().with(LocalTime.MIN);
-            latestRegisteredArticle = DateUtils.getAsMicro(currentDateTime, ZONE);
-        }
-
-        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, asSeconds);
-
+        List<RssFetchData> fetchDataList = persistenceRepo.getNotTranslatedNews();
         return rssAssembler.convertFromFetchToRssData(fetchDataList);
     }
 

@@ -41,7 +41,16 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @return List of fetched data
      */
     List<RssFetchData> getAfter(@Param("timestamp") Long timestamp,
-                                @Param("articleDate") Long articleDate);
+                                @Param("articleDate") Long articleDate
+    );
+
+    /**
+     * Extracts articles with records in translation section
+     *
+     * @param statusEnum by which status
+     * @return list of the rss fetch data
+     */
+    List<RssFetchData> getNewsWithTranslationByStatus(@Param("statusName") ArticleTranslationStatusEnum statusEnum);
 
     /**
      * Extracts max untranslated article
@@ -64,10 +73,23 @@ public interface RssDao extends BaseMapper<RssEntity> {
      */
     void insertNewArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
 
+    /**
+     * Performs updating article translation in appropriate DB
+     *
+     * @param response   ai translation response
+     * @param statusEnum Which status of the article do you want to set
+     * @param reason     some text description
+     */
     void queryUpdateArticleTranslation(@Nonnull @Param("item") AiTranslationResponse response,
                                        @Nonnull @Param("status") ArticleTranslationStatusEnum statusEnum,
                                        @Param("reason") String reason);
 
+    /**
+     * Massive update status for group of items
+     *
+     * @param items                        list of items
+     * @param articleTranslationStatusEnum status information
+     */
     void queryUpdateStatusByListData(@Param("data") List<Long> items,
                                      @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum);
 }

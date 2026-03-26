@@ -5,6 +5,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
+/**
+ * Entity for storing article translations
+ *
+ * @author Borodulin Artem
+ * @since 2026.03.24
+ */
 @Getter
 @Setter
 @AllArgsConstructor

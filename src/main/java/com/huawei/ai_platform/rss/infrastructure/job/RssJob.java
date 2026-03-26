@@ -40,7 +40,7 @@ public class RssJob {
         log.info("Finish RssUploaderJob");
     }
 
-    @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.MINUTES)
+//    @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.MINUTES)
     public void runTranslation() {
         log.info("Run Translation Job");
 

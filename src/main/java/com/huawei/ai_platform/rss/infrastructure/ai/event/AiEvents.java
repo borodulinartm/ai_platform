@@ -24,7 +24,7 @@ public class AiEvents {
     private final RssTranslationService rssTranslationService;
 
     @EventListener
-    public void onCreatedEvent(TranslationCreatedEvent translationCreatedEvent) {
+    public void onCreateRequestToTranslation(TranslationCreatedEvent translationCreatedEvent) {
         if (translationCreatedEvent != null) {
             rssTranslationService.insertNewArticleTranslations(translationCreatedEvent.getRecords(),
                     translationCreatedEvent.getStatusEnum());
@@ -34,7 +34,7 @@ public class AiEvents {
     }
 
     @EventListener
-    public void onProcessingTranslation(TranslationProcessingEvent translationProcessingEvent) {
+    public void onStartTranslation(TranslationProcessingEvent translationProcessingEvent) {
         if (translationProcessingEvent != null) {
             rssTranslationService.queryUpdateStatusByListData(translationProcessingEvent.getIdList(), PROCESSING);
         } else {
@@ -43,7 +43,7 @@ public class AiEvents {
     }
 
     @EventListener
-    public void onCompleteTranslation(TranslationCompletedEvent event) {
+    public void onFinishTranslation(TranslationCompletedEvent event) {
         if (event != null) {
             rssTranslationService.queryUpdateArticleTranslation(event.getResponses(), event.getStatusEnum(),
                     event.getReason());

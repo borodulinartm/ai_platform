@@ -37,7 +37,7 @@
     </update>
 
     <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content from admin_entry entry
+        SELECT entry.id, entry.title, entry.content, false as translationRecordExists from admin_entry entry
 
         <where>
             <if test="timestamp != null">
@@ -50,6 +50,15 @@
         </where>
 
         order by entry.id
+    </select>
+
+    <select id="getNewsWithTranslationByStatus" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        SELECT entry.id, entry.title, entry.content, true as translationRecordExists from admin_entry entry
+            INNER JOIN public.article_translations a on entry.id = a.article_create_date
+
+        <where>
+            a.status = #{statusName}
+        </where>
     </select>
 
     <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">

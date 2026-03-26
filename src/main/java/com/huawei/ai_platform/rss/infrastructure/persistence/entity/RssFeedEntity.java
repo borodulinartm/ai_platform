@@ -5,6 +5,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
 
+/**
+ * Entity side for storing feed information
+ *
+ * @author Borodulin Artem
+ * @since 2026.03.10
+ */
 @Getter
 @Setter
 @AllArgsConstructor
