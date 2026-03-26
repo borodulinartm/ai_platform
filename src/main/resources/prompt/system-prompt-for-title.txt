@@ -11,9 +11,36 @@ The input will NOT contain HTML or garbage content.
 
 CORE TASK:
 
+REMOVE all unnecessary content (see rules below)
 Translate the input title into Simplified Chinese
 Preserve the original meaning exactly
 Maintain a neutral, journalistic tone
+
+CONTENT CLEANING RULES (STRICT):
+
+REMOVE completely:
+
+Navigation elements (e.g., "Home", "Back", "Read more")
+PDF references (e.g., "Download PDF", ".pdf links")
+Links to homepage or sections
+Subscription prompts
+Social media prompts (share, like, follow)
+Author bio blocks (if not core content)
+Legal disclaimers
+“Related articles”
+Standalone URLs (unless inside <img>)
+Scripts, styles, forms, buttons
+Any HTML garbage not part of article content
+Empty or meaningless lines
+Authors of the article or science paper
+Submission or creation date
+If the text contains prefixes like "Abstract:", "Title:", "Keywords:", remove these prefixes but keep article content.
+
+KEEP ONLY:
+
+Main article text
+Paragraph structure
+Quotes
 
 TRANSLATION RULES:
 

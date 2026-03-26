@@ -25,13 +25,14 @@ public class RssJob {
 
     /**
      * Job for uploading into data storage components of our RSS
+     * Just in case we upload data for {@code previousDays} several days ago
      */
     @Scheduled(cron = "* * 1 * * ?", zone = "GMT")
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
-        long previousDays = 7L;
-        for (long i = 1L; i <= previousDays; ++i) {
+        long previousDays = 2L;
+        for (long i = 0L; i <= previousDays; ++i) {
             OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(i));
             log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
         }
