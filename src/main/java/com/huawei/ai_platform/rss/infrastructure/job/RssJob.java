@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Rss different job
@@ -25,7 +24,7 @@ public class RssJob {
     private final RssTranslationService rssTranslationService;
 
     /**
-     * Job which runs updating
+     * Job for uploading into data storage components of our RSS
      */
     @Scheduled(cron = "* * 1 * * ?", zone = "GMT")
     public void runScheduler() {
@@ -40,7 +39,10 @@ public class RssJob {
         log.info("Finish RssUploaderJob");
     }
 
-//    @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.MINUTES)
+    /**
+     * Job for adding translations for newest articles or scientific papers
+     */
+    @Scheduled(cron = "0 15 * * * ?", zone = "GMT")
     public void runTranslation() {
         log.info("Run Translation Job");
 
