@@ -100,7 +100,7 @@ public class RssPersistenceRepo {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
         Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
 
-        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, asSeconds);
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT));
 
         return fetchDataList;
