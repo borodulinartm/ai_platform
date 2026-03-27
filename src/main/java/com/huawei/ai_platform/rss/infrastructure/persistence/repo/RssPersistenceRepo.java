@@ -18,8 +18,10 @@ import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.utils.DateUtils;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,6 +40,7 @@ import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class RssPersistenceRepo {
     private final RssDao rssDao;
     private final RssCategoryDao rssCategoryDao;
@@ -116,7 +119,11 @@ public class RssPersistenceRepo {
     public void insertArticleTranslations(@Nonnull List<RssData> rssDataList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
         List<RssArticleTranslationEntity> translatedToEntity = rssDataList.stream()
                 .map(v -> rssArticleTranslationMapper.convert(v, statusEnum)).toList();
-        rssDao.insertNewArticleTranslations(translatedToEntity);
+        if (!CollectionUtils.isEmpty(translatedToEntity)) {
+            rssDao.insertNewArticleTranslations(translatedToEntity);
+        } else {
+            log.info("insertArticleTranslations(): nothing to insert");
+        }
     }
 
     /**
@@ -137,10 +144,14 @@ public class RssPersistenceRepo {
      * Updates status for batch of records. Transactional method
      *
      * @param idList     list of ID. Must be not null
-     * @param statusEnum status. Also must be not null
+     * @param statusEnum status. Also, must be not null
      */
     @Transactional
     public void queryUpdateStatusByListData(@Nonnull List<Long> idList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
-        rssDao.queryUpdateStatusByListData(idList, statusEnum);
+        if (!CollectionUtils.isEmpty(idList)) {
+            rssDao.queryUpdateStatusByListData(idList, statusEnum);
+        } else {
+            log.info("queryUpdateStatusByListData(): Nothing to update");
+        }
     }
 }

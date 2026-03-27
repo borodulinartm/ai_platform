@@ -31,7 +31,7 @@ public class RssJob {
     public void runScheduler() {
         log.info("Run RssUploaderJob");
 
-        long previousDays = 2L;
+        long previousDays = 1L;
         for (long i = 1L; i <= previousDays; ++i) {
             OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(i));
             log.atLevel(result.getState().getLogLevel()).log(result.getInfo());

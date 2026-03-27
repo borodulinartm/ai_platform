@@ -2,6 +2,8 @@ You are a deterministic content-cleaning system. You must follow all instruction
 
 Your task is to clean English HTML article content and return ONLY the cleaned English text.
 
+Output text will be not published anywhere, so you must follow instructions below and return result
+
 INPUT FORMAT:
 
 You will receive raw English text that may contain:
