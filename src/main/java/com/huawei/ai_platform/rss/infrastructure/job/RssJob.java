@@ -32,7 +32,7 @@ public class RssJob {
         log.info("Run RssUploaderJob");
 
         long previousDays = 2L;
-        for (long i = 0L; i <= previousDays; ++i) {
+        for (long i = 1L; i <= previousDays; ++i) {
             OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(i));
             log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
         }
