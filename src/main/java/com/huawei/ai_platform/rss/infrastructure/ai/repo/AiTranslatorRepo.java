@@ -14,11 +14,14 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ResourceUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -113,22 +116,29 @@ public class AiTranslatorRepo {
      * @throws IOException if exception has occurred
      */
     private String vibeTranslating(String data, String systemPromptPath, String userPromptPath) throws IOException {
-        File systemPromptFile = ResourceUtils.getFile(systemPromptPath);
-        File userPromptFile = ResourceUtils.getFile(userPromptPath);
+        ClassPathResource systemPromptResource = new ClassPathResource(systemPromptPath);
+        ClassPathResource userPromptResource = new ClassPathResource(userPromptPath);
 
-        Message systemMessage = new SystemMessage(Files.readString(systemPromptFile.toPath()));
-        Message userMessage = new UserMessage(String.format(
-                Files.readString(userPromptFile.toPath()), data
-        ));
+        try(InputStream systemInputStream = systemPromptResource.getInputStream();
+                InputStream userInputStream = userPromptResource.getInputStream()) {
+            Message systemMessage = new SystemMessage(
+                    new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8)
+            );
+            Message userMessage = new UserMessage(
+                    String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8), data)
+            );
 
-        String res = chatClient.prompt(
-                new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
-        ).call().content();
+            String res = chatClient.prompt(
+                    new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
+            ).call().content();
 
-        if (StringUtils.isBlank(res)) {
-            throw new IllegalStateException("The result of the response is empty for some reason");
+            if (StringUtils.isBlank(res)) {
+                throw new IllegalStateException("The result of the response is empty for some reason");
+            }
+
+            return res;
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
         }
-
-        return res;
     }
 }
