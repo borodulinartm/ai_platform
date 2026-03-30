@@ -2,7 +2,7 @@
 <configuration>
 
     <!-- Переменная с путём к логам -->
-    <property name="LOG_PATH" value="/tmp/logs/ai_platform"/>
+    <property name="LOG_PATH" value="/usr1/logs/ai_platform"/>
 
     <!-- Rolling файл-логгер -->
     <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
