@@ -27,9 +27,9 @@ public class RssJob {
      * Job for uploading into data storage components of our RSS
      * Just in case we upload data for {@code previousDays} several days ago
      */
-    @Scheduled(cron = "* * 1 * * ?", zone = "GMT")
+    @Scheduled(cron = "0 0 1 * * ?", zone = "GMT")
     public void runScheduler() {
-        log.info("Run RssUploaderJob");
+        log.info("Run Rss uploading to the Huawei Cloud");
 
         long previousDays = 1L;
         for (long i = 1L; i <= previousDays; ++i) {
@@ -37,7 +37,7 @@ public class RssJob {
             log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
         }
 
-        log.info("Finish RssUploaderJob");
+        log.info("Finish Rss uploading to the Huawei Cloud");
     }
 
     /**
