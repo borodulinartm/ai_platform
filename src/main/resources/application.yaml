@@ -1,4 +1,7 @@
 spring:
+  aop:
+    auto: true
+    proxy-target-class: true
   application:
     name: freshrss_news_upload
   datasource:
