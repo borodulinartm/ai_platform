@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.job;
 
 import com.huawei.ai_platform.common.OperationResult;
+import com.huawei.ai_platform.common.annotation.DbLock;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,8 @@ public class RssJob {
      * Just in case we upload data for {@code previousDays} several days ago
      */
     @Scheduled(cron = "0 0 1 * * ?", zone = "GMT")
-    public void runScheduler() {
+    @DbLock(category = "articles_uploading_lock")
+    public void runUploadingToCloud() {
         log.info("Run Rss uploading to the Huawei Cloud");
 
         long previousDays = 1L;
@@ -44,6 +46,7 @@ public class RssJob {
      * Job for adding translations for newest articles or scientific papers
      */
     @Scheduled(cron = "0 15 * * * ?", zone = "GMT")
+    @DbLock(category = "articles_translating_lock")
     public void runTranslation() {
         log.info("Run Translation Job");
 
