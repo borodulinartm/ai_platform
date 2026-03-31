@@ -67,10 +67,10 @@ public class AiTranslatorRepo {
 
                 log.info("Run translation for ID's = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
-                String resourceLocationZh = "classpath:prompt/system-prompt-for-content-zh.txt";
-                String resourceLocationTitle = "classpath:prompt/system-prompt-for-title.txt";
-                String resourceLocationEn = "classpath:prompt/system-prompt-for-content-en.txt";
-                String userPromptPath = "classpath:prompt/user-prompt.txt";
+                String resourceLocationZh = "prompt/system-prompt-for-content-zh.txt";
+                String resourceLocationTitle = "prompt/system-prompt-for-title.txt";
+                String resourceLocationEn = "prompt/system-prompt-for-content-en.txt";
+                String userPromptPath = "prompt/user-prompt.txt";
 
                 String contentZh = vibeTranslating(request.getArticleContentEn(), resourceLocationZh, userPromptPath);
                 String titleZh = vibeTranslating(request.getArticleTitleEn(), resourceLocationTitle, userPromptPath);

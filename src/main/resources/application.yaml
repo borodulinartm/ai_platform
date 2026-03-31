@@ -14,7 +14,7 @@ spring:
       chat:
         options:
           temperature: 0.7
-          model: DeepSeek-V3
+          model: deepseek/deepseek-v3.2
       base-url: ${LLM_URL}
       api-key: ${LLM_KEY}
 
