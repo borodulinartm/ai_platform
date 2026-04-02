@@ -69,10 +69,10 @@ public class AiTranslatorRepo {
                 String userPromptPath = "prompt/user-prompt.txt";
 
                 String contentZh = vibeTranslating(request.getArticleContentEn(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
                 );
                 String cleanedEn = vibeTranslating(request.getArticleContentEn(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath
                 );
                 String titleZh = vibeTranslating(request.getArticleTitleEn(), resourceLocationTitle, userPromptPath);
 
