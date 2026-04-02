@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   aop:
     auto: true
     proxy-target-class: true

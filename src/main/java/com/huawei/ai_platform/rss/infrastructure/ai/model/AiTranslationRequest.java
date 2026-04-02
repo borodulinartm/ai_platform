@@ -17,5 +17,6 @@ public class AiTranslationRequest {
     private long articleId;
     private String articleTitleEn;
     private String articleContentEn;
+    private String articleLink;
 }
 

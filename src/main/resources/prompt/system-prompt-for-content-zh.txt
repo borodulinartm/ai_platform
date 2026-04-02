@@ -47,12 +47,16 @@ HTML garbage (scripts, styles, buttons, forms)
 Empty or meaningless lines
 Authors of the article or science paper
 Submission or creation date
-If the text contains prefixes like "Abstract:", "Title:", "Keywords:", remove these prefixes but keep article content.
+If the text contains prefixes like "Abstract:", "Title:", "Keywords:", "arXiv:", "公告类型：新" etc., remove these prefixes but keep article content.
+title named "---BEGIN TEXT---"
+title named "---END TEXT---"
+
+If the content between "---BEGIN TEXT---" and "---END TEXT---" is absent, just set the " " (space symbol), it'll be correct behaviour
 
 KEEP ONLY:
 
 Main article content
-Paragraph structure
+Paragraph structure (without word-prefixes, please see clean rules)
 Quotes
 
 IMAGE HANDLING (MANDATORY):
