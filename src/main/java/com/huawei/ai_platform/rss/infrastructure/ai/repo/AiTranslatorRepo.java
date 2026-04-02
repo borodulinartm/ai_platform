@@ -16,18 +16,14 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ResourceUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FINISH;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.*;
 
 /**
  * AI content generator
@@ -72,9 +68,13 @@ public class AiTranslatorRepo {
                 String resourceLocationEn = "prompt/system-prompt-for-content-en.txt";
                 String userPromptPath = "prompt/user-prompt.txt";
 
-                String contentZh = vibeTranslating(request.getArticleContentEn(), resourceLocationZh, userPromptPath);
+                String contentZh = vibeTranslating(request.getArticleContentEn(),
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath
+                );
+                String cleanedEn = vibeTranslating(request.getArticleContentEn(),
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
+                );
                 String titleZh = vibeTranslating(request.getArticleTitleEn(), resourceLocationTitle, userPromptPath);
-                String cleanedEn = vibeTranslating(request.getArticleContentEn(), resourceLocationEn, userPromptPath);
 
                 AiTranslationResponse responseData = AiTranslationResponse.successResponse(request.getArticleId(),
                         titleZh, cleanedEn, contentZh
@@ -113,13 +113,12 @@ public class AiTranslatorRepo {
      * @param systemPromptPath what a location
      * @param userPromptPath   where stores user prompt
      * @return vibed text
-     * @throws IOException if exception has occurred
      */
-    private String vibeTranslating(String data, String systemPromptPath, String userPromptPath) throws IOException {
+    private String vibeTranslating(String data, String systemPromptPath, String userPromptPath) {
         ClassPathResource systemPromptResource = new ClassPathResource(systemPromptPath);
         ClassPathResource userPromptResource = new ClassPathResource(userPromptPath);
 
-        try(InputStream systemInputStream = systemPromptResource.getInputStream();
+        try (InputStream systemInputStream = systemPromptResource.getInputStream();
                 InputStream userInputStream = userPromptResource.getInputStream()) {
             Message systemMessage = new SystemMessage(
                     new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8)
@@ -132,11 +131,11 @@ public class AiTranslatorRepo {
                     new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
             ).call().content();
 
-            if (StringUtils.isBlank(res)) {
-                throw new IllegalStateException("The result of the response is empty for some reason");
+            if (res == null) {
+                return StringUtils.EMPTY;
             }
 
-            return res;
+            return res.trim();
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
