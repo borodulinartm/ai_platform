@@ -8,7 +8,6 @@ import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -16,13 +15,10 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ResourceUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,10 +39,9 @@ public class AiTranslatorRepo {
     private final ChatClient chatClient;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    public AiTranslatorRepo(ChatClient.Builder builder,
+    public AiTranslatorRepo(ChatClient chatClient,
                             ApplicationEventPublisher applicationEventPublisher) {
-        chatClient = builder.defaultAdvisors(new SimpleLoggerAdvisor())
-                .build();
+        this.chatClient = chatClient;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 

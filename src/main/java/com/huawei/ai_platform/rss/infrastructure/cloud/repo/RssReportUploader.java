@@ -47,8 +47,9 @@ public class RssReportUploader {
      * @return OperationResult with status: success/failure
      */
     public OperationResult uploadReport(@Nonnull List<RssNewsSummaryCloud> summaryClouds, @Nonnull LocalDate reportDate) {
+        String cleanBasicPath = basicPath.replaceAll("[\\u202A-\\u202E]", "");
         String reportDateFormatted = reportDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd"));
-        Path entryPath = Path.of(basicPath, newsSummaryPath, reportDateFormatted);
+        Path entryPath = Path.of(cleanBasicPath, newsSummaryPath, reportDateFormatted);
 
         OperationResult beforeWriting = cloudSender.deleteItems(entryPath);
         if (beforeWriting.isFailed()) {
@@ -59,7 +60,7 @@ public class RssReportUploader {
                 .collect(Collectors.groupingBy(RssNewsSummaryCloud::getCategoryId));
 
         for (Map.Entry<Integer, List<RssNewsSummaryCloud>> item : mapByCategoryId.entrySet()) {
-            Path path = Path.of(basicPath, newsSummaryPath, reportDateFormatted, String.valueOf(item.getKey()));
+            Path path = Path.of(cleanBasicPath, newsSummaryPath, reportDateFormatted, String.valueOf(item.getKey()));
 
             try {
                 String jsonRepresentation = objectMapper.writeValueAsString(item.getValue());

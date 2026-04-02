@@ -1,0 +1,5 @@
+[
+  {"id": 12345, "score": 8, "reason": "Article directly discusses the category topic"},
+  {"id": 12346, "score": 5, "reason": "Article partially relates to the category"},
+  {"id": 12347, "score": 2, "reason": "Article has minimal relevance to this category"}
+]

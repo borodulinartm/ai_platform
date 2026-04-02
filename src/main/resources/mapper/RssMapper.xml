@@ -97,6 +97,99 @@
         </where>
     </select>
 
+    <select id="queryArticlesByCategoryAndDate" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        select
+            entry.id,
+            entry.title,
+            entry.author,
+            entry.content,
+            entry.link,
+            entry.date,
+            entry.tags,
+            aTranslations.content_zh as contentZh,
+            aTranslations.title_zh as titleZh,
+            aTranslations.content_en as cleanedContentEn,
+            feed.name as feedName,
+            feed.priority as feedPriority,
+            feed.description as feedDescription,
+            feed.url as feedUrl,
+            feed.website as feedWebsite,
+            entry.id_feed as feedId,
+            aCategory.id as categoryId,
+            aCategory.name as categoryName
+        from admin_entry entry
+        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
+        left join admin_feed feed ON entry.id_feed = feed.id
+        left join admin_category aCategory ON feed.category = aCategory.id
+        where aCategory.id = #{categoryId}
+        <if test="startTime != null">
+            AND entry.date &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND entry.date &lt;= #{endTime}
+        </if>
+        order by entry.date desc
+    </select>
+
+    <select id="queryArticlesByCategoryAndDatePaginated" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        select
+            entry.id,
+            entry.title,
+            entry.author,
+            aTranslations.content_en as cleanedContentEn,
+            entry.link,
+            aTranslations.content_zh as contentZh,
+            aTranslations.title_zh as titleZh,
+            aCategory.id as categoryId
+        from admin_entry entry
+        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
+        left join admin_feed feed ON entry.id_feed = feed.id
+        left join admin_category aCategory ON feed.category = aCategory.id
+        where aCategory.id = #{categoryId}
+        <if test="startTime != null">
+            AND entry.date &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND entry.date &lt;= #{endTime}
+        </if>
+        order by entry.date desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countArticlesByCategoryAndDate" resultType="int">
+        select count(*)
+        from admin_entry entry
+        left join admin_feed feed ON entry.id_feed = feed.id
+        left join admin_category aCategory ON feed.category = aCategory.id
+        where aCategory.id = #{categoryId}
+        <if test="startTime != null">
+            AND entry.date &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND entry.date &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="queryArticlesByIds" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+        select
+            entry.id,
+            entry.title,
+            entry.author,
+            aTranslations.content_en as cleanedContentEn,
+            entry.link,
+            aTranslations.content_zh as contentZh,
+            aTranslations.title_zh as titleZh,
+            aCategory.id as categoryId
+        from admin_entry entry
+        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
+        left join admin_feed feed ON entry.id_feed = feed.id
+        left join admin_category aCategory ON feed.category = aCategory.id
+        where entry.id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
     <!--  After that ID we'll scan other news that is currently not in the article_translation_table  -->
     <select id="getMaxTranslatedTimestamp" resultType="long">
         SELECT MAX(entry.article_create_date) from article_translations entry

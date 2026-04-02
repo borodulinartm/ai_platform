@@ -92,4 +92,46 @@ public interface RssDao extends BaseMapper<RssEntity> {
      */
     void queryUpdateStatusByListData(@Param("data") List<Long> items,
                                      @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum);
+
+    /**
+     * Extracts articles by category and date range
+     *
+     * @param categoryId category ID
+     * @param startTime  start timestamp
+     * @param endTime    end timestamp
+     * @return list of articles
+     */
+    List<RssFetchData> queryArticlesByCategoryAndDate(@Param("categoryId") int categoryId,
+                                                        @Param("startTime") Long startTime,
+                                                        @Param("endTime") Long endTime);
+
+    /**
+     * Extracts articles by category and date range with pagination
+     *
+     * @param categoryId category ID
+     * @param startTime  start timestamp
+     * @param endTime    end timestamp
+     * @param offset     offset for pagination
+     * @param limit      maximum number of articles to return
+     * @return list of articles
+     */
+    List<RssFetchData> queryArticlesByCategoryAndDatePaginated(@Param("categoryId") int categoryId,
+                                                                 @Param("startTime") Long startTime,
+                                                                 @Param("endTime") Long endTime,
+                                                                 @Param("offset") int offset,
+                                                                 @Param("limit") int limit);
+
+    /**
+     * Counts articles by category and date range
+     *
+     * @param categoryId category ID
+     * @param startTime  start timestamp
+     * @param endTime    end timestamp
+     * @return count of articles
+     */
+    int countArticlesByCategoryAndDate(@Param("categoryId") int categoryId,
+                                        @Param("startTime") Long startTime,
+                                        @Param("endTime") Long endTime);
+
+    List<RssFetchData> queryArticlesByIds(@Param("ids") Collection<Long> ids);
 }
