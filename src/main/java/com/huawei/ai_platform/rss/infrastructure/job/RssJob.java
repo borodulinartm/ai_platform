@@ -3,12 +3,14 @@ package com.huawei.ai_platform.rss.infrastructure.job;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.annotation.DbLock;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
+import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -23,6 +25,7 @@ import java.time.LocalDateTime;
 public class RssJob {
     private final RssSyncService rssService;
     private final RssTranslationService rssTranslationService;
+    private final RssTopArticlesService rssTopArticlesService;
 
     /**
      * Job for uploading into data storage components of our RSS
@@ -54,5 +57,20 @@ public class RssJob {
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish Translation Job");
+    }
+
+    /**
+     * Job for processing TOP-10 articles per category with summaries
+     * Runs daily at 2:00 AM GMT
+     */
+    @Scheduled(cron = "0 0 2 * * ?", zone = "GMT")
+//    @DbLock(category = "top_articles_processing_lock")
+    public void runTopArticlesProcessing() {
+        log.info("Run TOP-10 Articles Processing Job");
+
+        OperationResult result = rssTopArticlesService.processTopArticles(LocalDate.now().minusDays(1));
+        log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
+
+        log.info("Finish TOP-10 Articles Processing Job");
     }
 }

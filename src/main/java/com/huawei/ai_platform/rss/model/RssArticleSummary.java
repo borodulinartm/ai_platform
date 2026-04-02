@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -17,21 +18,40 @@ import java.util.List;
 @Builder
 public class RssArticleSummary {
     private List<String> authors;
+    
+    @JsonProperty("articleLink")
     private String articleLink;
 
-    private String articleTitleEn;
-    private String articleAbstractEn;
-    private String backgroundEn;
-    private String effectsEn;
-    private String eventSummaryEn;
-    private String technologyAndInnovationEn;
-    private String valueAndImpactEn;
+    @JsonProperty("title")
+    private String title;
+    
+    @JsonProperty("abstract")
+    private String articleAbstract;
+    
+    @JsonProperty("titleCn")
+    private String titleCn;
+    
+    @JsonProperty("abstractCn")
+    private String abstractCn;
 
-    private String articleTitleZh;
-    private String articleAbstractZh;
-    private String backgroundZh;
-    private String effectsZh;
-    private String eventSummaryZh;
-    private String technologyAndInnovationZh;
-    private String valueAndImpactZh;
+    private String background;
+    private String effects;
+    private String eventSummary;
+    private String technologyAndInnovation;
+    private String valueAndImpact;
+
+    @JsonProperty("backgroundCn")
+    private String backgroundCn;
+    
+    @JsonProperty("effectsCn")
+    private String effectsCn;
+    
+    @JsonProperty("eventSummaryCn")
+    private String eventSummaryCn;
+    
+    @JsonProperty("technologyAndInnovationCn")
+    private String technologyAndInnovationCn;
+    
+    @JsonProperty("valueAndImpactCn")
+    private String valueAndImpactCn;
 }

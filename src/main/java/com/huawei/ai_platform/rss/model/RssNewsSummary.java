@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -16,10 +17,15 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class RssNewsSummary {
+    @JsonProperty("categoryId")
     private int categoryId;
 
+    @JsonProperty("articleTopSummaryEn")
     private String articleTopSummaryEn;
+    
+    @JsonProperty("articleTopSummaryZh")
     private String articleTopSummaryZh;
 
-    private List<RssArticleSummary> articlesReport;
+    @JsonProperty("articles")
+    private List<RssArticleSummary> articles;
 }

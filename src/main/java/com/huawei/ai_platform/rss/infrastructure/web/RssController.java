@@ -3,6 +3,7 @@ package com.huawei.ai_platform.rss.infrastructure.web;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
+import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.infrastructure.web.assembler.RssNewsAssembler;
 import com.huawei.ai_platform.rss.infrastructure.web.model.RssReportDto;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -26,11 +27,11 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/v1/upload-report")
 @Slf4j
 public class RssController {
     private final RssConfigService rssConfigService;
     private final RssSyncService rssSyncService;
+    private final RssTopArticlesService rssTopArticlesService;
     private final RssNewsAssembler rssNewsAssembler;
 
     /**
@@ -39,7 +40,7 @@ public class RssController {
      * @param reportDate for which date do you want upload info?
      * @param body       report info JSON
      */
-    @PostMapping
+    @PostMapping("/v1/upload-report")
     public ResponseEntity<?> uploadReportToServer(
             @RequestParam(name = "report_date") LocalDate reportDate,
             @RequestBody List<RssReportDto> body
@@ -54,6 +55,27 @@ public class RssController {
             return ResponseEntity.internalServerError().body(result.getInfo());
         } else {
             return ResponseEntity.ok().build();
+        }
+    }
+
+    /**
+     * Manually triggers TOP-10 articles processing
+     *
+     * @param reportDate for which date to process (defaults to yesterday)
+     * @return processing result
+     */
+    @PostMapping("/v1/process-top-articles")
+    public ResponseEntity<?> processTopArticles(
+            @RequestParam(name = "report_date", required = false) LocalDate reportDate
+    ) {
+        LocalDate processDate = reportDate != null ? reportDate : LocalDate.now().minusDays(1);
+
+        OperationResult result = rssTopArticlesService.processTopArticles(processDate);
+        
+        if (result.isFailed()) {
+            return ResponseEntity.internalServerError().body(result.getInfo());
+        } else {
+            return ResponseEntity.ok(result.getInfo());
         }
     }
 }

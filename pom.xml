@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.huawei</groupId>
 	<artifactId>ai_platform</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>ai_platform</name>
 	<description>AI platform</description>
 	<url/>
