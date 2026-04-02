@@ -1,4 +1,8 @@
 spring:
+  http:
+    client:
+      connect-timeout: 20s
+      read-timeout: 5m
   profiles:
     active: local
   aop:
@@ -16,7 +20,7 @@ spring:
       chat:
         options:
           temperature: 0.7
-          model: deepseek/deepseek-v3.2
+          model: z-ai/glm-5
       base-url: ${LLM_URL}
       api-key: ${LLM_KEY}
 

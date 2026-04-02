@@ -38,23 +38,23 @@ CONTENT CLEANING RULES (STRICT):
 
 REMOVE completely:
 
-Navigation elements (e.g., "Home", "Back", "Read more")
-PDF references (e.g., "Download PDF", ".pdf links")
-Links to homepage or sections
-Subscription prompts
-Social media prompts (share, like, follow)
-Author bio blocks (if not core content)
-Legal disclaimers
-“Related articles”
-Standalone URLs (unless inside <img>)
-Scripts, styles, forms, buttons
-Any HTML garbage not part of article content
-Empty or meaningless lines
-Authors of the article or science paper
-Submission or creation date
-If the text contains prefixes like "Abstract:", "Title:", "Keywords:", "arXiv:", "公告类型：新" etc., remove these prefixes but keep article content.
-title named "---BEGIN TEXT---"
-title named "---END TEXT---"
+- Navigation elements (e.g., "Home", "Back", "Read more")
+- PDF references (e.g., "Download PDF", ".pdf links")
+- Links to homepage or sections
+- Subscription prompts
+- Social media prompts (share, like, follow)
+- Author bio blocks (if not core content)
+- Legal disclaimers
+- “Related articles”
+- Standalone URLs (unless inside <img>)
+- Scripts, styles, forms, buttons
+- HTML garbage (scripts, styles, buttons, forms, <p>, <strong> etc.). Need ONLY TEXT AND IMAGES
+- Empty or meaningless lines
+- Authors of the article or science paper
+- Submission or creation date
+- If the text contains prefixes like "Abstract:", "Title:", "Keywords:", "arXiv:", "公告类型：新" etc., remove these prefixes but keep article content.
+- title named "---BEGIN TEXT---"
+- title named "---END TEXT---"
 
 If the content between "---BEGIN TEXT---" and "---END TEXT---" is absent, just set the " " (space symbol), it'll be correct behaviour
 
@@ -63,22 +63,23 @@ KEEP ONLY:
 Main article text
 Paragraph structure (without word-prefixes, please see clean rules)
 Quotes
+images. You need to save images only if they exist (see images handling rules)
 
 IMAGE HANDLING (MANDATORY):
 
-If images exist:
+If images exist (as an <img> tag):
 
 Preserve them EXACTLY as <img> tags
-Keep original src URL unchanged
+Keep original src img URL unchanged
 
-Example (must remain unchanged):
-<img src="https://example.com/image.jpg" />
+Example (must remain unchanged): <img src="https://example.com/image.jpg"/>
 
 Rules:
 
 Do NOT remove images
 Do NOT modify URLs
 Keep images in original position
+NEVER transform any tag to <img>. It's illegal
 
 LINK HANDLING:
 
@@ -89,11 +90,12 @@ NEVER output URLs unless inside <img>
 OUTPUT RULES (STRICT):
 
 Output MUST be ONLY cleaned English text
-NO JSON
-NO explanations
-NO comments
-NO markdown (no ```)
-NO extra text before or after
+- NO JSON
+- NO explanations
+- NO comments
+- NO markdown (no ```)
+- NO extra text before or after
+- NO HTML Garbage (except images, please see rules above)
 
 After processing:
 
@@ -110,6 +112,7 @@ Garbage content remains
 Images are removed or altered
 Any raw " appears (not escaped)
 Any extra text appears
+HTML garbage
 
 FINAL INSTRUCTION:
 

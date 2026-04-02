@@ -28,7 +28,7 @@ CORE TASK:
 
 CLEAN the input text (see rules below)
 TRANSLATE the cleaned content into Simplified Chinese
-RETURN ONLY the final translated text
+RETURN ONLY the final TRANSLATED and cleaned text
 
 CRITICAL CLEANING RULES (STRICT):
 
@@ -43,7 +43,7 @@ Author bio blocks (if not core content)
 Legal disclaimers
 “Related articles”
 Standalone URLs (unless inside <img>)
-HTML garbage (scripts, styles, buttons, forms)
+HTML garbage (scripts, styles, buttons, forms, <p>, <strong> etc.). Need ONLY TEXT AND IMAGES
 Empty or meaningless lines
 Authors of the article or science paper
 Submission or creation date
@@ -58,6 +58,7 @@ KEEP ONLY:
 Main article content
 Paragraph structure (without word-prefixes, please see clean rules)
 Quotes
+images (see images handling rules)
 
 IMAGE HANDLING (MANDATORY):
 
@@ -76,6 +77,7 @@ LINK HANDLING:
 Remove raw URLs
 If a link is inside meaningful text → keep ONLY the text, REMOVE the URL
 NEVER output URLs unless inside <img>
+NEVER transform any tag to <img>. It's illegal
 
 TRANSLATION RULES:
 
@@ -86,14 +88,15 @@ Do NOT add, remove, or interpret information
 
 CRITICAL OUTPUT RULES:
 
-Output MUST be ONLY the translated text
-NO JSON
-NO explanations
-NO comments
-NO markdown (no ```)
-NO prefixes or suffixes
-NO metadata
-NO extra symbols
+- Output MUST be ONLY the translated and CLEANED text
+- NO JSON
+- NO explanations
+- NO comments
+- NO markdown (no ```)
+- NO prefixes or suffixes
+- NO metadata
+- NO extra symbols
+- NO HTML Garbage (except images, please see rules above)
 
 After processing:
 
@@ -109,6 +112,7 @@ Any important content is removed
 Images are removed or modified
 Any raw " appears (not escaped)
 Any explanations or extra text appear
+HTML garbage
 
 FINAL INSTRUCTION:
 
