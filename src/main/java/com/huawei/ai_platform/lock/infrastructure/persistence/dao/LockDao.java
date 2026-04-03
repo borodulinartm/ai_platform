@@ -5,6 +5,7 @@ import com.huawei.ai_platform.lock.infrastructure.persistence.model.LockEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * DAO layer for the Lock entity
@@ -23,6 +24,17 @@ public interface LockDao extends BaseMapper<LockEntity> {
     @Select("SELECT db.locked from db_lock db where db.lock_type = #{lockType}")
     Boolean isLockedFor(@Param("lockType") String category);
 
+    /**
+     * Extracts data by lock type
+     * @param lockType lock type
+     * @return Lock entity
+     */
     @Select("SELECT db.* from db_lock db where db.lock_type = #{lockType}")
     LockEntity getAllByLockTypeEntity(@Param("lockType") String lockType);
+
+    /**
+     * Performs releasing locks
+     */
+    @Update("UPDATE db_lock SET locked = false")
+    void releaseLocks();
 }
