@@ -61,6 +61,7 @@ REMOVE completely:
 - If unsure → KEEP the content.
 
 TRANSLATION RULES
+
 - Target language: Simplified Chinese (简体中文)
 - Preserve meaning EXACTLY
 - Maintain neutral, journalistic tone

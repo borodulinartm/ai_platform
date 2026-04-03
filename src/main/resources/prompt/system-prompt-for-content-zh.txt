@@ -49,7 +49,7 @@ This rule overrides all other behaviors.
 
 INPUT FORMAT
 
-You receive raw English article text.
+You receive raw article text.
 
 The text may contain:
 
