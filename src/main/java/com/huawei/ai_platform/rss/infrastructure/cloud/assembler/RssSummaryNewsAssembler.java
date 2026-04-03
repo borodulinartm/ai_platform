@@ -1,8 +1,11 @@
 package com.huawei.ai_platform.rss.infrastructure.cloud.assembler;
 
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssArticleSummaryCloud;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
+import com.huawei.ai_platform.rss.model.RssArticleSummary;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 
@@ -21,4 +24,10 @@ public abstract class RssSummaryNewsAssembler {
      * @return list of summary cloud
      */
     public abstract List<RssNewsSummaryCloud> toSummaryCloud(List<RssNewsSummary> input);
+
+    @Mapping(target = "articles", source = "articles")
+    public abstract RssNewsSummaryCloud toSummaryCloud(RssNewsSummary input);
+
+    @Mapping(target = "articleAbstract", source = "articleAbstract")
+    public abstract RssArticleSummaryCloud toArticleSummaryCloud(RssArticleSummary input);
 }
