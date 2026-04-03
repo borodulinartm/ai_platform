@@ -146,6 +146,14 @@ class ExtractJsonTest {
     }
 
     @Test
+    void testComplexJsonWithAllFields() throws Exception {
+        String json = "{\n  \"categoryId\": 3,\n  \"articleTopSummaryEn\": \"Summary\",\n  \"articleTopSummaryZh\": \"摘要\",\n  \"articles\": [\n    {\"title\": \"Test\", \"abstract\": \"Abstract\", \"articleLink\": \"http://test.com\", \"authors\": [], \"titleCn\": \"测试\", \"abstractCn\": \"摘要\", \"background\": \"bg\", \"effects\": \"ef\", \"eventSummary\": \"es\", \"technologyAndInnovation\": \"ti\", \"valueAndImpact\": \"vi\", \"backgroundCn\": \"背景\", \"effectsCn\": \"效果\", \"eventSummaryCn\": \"事件\", \"technologyAndInnovationCn\": \"技术\", \"valueAndImpactCn\": \"价值\"}\n  ]\n}";
+        String result = invokeExtract(json);
+        ObjectMapper mapper = new ObjectMapper();
+        assertDoesNotThrow(() -> mapper.readTree(result));
+    }
+
+    @Test
     void testPromptFormatNotCorrupted() throws Exception {
         String rankingFormat = loadResource("prompt/ranking-format.txt");
         int categoryId = 10;

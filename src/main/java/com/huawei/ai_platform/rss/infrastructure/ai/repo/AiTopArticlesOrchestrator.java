@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -194,8 +195,10 @@ public class AiTopArticlesOrchestrator {
 
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
                     log.info("Generating summary for category {} with {} top articles", ca.categoryName(), topIds.size());
+                    Map<Long, Double> scoreMap = scores.stream()
+                        .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
                     List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
-                    var topArticles = toArticleDataList(fetchData);
+                    var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
                     var topArticlesWithContent = scrapeArticleContent(topArticles);
                     RssNewsSummary summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
                     log.info("Completed summary for category {}", ca.categoryName());
@@ -234,17 +237,12 @@ public class AiTopArticlesOrchestrator {
         
         for (var article : articles) {
             try {
-                boolean needsScraping = article.content() == null || 
-                    article.content().isBlank() || 
-                    article.content().length() < 200;
+                String scrapedContent = "";
                 
-                String content = article.content();
-                
-                if (needsScraping && article.link() != null && !article.link().isBlank()) {
+                if (article.link() != null && !article.link().isBlank()) {
                     log.debug("Scraping content for article {}: {}", article.id(), article.link());
-                    String scrapedContent = webScraperService.scrapeContent(article.link());
+                    scrapedContent = webScraperService.scrapeContent(article.link());
                     if (!scrapedContent.isBlank()) {
-                        content = scrapedContent;
                         log.debug("Scraped {} chars for article {}", scrapedContent.length(), article.id());
                     }
                 }
@@ -252,12 +250,14 @@ public class AiTopArticlesOrchestrator {
                 result.add(new ArticleData(
                     article.id(),
                     article.title(),
-                    content,
+                    article.content(),
                     article.authors(),
                     article.link(),
                     article.categoryId(),
                     article.titleZh(),
-                    article.contentZh()
+                    article.contentZh(),
+                    scrapedContent,
+                    article.score()
                 ));
             } catch (Exception e) {
                 log.warn("Error scraping article {}: {}", article.id(), e.getMessage());
@@ -302,7 +302,16 @@ public class AiTopArticlesOrchestrator {
                 );
                 List<ArticleRanking> rankings = converter.convert(json);
                 if (rankings == null || rankings.isEmpty()) {
-                    return List.of();
+                    attempt++;
+                    log.warn("Ranking attempt {}/{} returned empty for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
+                    continue;
+                }
+                
+                if (rankings.size() < batch.size()) {
+                    attempt++;
+                    log.warn("Ranking attempt {}/{} returned {} scores for {} articles in category {} batch {}, retrying", 
+                        attempt, MAX_ATTEMPTS, rankings.size(), batch.size(), categoryName, batchNum);
+                    continue;
                 }
                 
                 return rankings.stream()
@@ -363,6 +372,16 @@ public class AiTopArticlesOrchestrator {
                     log.warn("Summary attempt {}/{} returned null for {}", attempt, MAX_ATTEMPTS, categoryName);
                     continue;
                 }
+                
+                if (output.articles() == null || output.articles().size() < topArticles.size()) {
+                    attempt++;
+                    log.warn("Summary attempt {}/{} returned {} articles for {} input articles in category {}, retrying", 
+                        attempt, MAX_ATTEMPTS, 
+                        output.articles() == null ? 0 : output.articles().size(), 
+                        topArticles.size(), categoryName);
+                    continue;
+                }
+                
                 log.debug("Summary response for {}: {} chars", categoryName, response.length());
 
                 return mapToRssNewsSummary(categoryId, output, topArticles);
@@ -475,10 +494,29 @@ public class AiTopArticlesOrchestrator {
             return fixTruncatedJson(cleaned.substring(objectStart));
         }
         
+        if (cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
+            String unquoted = cleaned.substring(1, cleaned.length() - 1);
+            return sanitizeJson(unquoted.replace("\\\"", "\"").replace("\\\\", "\\"));
+        }
+        
         return cleaned;
     }
 
     private String sanitizeJson(String json) {
+        if (json.startsWith("\"{") || json.startsWith("\"[")) {
+            try {
+                json = objectMapper.readValue(json, String.class);
+            } catch (Exception e) {
+                json = json.substring(1);
+                if (json.endsWith("\"")) {
+                    json = json.substring(0, json.length() - 1);
+                }
+                json = json.replace("\\\"", "\"").replace("\\\\", "\\");
+            }
+        } else if (json.startsWith("{\"") || json.startsWith("[\"")) {
+            json = json.replace("\\\"", "\"").replace("\\\\", "\\");
+        }
+        
         StringBuilder result = new StringBuilder();
         boolean inString = false;
         boolean escaped = false;
@@ -604,7 +642,9 @@ public class AiTopArticlesOrchestrator {
         String link,
         int categoryId,
         String titleZh,
-        String contentZh
+        String contentZh,
+        String scrapedContent,
+        Double score
     ) {}
     
     private record BatchContext(
@@ -633,7 +673,26 @@ public class AiTopArticlesOrchestrator {
                 f.getLink(),
                 f.getCategoryId(),
                 f.getTitleZh() != null ? f.getTitleZh() : "",
-                f.getContentZh() != null ? f.getContentZh() : ""
+                f.getContentZh() != null ? f.getContentZh() : "",
+                "",
+                null
+            ))
+            .toList();
+    }
+    
+    private List<ArticleData> toArticleDataListWithScores(List<RssFetchData> fetchData, Map<Long, Double> scoreMap) {
+        return fetchData.stream()
+            .map(f -> new ArticleData(
+                f.getId(),
+                f.getTitle(),
+                f.getCleanedContentEn() != null ? f.getCleanedContentEn() : "",
+                parseAuthors(f.getAuthor()),
+                f.getLink(),
+                f.getCategoryId(),
+                f.getTitleZh() != null ? f.getTitleZh() : "",
+                f.getContentZh() != null ? f.getContentZh() : "",
+                "",
+                scoreMap.get(f.getId())
             ))
             .toList();
     }
