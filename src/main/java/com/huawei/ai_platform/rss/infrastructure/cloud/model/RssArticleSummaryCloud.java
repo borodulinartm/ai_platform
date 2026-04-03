@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.cloud.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -16,22 +17,52 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class RssArticleSummaryCloud {
+    
+    @JsonProperty("authors")
     private List<String> authors;
+    
+    @JsonProperty("articleLink")
     private String articleLink;
 
-    private String articleTitleEn;
-    private String articleAbstractEn;
-    private String backgroundEn;
-    private String effectsEn;
-    private String eventSummaryEn;
-    private String technologyAndInnovationEn;
-    private String valueAndImpactEn;
+    @JsonProperty("title")
+    private String title;
+    
+    @JsonProperty("abstract")
+    private String articleAbstract;
+    
+    @JsonProperty("titleCn")
+    private String titleCn;
+    
+    @JsonProperty("abstractCn")
+    private String abstractCn;
 
-    private String articleTitleZh;
-    private String articleAbstractZh;
-    private String backgroundZh;
-    private String effectsZh;
-    private String eventSummaryZh;
-    private String technologyAndInnovationZh;
-    private String valueAndImpactZh;
+    @JsonProperty("background")
+    private String background;
+    
+    @JsonProperty("effects")
+    private String effects;
+    
+    @JsonProperty("eventSummary")
+    private String eventSummary;
+    
+    @JsonProperty("technologyAndInnovation")
+    private String technologyAndInnovation;
+    
+    @JsonProperty("valueAndImpact")
+    private String valueAndImpact;
+
+    @JsonProperty("backgroundCn")
+    private String backgroundCn;
+    
+    @JsonProperty("effectsCn")
+    private String effectsCn;
+    
+    @JsonProperty("eventSummaryCn")
+    private String eventSummaryCn;
+    
+    @JsonProperty("technologyAndInnovationCn")
+    private String technologyAndInnovationCn;
+    
+    @JsonProperty("valueAndImpactCn")
+    private String valueAndImpactCn;
 }

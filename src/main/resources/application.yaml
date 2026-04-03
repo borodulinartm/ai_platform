@@ -17,12 +17,27 @@ spring:
     driver-class-name: org.postgresql.Driver
   ai:
     openai:
-      chat:
-        options:
-          temperature: 0.7
-          model: deepseek/deepseek-v3.2
       base-url: ${LLM_URL}
       api-key: ${LLM_KEY}
+      chat:
+        options:
+          model: deepseek/deepseek-v3.2
+          temperature: 0.3
+
+ai:
+  processing:
+    timeout: 900000
+    batch-size: 50
+    thread-pool-size: 5
+    log-dir: ./logs/llm
+    reasoning-model: deepseek/deepseek-v3.2
+    ranking-temperature: 0.1
+    summary-model: deepseek/deepseek-v3.2
+    summary-temperature: 0.4
+  scraper:
+    timeout: 15000
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    max-content-length: 20000
 
 logging:
   level:
