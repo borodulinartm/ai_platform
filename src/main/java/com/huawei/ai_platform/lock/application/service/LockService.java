@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.lock.application.service;
 
 import com.huawei.ai_platform.lock.infrastructure.persistence.repo.LockRepo;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -54,5 +55,10 @@ public class LockService {
         }
 
         lockRepo.unlock(category);
+    }
+
+    @PreDestroy
+    public void preDestroyHandling() {
+        lockRepo.releaseLocks();
     }
 }
