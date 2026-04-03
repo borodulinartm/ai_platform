@@ -64,7 +64,7 @@ public class RssJob {
      * Runs daily at 2:00 AM GMT
      */
     @Scheduled(cron = "0 0 2 * * ?", zone = "GMT")
-//    @DbLock(category = "top_articles_processing_lock")
+    @DbLock(category = "top_articles_processing_lock")
     public void runTopArticlesProcessing() {
         log.info("Run TOP-10 Articles Processing Job");
 
