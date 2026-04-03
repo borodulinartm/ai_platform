@@ -39,3 +39,5 @@ mvnw.cmd
 .DS_Store
 
 *.pid
+
+src/main/resources/application-local.yml

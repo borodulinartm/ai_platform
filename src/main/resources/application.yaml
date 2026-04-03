@@ -1,4 +1,10 @@
 spring:
+  http:
+    client:
+      connect-timeout: 20s
+      read-timeout: 5m
+  profiles:
+    active: local
   aop:
     auto: true
     proxy-target-class: true
