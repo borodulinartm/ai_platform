@@ -29,8 +29,8 @@ ai:
     timeout: 1200000
     batch-size: 50
     thread-pool-size: 5
-    log-dir: ./logs/llm
-    reasoning-model: deepseek/deepseek-v3.2
+    log-dir: /usr1/logs/llm
+    ranking-model: deepseek/deepseek-v3.2
     ranking-temperature: 0.1
     summary-model: deepseek/deepseek-v3.2
     summary-temperature: 0.4
