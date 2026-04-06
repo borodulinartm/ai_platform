@@ -3,7 +3,7 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssArticleTranslationMapper;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
@@ -101,7 +101,6 @@ public class RssPersistenceRepo {
      */
     public List<RssFetchData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
-        Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
 
         List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT));

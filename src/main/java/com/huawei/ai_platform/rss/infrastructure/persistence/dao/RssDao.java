@@ -1,7 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssArticleTranslationEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;

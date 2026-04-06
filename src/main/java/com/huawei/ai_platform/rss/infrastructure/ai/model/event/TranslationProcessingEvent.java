@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.model.event;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import lombok.*;
 
 import java.util.List;
@@ -16,5 +17,5 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class TranslationProcessingEvent {
-    private List<Long> idList;
+    private AiTranslationRequest aiTranslationRequest;
 }
