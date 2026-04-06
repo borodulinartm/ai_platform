@@ -1,6 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.assembler;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.model.RssData;
 import jakarta.annotation.Nonnull;
 import org.mapstruct.Mapper;

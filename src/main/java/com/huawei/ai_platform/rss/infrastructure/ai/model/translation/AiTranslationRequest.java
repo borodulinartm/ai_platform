@@ -1,4 +1,4 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.model;
+package com.huawei.ai_platform.rss.infrastructure.ai.model.translation;
 
 import lombok.*;
 

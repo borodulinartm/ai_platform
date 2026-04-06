@@ -1,7 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationRequest;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import jakarta.annotation.Nonnull;
@@ -12,7 +12,6 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -62,10 +61,10 @@ public class AiTranslatorRepo {
 
                 log.info("Run translation for ID's = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
-                String resourceLocationZh = "prompt/system-prompt-for-content-zh.txt";
-                String resourceLocationTitle = "prompt/system-prompt-for-title.txt";
-                String resourceLocationEn = "prompt/system-prompt-for-content-en.txt";
-                String userPromptPath = "prompt/user-prompt.txt";
+                String resourceLocationZh = "prompt/translations/system-prompt-for-content-zh.txt";
+                String resourceLocationTitle = "prompt/translations/system-prompt-for-title.txt";
+                String resourceLocationEn = "prompt/translations/system-prompt-for-content-en.txt";
+                String userPromptPath = "prompt/translations/user-prompt.txt";
 
                 String contentZh = vibeTranslating(request.getArticleContentEn(),
                         StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
