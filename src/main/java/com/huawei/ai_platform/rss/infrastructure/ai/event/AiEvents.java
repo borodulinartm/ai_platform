@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.PROCESSING;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.TRANSLATING_PROCESSING;
 
 /**
  * Consumer event class for some AI events
@@ -36,7 +36,7 @@ public class AiEvents {
     @EventListener
     public void onStartTranslation(TranslationProcessingEvent translationProcessingEvent) {
         if (translationProcessingEvent != null) {
-            rssTranslationService.queryUpdateStatusByListData(translationProcessingEvent.getIdList(), PROCESSING);
+            rssTranslationService.queryUpdateStatusByListData(translationProcessingEvent.getIdList(), TRANSLATING_PROCESSING);
         } else {
             log.warn("For 'onProcessingEvent' produced empty data");
         }

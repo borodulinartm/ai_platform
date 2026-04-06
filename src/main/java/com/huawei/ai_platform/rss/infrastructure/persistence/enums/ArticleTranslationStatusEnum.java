@@ -8,7 +8,8 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.enums;
  */
 public enum ArticleTranslationStatusEnum {
     INIT,
-    PROCESSING,
-    FAILURE,
-    FINISH
+    CLEANING_PROCESSING,
+    TRANSLATING_PROCESSING,
+    FINISH,
+    FAILURE
 }
