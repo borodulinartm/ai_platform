@@ -22,6 +22,7 @@ public class RssArticleTranslationEntity {
     private Long id;
 
     private Long articleCreateDate;
+    private String titleEn;
     private String titleZh;
     private String contentZh;
     private String contentEn;

@@ -6,8 +6,11 @@ import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepositor
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
+import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -22,7 +25,14 @@ import org.springframework.util.CollectionUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * Business logic layer
@@ -34,8 +44,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
+    public static final int COUNT_THREADS = 15;
+
     private final RssRepository rssRepository;
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
+    private final RssTranslationOrchestration rssTranslationOrchestration;
+    private final AiTranslationMapper aiTranslationMapper;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
@@ -131,7 +145,40 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     @Override
     public OperationResult syncTranslation() {
         List<RssData> rssTranslationList = rssArticleTranslatorRepository.getNotTranslatedNews();
-        return rssArticleTranslatorRepository.syncTranslation(rssTranslationList);
+
+        log.info("Need translate {} articles", rssTranslationList.size());
+
+        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
+            List<Future<OperationResult>> listFutures = new ArrayList<>();
+            for (RssData item : rssTranslationList) {
+                listFutures.add(
+                        executorService.submit(() -> {
+                            if (item.getTranslationStatusEnum() == null) {
+                                return rssTranslationOrchestration.initTranslation(item);
+                            } else {
+                                if (item.getTranslationStatusEnum() == ArticleTranslationStatusEnum.INIT) {
+                                    AiCleaningRequest cleaningRequest = aiTranslationMapper.convert(item);
+                                    rssTranslationOrchestration.cleanInputText(cleaningRequest);
+
+                                    return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
+                                }
+
+                                log.warn("No handling for the ID = {}. Status is not an INIT or null", item.getArticleId());
+                                return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Ignore").build();
+                            }
+                        }));
+            }
+
+            for (Future<OperationResult> response : listFutures) {
+                response.get();
+            }
+
+            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                    .reason(String.format("Translation has completed successfully. Count records = %s", rssTranslationList.size()))
+                    .build();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

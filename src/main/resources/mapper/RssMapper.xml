@@ -3,11 +3,12 @@
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
     <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         INSERT INTO article_translations
-            (article_create_date, title_zh, status, content_zh, content_en)
+            (article_create_date, title_en, title_zh, status, content_zh, content_en)
         VALUES
         <foreach collection="data" separator="," item="item">
             (
                 #{item.articleCreateDate},
+                #{item.titleEn},
                 #{item.titleZh},
                 #{item.status},
                 #{item.contentZh},
@@ -17,10 +18,9 @@
     </insert>
     
     <update id="queryUpdateArticleTranslation">
-        UPDATE article_translations SET title_zh = #{item.articleTitleZh},
-                                        content_zh = #{item.articleContentZh},
-                                        status = #{status},
-                                        reason = #{reason}, content_en = #{item.articleContentEn}
+        UPDATE article_translations SET title_zh = #{item.articleTitleZh}, title_en = #{item.articleTitleEn},
+                                        content_zh = #{item.articleContentZh}, content_en = #{item.articleContentEn},
+                                        status = #{status}, reason = #{reason}
         <where>
             article_create_date = #{item.articleId}
         </where>
@@ -28,6 +28,7 @@
 
     <update id="queryUpdateStatusByListData">
         UPDATE article_translations SET status = #{status}
+
         <where>
             article_create_date in
                 <foreach collection="data" item="item" open="(" close=")" separator=",">
@@ -37,7 +38,7 @@
     </update>
 
     <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content, false as translationRecordExists from admin_entry entry
+        SELECT entry.id, entry.title, entry.content from admin_entry entry
 
         <where>
             <if test="timestamp != null">
@@ -53,7 +54,7 @@
     </select>
 
     <select id="getNewsWithTranslationByStatus" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content, true as translationRecordExists from admin_entry entry
+        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum from admin_entry entry
             INNER JOIN public.article_translations a on entry.id = a.article_create_date
 
         <where>
@@ -73,6 +74,7 @@
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aTranslations.content_en as cleanedContentEn,
+            aTranslations.title_en as translationTitleEn,
             feed.name as feedName,
             feed.priority as feedPriority,
             feed.description as feedDescription,

@@ -4,10 +4,7 @@ import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.repo.RssArticleTranslatorRepository;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
-import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssArticleCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssCategoryCloudAssembler;
 import com.huawei.ai_platform.rss.infrastructure.cloud.assembler.RssFeedCloudAssembler;
@@ -33,17 +30,11 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
@@ -59,8 +50,6 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 @RequiredArgsConstructor
 @Slf4j
 public class RssFacade implements RssRepository, RssArticleTranslatorRepository {
-    public static final int COUNT_THREADS = 15;
-
     private final RssPersistenceRepo persistenceRepo;
     private final RssAssembler rssAssembler;
 
@@ -75,10 +64,6 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
 
     private final RssSummaryNewsAssembler rssSummaryNewsAssembler;
     private final RssReportUploader rssReportUploader;
-    private final AiTranslatorRepo aiTranslatorRepo;
-    private final AiTranslationMapper aiTranslationMapper;
-
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public List<RssData> getArticlesBy(@Nonnull LocalDateTime dateToFind) {
@@ -136,50 +121,6 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     public OperationResult uploadFeeds(@Nonnull Collection<RssFeed> feedEntities) {
         Collection<RssFeedCloud> rssFeedClouds = rssFeedCloudAssembler.convert(feedEntities);
         return rssFeedUploader.uploadRssFeed(rssFeedClouds);
-    }
-
-    @Override
-    public OperationResult syncTranslation(List<RssData> compacts) {
-        if (CollectionUtils.isEmpty(compacts)) {
-            return OperationResult.builder().state(OperationResultEnum.SUCCESS)
-                    .reason("Pass empty data, nothing to translate. Return").build();
-        }
-
-        applicationEventPublisher.publishEvent(new TranslationCreatedEvent(compacts, INIT));
-
-        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
-            List<Future<AiTranslationResponse>> listFutures = new ArrayList<>();
-            for (RssData item : compacts) {
-                listFutures.add(
-                        executorService.submit(() -> aiTranslatorRepo.translate(aiTranslationMapper.convert(item))));
-            }
-
-            boolean success = true;
-            List<Long> failureId = new ArrayList<>();
-
-            for (Future<AiTranslationResponse> response : listFutures) {
-                AiTranslationResponse out = response.get();
-
-                if (!out.isSuccess()) {
-                    success = false;
-                    failureId.add(out.getArticleId());
-                }
-            }
-
-            if (success) {
-                return OperationResult.builder().state(OperationResultEnum.SUCCESS)
-                        .reason(String.format("Translation has completed successfully. Count records = %s", compacts.size()))
-                        .build();
-            }
-
-            return OperationResult.builder().state(OperationResultEnum.FAILURE)
-                    .reason(
-                            String.format("Some article translations has been finished with error Please check ID's = %s",
-                                    failureId.stream().map(Objects::toString).collect(Collectors.joining(","))
-                            )).build();
-        } catch (InterruptedException | ExecutionException exception) {
-            return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Foo").build();
-        }
     }
 
     @Override

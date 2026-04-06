@@ -22,9 +22,15 @@ spring:
       chat:
         options:
           model: deepseek/deepseek-v3.2
-          temperature: 0.3
+          temperature: 0.2
 
 ai:
+  translating:
+    temperature: 0.2
+    countAttempts: 10
+  cleaning:
+    temperature: 0.1
+    countAttempts: 10
   processing:
     timeout: 900000
     batch-size: 50

@@ -1,6 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.model.event;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
@@ -18,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class TranslationCompletedEvent {
-    private List<AiTranslationResponse> responses;
+    private AiTranslationResponse responses;
     private ArticleTranslationStatusEnum statusEnum;
     private String reason;
 }
