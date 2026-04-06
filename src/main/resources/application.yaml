@@ -26,7 +26,7 @@ spring:
 
 ai:
   processing:
-    timeout: 900000
+    timeout: 1200000
     batch-size: 50
     thread-pool-size: 5
     log-dir: ./logs/llm
