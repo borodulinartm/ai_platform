@@ -207,12 +207,10 @@ public class AiTopArticlesOrchestrator {
 
             for (var future : summaryFutures) {
                 try {
-                    RssNewsSummaryCloud summary = future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                    RssNewsSummaryCloud summary = future.get();
                     if (summary != null) {
                         allSummaries.add(summary);
                     }
-                } catch (TimeoutException e) {
-                    log.error("Summary generation timed out after {}ms", timeoutMs);
                 } catch (Exception e) {
                     log.error("Summary generation failed: {}", e.getMessage());
                 }
