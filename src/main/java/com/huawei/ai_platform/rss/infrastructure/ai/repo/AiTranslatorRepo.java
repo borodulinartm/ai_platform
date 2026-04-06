@@ -31,12 +31,11 @@ import java.util.stream.Collectors;
 public class AiTranslatorRepo {
     private final AiExecutor aiExecutor;
 
-    @Value("${ai.cleaning.countAttempts}")
+    @Value("${ai.translating.countAttempts}")
     private int maxCountAttempts;
 
-    @Value("${ai.cleaning.temperature}")
+    @Value("${ai.translating.temperature}")
     private Double temperature;
-
 
     /**
      * Performs translation
@@ -48,37 +47,35 @@ public class AiTranslatorRepo {
         List<Long> listIds = List.of(request.getArticleId());
 
         int countAttempts = 1;
-
-        while (true) {
+        while (countAttempts <= maxCountAttempts) {
             try {
                 String resourceLocationZh = "prompt/translations/translation-prompt-zh.txt";
                 String resourceLocationEn = "prompt/translations/translation-prompt-en.txt";
                 String userPromptPath = "prompt/user-prompt.txt";
 
                 String contentEn = vibeTranslating(request.getArticleContent(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath,
+                        temperature
                 );
                 String contentZh = vibeTranslating(request.getArticleContent(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath,
+                        temperature
                 );
 
-                String titleEn = vibeTranslating(request.getArticleTitle(), resourceLocationEn, userPromptPath);
-                String titleZh = vibeTranslating(request.getArticleTitle(), resourceLocationZh, userPromptPath);
+                String titleEn = vibeTranslating(request.getArticleTitle(), resourceLocationEn, userPromptPath, temperature);
+                String titleZh = vibeTranslating(request.getArticleTitle(), resourceLocationZh, userPromptPath, temperature);
 
                 return AiTranslationResponse.successResponse(request.getArticleId(), titleEn, titleZh, contentEn, contentZh);
             } catch (Exception exception) {
-                if (countAttempts >= maxCountAttempts) {
-                    log.error("STAGE 3 vs 3: An error has occurred during extracting data: {}; ID = {}", exception.getMessage(),
-                            listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
-
-                    return AiTranslationResponse.failureResponse(request.getArticleId());
-                } else {
-                    log.warn("STAGE 3 vs 3: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}", countAttempts++, maxCountAttempts,
-                            listIds.stream().map(Object::toString).collect(Collectors.joining(",")),
-                            exception.getMessage());
-                }
+                log.warn("STAGE 3 vs 3: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}", countAttempts++, maxCountAttempts,
+                        listIds.stream().map(Object::toString).collect(Collectors.joining(",")),
+                        exception.getMessage());
             }
         }
+
+        log.error("AI Translating: count attempts has exceeded; ID = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
+
+        return AiTranslationResponse.failureResponse(request.getArticleId(), "AI Translating: count attempts has exceeded");
     }
 
     /**
@@ -87,19 +84,20 @@ public class AiTranslatorRepo {
      * @param data             data
      * @param systemPromptPath what a location
      * @param userPromptPath   where stores user prompt
+     * @param passedTemp       passed temp
      * @return vibed text
      */
-    private String vibeTranslating(String data, String systemPromptPath, String userPromptPath) {
+    private String vibeTranslating(String data, String systemPromptPath, String userPromptPath, Double passedTemp) {
         ClassPathResource systemPromptResource = new ClassPathResource(systemPromptPath);
         ClassPathResource userPromptResource = new ClassPathResource(userPromptPath);
 
         try (InputStream systemInputStream = systemPromptResource.getInputStream();
-                InputStream userInputStream = userPromptResource.getInputStream()) {
+             InputStream userInputStream = userPromptResource.getInputStream()) {
 
             String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
             String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8), data);
 
-            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, temperature);
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, passedTemp);
             if (result == null) {
                 throw new AiNullResultException("Result from the AI is null");
             }
