@@ -2,10 +2,10 @@ package com.huawei.ai_platform.rss.application.service.impl;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTopArticlesOrchestrator;
-import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class RssTopArticlesServiceImpl implements RssTopArticlesService {
         long startTime = forWhichDate.atStartOfDay(ZONE).toEpochSecond();
         long endTime = forWhichDate.atTime(23, 59, 59).atZone(ZONE).toEpochSecond();
 
-        List<RssNewsSummary> summaries = aiOrchestrator.processArticles(startTime, endTime);
+        List<RssNewsSummaryCloud> summaries = aiOrchestrator.processArticles(startTime, endTime);
 
         if (CollectionUtils.isEmpty(summaries)) {
             return OperationResult.builder()
@@ -41,7 +41,7 @@ public class RssTopArticlesServiceImpl implements RssTopArticlesService {
                     .build();
         }
 
-        OperationResult uploadResult = rssRepository.uploadReport(summaries, forWhichDate);
+        OperationResult uploadResult = rssRepository.uploadCloudReport(summaries, forWhichDate);
 
         if (uploadResult.isFailed()) {
             return uploadResult;

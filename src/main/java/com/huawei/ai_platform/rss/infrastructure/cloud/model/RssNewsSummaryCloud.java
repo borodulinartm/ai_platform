@@ -27,6 +27,6 @@ public class RssNewsSummaryCloud {
     @JsonProperty("categoryId")
     private int categoryId;
     
-    @JsonProperty("articles")
-    private List<RssArticleSummaryCloud> articles;
+    @JsonProperty("articlesReport")
+    private List<RssArticleSummaryCloud> articlesReport;
 }

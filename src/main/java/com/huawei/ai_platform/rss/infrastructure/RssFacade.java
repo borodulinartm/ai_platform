@@ -127,6 +127,11 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     }
 
     @Override
+    public OperationResult uploadCloudReport(@Nonnull List<RssNewsSummaryCloud> newsSummaries, @Nonnull LocalDate reportDate) {
+        return rssReportUploader.uploadReport(newsSummaries, reportDate);
+    }
+
+    @Override
     public OperationResult uploadCategories(@Nonnull Collection<RssCategory> categoryEntities) {
         List<RssCategoryCloud> cloudCategories = rssCategoryCloudAssembler.convert(categoryEntities);
         return rssCategoryUploader.uploadRssCategory(cloudCategories);
