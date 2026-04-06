@@ -9,7 +9,7 @@ INPUT ARTICLES contain additional context:
 
 Use both "content" and "scrapedContent" to create comprehensive summaries. Higher-scored articles are more relevant to this category.
 
-OUTPUT FORMAT - Return a JSON object like this example:
+EXAMPLE JSON OUTPUT:
 {{jsonFormat}}
 
 ABSOLUTE RULES:
@@ -17,7 +17,7 @@ ABSOLUTE RULES:
 2. EVERY article from input MUST be included in the "articles" array
 3. Preserve original "title", "articleLink", and "authors" EXACTLY as provided
 4. ALL fields must be present for EVERY article
-5. NO markdown, NO code blocks, NO explanations outside JSON
+5. NO Markdown, NO code blocks, NO explanations outside JSON
 6. NO trailing commas in JSON
 7. NO missing brackets or braces
 8. Chinese fields must contain proper Chinese characters, not garbled text
