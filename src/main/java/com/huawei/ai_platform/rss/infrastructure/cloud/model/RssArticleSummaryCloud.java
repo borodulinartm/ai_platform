@@ -5,12 +5,6 @@ import lombok.*;
 
 import java.util.List;
 
-/**
- * Aggregate structure - RSS input an articles from the web side
- *
- * @author Borodulin Artem
- * @since 2026.03.18
- */
 @Getter
 @Setter
 @AllArgsConstructor
@@ -18,51 +12,51 @@ import java.util.List;
 @Builder
 public class RssArticleSummaryCloud {
     
-    @JsonProperty("authors")
-    private List<String> authors;
+    @JsonProperty("articleTitleEn")
+    private String articleTitleEn;
+    
+    @JsonProperty("articleAbstractEn")
+    private String articleAbstractEn;
     
     @JsonProperty("articleLink")
     private String articleLink;
+    
+    @JsonProperty("authors")
+    private List<String> authors;
+    
+    @JsonProperty("articleTitleZh")
+    private String articleTitleZh;
+    
+    @JsonProperty("articleAbstractZh")
+    private String articleAbstractZh;
 
-    @JsonProperty("title")
-    private String title;
+    @JsonProperty("backgroundEn")
+    private String backgroundEn;
     
-    @JsonProperty("abstract")
-    private String articleAbstract;
+    @JsonProperty("effectsEn")
+    private String effectsEn;
     
-    @JsonProperty("titleCn")
-    private String titleCn;
+    @JsonProperty("eventSummaryEn")
+    private String eventSummaryEn;
     
-    @JsonProperty("abstractCn")
-    private String abstractCn;
+    @JsonProperty("technologyAndInnovationEn")
+    private String technologyAndInnovationEn;
+    
+    @JsonProperty("valueAndImpactEn")
+    private String valueAndImpactEn;
 
-    @JsonProperty("background")
-    private String background;
+    @JsonProperty("backgroundZh")
+    private String backgroundZh;
     
-    @JsonProperty("effects")
-    private String effects;
+    @JsonProperty("effectsZh")
+    private String effectsZh;
     
-    @JsonProperty("eventSummary")
-    private String eventSummary;
+    @JsonProperty("eventSummaryZh")
+    private String eventSummaryZh;
     
-    @JsonProperty("technologyAndInnovation")
-    private String technologyAndInnovation;
+    @JsonProperty("technologyAndInnovationZh")
+    private String technologyAndInnovationZh;
     
-    @JsonProperty("valueAndImpact")
-    private String valueAndImpact;
-
-    @JsonProperty("backgroundCn")
-    private String backgroundCn;
-    
-    @JsonProperty("effectsCn")
-    private String effectsCn;
-    
-    @JsonProperty("eventSummaryCn")
-    private String eventSummaryCn;
-    
-    @JsonProperty("technologyAndInnovationCn")
-    private String technologyAndInnovationCn;
-    
-    @JsonProperty("valueAndImpactCn")
-    private String valueAndImpactCn;
+    @JsonProperty("valueAndImpactZh")
+    private String valueAndImpactZh;
 }

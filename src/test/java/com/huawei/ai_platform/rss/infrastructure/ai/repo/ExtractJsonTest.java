@@ -154,6 +154,27 @@ class ExtractJsonTest {
     }
 
     @Test
+    void testArrayWrappedInObject() throws Exception {
+        String json = "{\"rankings\": [{\"id\": 123, \"score\": 7, \"reason\": \"test\"}]}";
+        String extracted = invokeExtract(json);
+        String result = invokeExtractArray(extracted);
+        ObjectMapper mapper = new ObjectMapper();
+        assertDoesNotThrow(() -> mapper.readTree(result));
+    }
+
+    @Test
+    void testSingleObjectWrappedToArray() throws Exception {
+        String json = "{\"id\": 1775217723062369, \"score\": 9, \"reason\": \"Article directly discusses voltage-controlled magnetic anisotropy\"}";
+        String extracted = invokeExtract(json);
+        String result = invokeExtractArray(extracted);
+        System.out.println("Result: [" + result + "]");
+        assertTrue(result.startsWith("["), "Should start with [");
+        assertTrue(result.endsWith("]"), "Should end with ]");
+        ObjectMapper mapper = new ObjectMapper();
+        assertDoesNotThrow(() -> mapper.readTree(result));
+    }
+
+    @Test
     void testPromptFormatNotCorrupted() throws Exception {
         String rankingFormat = loadResource("prompt/ranking-format.txt");
         int categoryId = 10;
@@ -212,6 +233,16 @@ class ExtractJsonTest {
             "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4
         );
         return (String) method.invoke(orchestrator, response);
+    }
+
+    private String invokeExtractArray(String json) throws Exception {
+        Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("extractArrayFromObject", String.class);
+        method.setAccessible(true);
+        AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
+            null, null, null, null, null, 100, 5, 600000, "./logs/llm",
+            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4
+        );
+        return (String) method.invoke(orchestrator, json);
     }
 
     private String loadResource(String location) throws Exception {

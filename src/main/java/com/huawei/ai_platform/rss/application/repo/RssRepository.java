@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.application.repo;
 
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssData;
 import com.huawei.ai_platform.common.OperationResult;
@@ -82,4 +83,6 @@ public interface RssRepository {
      * @return OperationResult: success if good, fail otherwise
      */
     OperationResult uploadReport(@Nonnull List<RssNewsSummary> newsSummaries, @Nonnull LocalDate reportDate);
+
+    OperationResult uploadCloudReport(@Nonnull List<RssNewsSummaryCloud> newsSummaries, @Nonnull LocalDate reportDate);
 }
