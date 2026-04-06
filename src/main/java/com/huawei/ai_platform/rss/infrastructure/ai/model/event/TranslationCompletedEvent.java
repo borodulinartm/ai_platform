@@ -18,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class TranslationCompletedEvent {
-    private List<AiTranslationResponse> responses;
+    private AiTranslationResponse responses;
     private ArticleTranslationStatusEnum statusEnum;
     private String reason;
 }

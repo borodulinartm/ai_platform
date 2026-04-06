@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
 /**
@@ -16,9 +17,10 @@ import lombok.*;
 public class RssFetchData {
     private long id;
 
-    private boolean translationRecordExists;
+    private ArticleTranslationStatusEnum translationStatusEnum;
 
     private String title;
+    private String translationTitleEn;
     private String titleZh;
 
     private String author;

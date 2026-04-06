@@ -1,0 +1,3 @@
+---BEGIN TEXT---
+%s
+---END TEXT---
