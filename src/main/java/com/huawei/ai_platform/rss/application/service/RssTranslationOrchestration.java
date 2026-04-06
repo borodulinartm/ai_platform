@@ -12,7 +12,25 @@ import com.huawei.ai_platform.rss.model.RssData;
  * @since 2026.04.06
  */
 public interface RssTranslationOrchestration {
+    /**
+     * Inits translation
+     *
+     * @param inputList input
+     * @return success if saga has started correctly, failed otherwise
+     */
     OperationResult initTranslation(RssData inputList);
+
+    /**
+     * Performs cleaning text
+     *
+     * @param cleaningRequests clean request for the article
+     */
     void cleanInputText(AiCleaningRequest cleaningRequests);
+
+    /**
+     * Translated input data
+     *
+     * @param aiTranslationRequestList ai translation request
+     */
     void translateInputData(AiTranslationRequest aiTranslationRequestList);
 }

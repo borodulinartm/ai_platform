@@ -61,15 +61,13 @@ public class AiCleaningArticlesRepo {
                         listIds.stream().map(Object::toString).collect(Collectors.joining(",")),
                         e.getMessage()
                 );
-
-                ++countAttempts;
             }
         }
 
         log.error("AI Cleaning: count attempts has exceeded; ID = {}",
                 listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
-        return AiCleaningResponse.failure(cleaningRequest.getId());
+        return AiCleaningResponse.failure(cleaningRequest.getId(), "AI Cleaning: count attempts has exceeded");
     }
 
     /**

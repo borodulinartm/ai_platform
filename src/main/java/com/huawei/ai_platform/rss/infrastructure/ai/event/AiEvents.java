@@ -6,14 +6,13 @@ import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMappe
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.CleaningCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.CLEANING_PROCESSING;
