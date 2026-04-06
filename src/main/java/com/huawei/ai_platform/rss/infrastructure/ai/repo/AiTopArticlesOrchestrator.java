@@ -2,18 +2,17 @@ package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.dto.ArticleRanking;
-import com.huawei.ai_platform.rss.infrastructure.ai.dto.CategorySummaryOutput;
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
 import com.huawei.ai_platform.rss.infrastructure.ai.scraper.WebScraperService;
-import com.huawei.ai_platform.rss.model.RssArticleSummary;
-import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
@@ -93,9 +92,9 @@ public class AiTopArticlesOrchestrator {
         }
     }
 
-    public List<RssNewsSummary> processArticles(long startTime, long endTime) {
+    public List<RssNewsSummaryCloud> processArticles(long startTime, long endTime) {
         String runTimestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        List<RssNewsSummary> allSummaries = new ArrayList<>();
+        List<RssNewsSummaryCloud> allSummaries = new ArrayList<>();
         
         webScraperService.resetFailures();
 
@@ -173,7 +172,7 @@ public class AiTopArticlesOrchestrator {
             }
         }
 
-        List<CompletableFuture<RssNewsSummary>> summaryFutures = new ArrayList<>();
+        List<CompletableFuture<RssNewsSummaryCloud>> summaryFutures = new ArrayList<>();
         try (ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize)) {
             for (var ca : categoriesWithArticles) {
                 var scores = scoresByCategory.get(ca.categoryId());
@@ -200,7 +199,7 @@ public class AiTopArticlesOrchestrator {
                     List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
                     var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
                     var topArticlesWithContent = scrapeArticleContent(topArticles);
-                    RssNewsSummary summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
+                    RssNewsSummaryCloud summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
                     log.info("Completed summary for category {}", ca.categoryName());
                     return summary;
                 }, executor));
@@ -208,12 +207,10 @@ public class AiTopArticlesOrchestrator {
 
             for (var future : summaryFutures) {
                 try {
-                    RssNewsSummary summary = future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                    RssNewsSummaryCloud summary = future.get();
                     if (summary != null) {
                         allSummaries.add(summary);
                     }
-                } catch (TimeoutException e) {
-                    log.error("Summary generation timed out after {}ms", timeoutMs);
                 } catch (Exception e) {
                     log.error("Summary generation failed: {}", e.getMessage());
                 }
@@ -271,8 +268,10 @@ public class AiTopArticlesOrchestrator {
     private List<ArticleScore> rankBatch(int categoryId, String categoryName,
                                          List<ArticleData> batch,
                                        int batchNum, int totalBatches, String runTimestamp) {
-        int attempt = 0;
-        while (attempt < MAX_ATTEMPTS) {
+        List<ArticleRanking> bestResult = null;
+        int bestSize = 0;
+        
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String articlesJson = objectMapper.writeValueAsString(batch);
                 String rankingFormat = loadResource("prompt/ranking-format.txt");
@@ -289,6 +288,7 @@ public class AiTopArticlesOrchestrator {
                         .options(OpenAiChatOptions.builder()
                             .model(reasoningModel)
                             .temperature(rankingTemperature)
+                            .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
                             .build())
                         .call()
                         .content()
@@ -296,36 +296,58 @@ public class AiTopArticlesOrchestrator {
 
                 logLlmOutput("ranking_batch" + batchNum, categoryId, response, runTimestamp);
 
-                String json = extractJsonFromResponse(response);
+                String json = extractArrayFromObject(extractJsonFromResponse(response));
                 BeanOutputConverter<List<ArticleRanking>> converter = new BeanOutputConverter<>(
                     new ParameterizedTypeReference<>() {}
                 );
                 List<ArticleRanking> rankings = converter.convert(json);
-                if (rankings == null || rankings.isEmpty()) {
-                    attempt++;
-                    log.warn("Ranking attempt {}/{} returned empty for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
-                    continue;
-                }
                 
-                if (rankings.size() < batch.size()) {
-                    attempt++;
+                if (rankings != null && !rankings.isEmpty()) {
+                    int minAcceptable = (batch.size() * 4) / 5;
+                    
+                    if (rankings.size() >= batch.size()) {
+                        log.info("Ranking attempt {}/{} returned full batch ({} scores) for category {} batch {}", 
+                            attempt, MAX_ATTEMPTS, rankings.size(), categoryName, batchNum);
+                        return rankings.stream()
+                            .filter(Objects::nonNull)
+                            .map(r -> new ArticleScore(r.id(), r.score()))
+                            .toList();
+                    }
+                    
+                    if (rankings.size() >= minAcceptable) {
+                        log.info("Ranking attempt {}/{} returned {} scores for {} articles (>= 80%) for category {} batch {}, accepting", 
+                            attempt, MAX_ATTEMPTS, rankings.size(), batch.size(), categoryName, batchNum);
+                        return rankings.stream()
+                            .filter(Objects::nonNull)
+                            .map(r -> new ArticleScore(r.id(), r.score()))
+                            .toList();
+                    }
+                    
+                    if (rankings.size() > bestSize) {
+                        bestResult = rankings;
+                        bestSize = rankings.size();
+                    }
                     log.warn("Ranking attempt {}/{} returned {} scores for {} articles in category {} batch {}, retrying", 
                         attempt, MAX_ATTEMPTS, rankings.size(), batch.size(), categoryName, batchNum);
-                    continue;
+                } else {
+                    log.warn("Ranking attempt {}/{} returned empty for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
                 }
-                
-                return rankings.stream()
-                    .filter(Objects::nonNull)
-                    .map(r -> new ArticleScore(r.id(), r.score()))
-                    .toList();
             } catch (TimeoutException e) {
-                attempt++;
                 log.warn("Ranking attempt {}/{} timed out for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
             } catch (Exception e) {
-                attempt++;
                 log.warn("Ranking attempt {}/{} failed for category {} batch {}: {}", attempt, MAX_ATTEMPTS, categoryName, batchNum, e.getMessage());
             }
         }
+        
+        if (bestResult != null) {
+            log.warn("Using best partial result with {} scores (expected {}) for category {} batch {}", 
+                bestSize, batch.size(), categoryName, batchNum);
+            return bestResult.stream()
+                .filter(Objects::nonNull)
+                .map(r -> new ArticleScore(r.id(), r.score()))
+                .toList();
+        }
+        
         return List.of();
     }
 
@@ -337,10 +359,13 @@ public class AiTopArticlesOrchestrator {
         return batches;
     }
 
-    private RssNewsSummary generateSummaries(int categoryId, String categoryName,
+    private RssNewsSummaryCloud generateSummaries(int categoryId, String categoryName,
                                               List<ArticleData> topArticles, String runTimestamp) {
-        int attempt = 0;
-        while (attempt < MAX_ATTEMPTS) {
+        RssNewsSummaryCloud bestResult = null;
+        int bestSize = 0;
+        int minAcceptable = (topArticles.size() * 4) / 5;
+        
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String articlesJson = objectMapper.writeValueAsString(topArticles);
                 String summaryFormat = loadResource("prompt/summary-format.txt")
@@ -356,6 +381,7 @@ public class AiTopArticlesOrchestrator {
                         .options(OpenAiChatOptions.builder()
                             .model(summaryModel)
                             .temperature(summaryTemperature)
+                            .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
                             .build())
                         .call()
                         .content()
@@ -364,74 +390,48 @@ public class AiTopArticlesOrchestrator {
                 logLlmOutput("summary", categoryId, response, runTimestamp);
 
                 String json = extractJsonFromResponse(response);
-                BeanOutputConverter<CategorySummaryOutput> converter = 
-                    new BeanOutputConverter<>(CategorySummaryOutput.class);
-                CategorySummaryOutput output = converter.convert(json);
-                if (output == null) {
-                    attempt++;
-                    log.warn("Summary attempt {}/{} returned null for {}", attempt, MAX_ATTEMPTS, categoryName);
-                    continue;
-                }
+                BeanOutputConverter<RssNewsSummaryCloud> converter = 
+                    new BeanOutputConverter<>(RssNewsSummaryCloud.class);
+                RssNewsSummaryCloud output = converter.convert(json);
                 
-                if (output.articles() == null || output.articles().size() < topArticles.size()) {
-                    attempt++;
-                    log.warn("Summary attempt {}/{} returned {} articles for {} input articles in category {}, retrying", 
-                        attempt, MAX_ATTEMPTS, 
-                        output.articles() == null ? 0 : output.articles().size(), 
-                        topArticles.size(), categoryName);
-                    continue;
+                if (output != null && output.getArticlesReport() != null && !output.getArticlesReport().isEmpty()) {
+                    int size = output.getArticlesReport().size();
+                    
+                    if (size >= topArticles.size()) {
+                        log.info("Summary attempt {}/{} returned all {} articles for {}", 
+                            attempt, MAX_ATTEMPTS, size, categoryName);
+                        return output;
+                    }
+                    
+                    if (size >= minAcceptable) {
+                        log.info("Summary attempt {}/{} returned {} articles for {} (>= 80%), accepting", 
+                            attempt, MAX_ATTEMPTS, size, categoryName);
+                        return output;
+                    }
+                    
+                    if (size > bestSize) {
+                        bestResult = output;
+                        bestSize = size;
+                    }
+                    log.warn("Summary attempt {}/{} returned {} articles for {} input in category {}, retrying", 
+                        attempt, MAX_ATTEMPTS, size, topArticles.size(), categoryName);
+                } else {
+                    log.warn("Summary attempt {}/{} returned null/empty for {}", attempt, MAX_ATTEMPTS, categoryName);
                 }
-                
-                log.debug("Summary response for {}: {} chars", categoryName, response.length());
-
-                return mapToRssNewsSummary(categoryId, output, topArticles);
             } catch (TimeoutException e) {
-                attempt++;
                 log.error("Summary attempt {}/{} timed out after {}ms for {}", attempt, MAX_ATTEMPTS, timeoutMs, categoryName);
             } catch (Exception e) {
-                attempt++;
                 log.error("Summary attempt {}/{} failed for {}: {}", attempt, MAX_ATTEMPTS, categoryName, e.getMessage());
             }
         }
-        return null;
-    }
-
-    private RssNewsSummary mapToRssNewsSummary(int categoryId, CategorySummaryOutput output,
-                                                List<ArticleData> topArticles) {
-        var articleSummaries = new ArrayList<RssArticleSummary>();
-
-        if (output.articles() != null) {
-            for (int i = 0; i < output.articles().size() && i < topArticles.size(); i++) {
-                var articleOut = output.articles().get(i);
-                var article = topArticles.get(i);
-
-                articleSummaries.add(RssArticleSummary.builder()
-                    .title(articleOut.title() != null ? articleOut.title() : article.title())
-                    .articleAbstract(articleOut.abstractField() != null ? articleOut.abstractField() : article.content())
-                    .titleCn(articleOut.titleCn() != null ? articleOut.titleCn() : article.titleZh())
-                    .abstractCn(articleOut.abstractCn() != null ? articleOut.abstractCn() : article.contentZh())
-                    .articleLink(articleOut.articleLink() != null ? articleOut.articleLink() : article.link())
-                    .authors(articleOut.authors() != null ? articleOut.authors() : article.authors())
-                    .background(articleOut.background() != null ? articleOut.background() : "")
-                    .effects(articleOut.effects() != null ? articleOut.effects() : "")
-                    .eventSummary(articleOut.eventSummary() != null ? articleOut.eventSummary() : "")
-                    .technologyAndInnovation(articleOut.technologyAndInnovation() != null ? articleOut.technologyAndInnovation() : "")
-                    .valueAndImpact(articleOut.valueAndImpact() != null ? articleOut.valueAndImpact() : "")
-                    .backgroundCn(articleOut.backgroundCn() != null ? articleOut.backgroundCn() : "")
-                    .effectsCn(articleOut.effectsCn() != null ? articleOut.effectsCn() : "")
-                    .eventSummaryCn(articleOut.eventSummaryCn() != null ? articleOut.eventSummaryCn() : "")
-                    .technologyAndInnovationCn(articleOut.technologyAndInnovationCn() != null ? articleOut.technologyAndInnovationCn() : "")
-                    .valueAndImpactCn(articleOut.valueAndImpactCn() != null ? articleOut.valueAndImpactCn() : "")
-                    .build());
-            }
+        
+        if (bestResult != null) {
+            log.warn("Using best partial summary with {} articles (expected {}) for category {}", 
+                bestSize, topArticles.size(), categoryName);
+            return bestResult;
         }
-
-        return RssNewsSummary.builder()
-            .categoryId(categoryId)
-            .articleTopSummaryEn(output.articleTopSummaryEn())
-            .articleTopSummaryZh(output.articleTopSummaryZh())
-            .articles(articleSummaries)
-            .build();
+        
+        return null;
     }
 
     private String loadResource(String location) {
@@ -483,15 +483,19 @@ public class AiTopArticlesOrchestrator {
         if (arrayStart >= 0 && (objectStart < 0 || arrayStart < objectStart)) {
             int arrayEnd = cleaned.lastIndexOf(']');
             if (arrayEnd > arrayStart) {
-                return sanitizeJson(cleaned.substring(arrayStart, arrayEnd + 1));
+                String json = sanitizeJson(cleaned.substring(arrayStart, arrayEnd + 1));
+                return fixTruncatedJson(json);
             }
             return fixTruncatedJson(cleaned.substring(arrayStart));
         } else if (objectStart >= 0) {
             int objectEnd = cleaned.lastIndexOf('}');
+            String json;
             if (objectEnd > objectStart) {
-                return sanitizeJson(cleaned.substring(objectStart, objectEnd + 1));
+                json = sanitizeJson(cleaned.substring(objectStart, objectEnd + 1));
+            } else {
+                json = cleaned.substring(objectStart);
             }
-            return fixTruncatedJson(cleaned.substring(objectStart));
+            return fixTruncatedJson(json);
         }
         
         if (cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
@@ -592,6 +596,33 @@ public class AiTopArticlesOrchestrator {
         }
         
         return sb.toString();
+    }
+
+    private String extractArrayFromObject(String json) {
+        json = json.trim();
+        
+        if (json.startsWith("[{")) {
+            int arrayEnd = json.lastIndexOf(']');
+            if (arrayEnd > 0) {
+                String innerJson = json.substring(1, arrayEnd).trim();
+                if (innerJson.startsWith("{") && innerJson.endsWith("}")) {
+                    json = innerJson;
+                }
+            }
+        }
+        
+        if (json.startsWith("[")) {
+            return json;
+        }
+        if (json.startsWith("{")) {
+            int arrayStart = json.indexOf('[');
+            int arrayEnd = json.lastIndexOf(']');
+            if (arrayStart >= 0 && arrayEnd > arrayStart) {
+                return json.substring(arrayStart, arrayEnd + 1);
+            }
+            return "[" + json + "]";
+        }
+        return "[" + json + "]";
     }
 
     private String extractReasoningFromResponse(String response) {

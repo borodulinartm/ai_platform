@@ -2,24 +2,24 @@
   "categoryId": {{categoryId}},
   "articleTopSummaryEn": "3-4 sentences summarizing the key themes and insights from all articles",
   "articleTopSummaryZh": "Chinese translation of the summary above",
-  "articles": [
+  "articlesReport": [
     {
-      "title": "Original title from input",
-      "abstract": "2-3 sentence summary of the article",
+      "articleTitleEn": "Original title from input",
+      "articleAbstractEn": "Original abstract from input",
       "articleLink": "Original URL from input",
       "authors": ["Author list from input"],
-      "titleCn": "Chinese translation of title",
-      "abstractCn": "Chinese translation of abstract",
-      "background": "2-4 sentences on research context",
-      "effects": "2-4 sentences on main results",
-      "eventSummary": "One sentence max 25 words",
-      "technologyAndInnovation": "2-4 sentences on methods",
-      "valueAndImpact": "2-4 sentences on significance",
-      "backgroundCn": "Chinese translation",
-      "effectsCn": "Chinese translation",
-      "eventSummaryCn": "Chinese translation",
-      "technologyAndInnovationCn": "Chinese translation",
-      "valueAndImpactCn": "Chinese translation"
+      "articleTitleZh": "Chinese translation of title",
+      "articleAbstractZh": "Chinese translation of abstract",
+      "backgroundEn": "2-4 sentences on research context",
+      "effectsEn": "2-4 sentences on main results",
+      "eventSummaryEn": "One sentence max 25 words",
+      "technologyAndInnovationEn": "2-4 sentences on methods",
+      "valueAndImpactEn": "2-4 sentences on significance",
+      "backgroundZh": "Chinese translation",
+      "effectsZh": "Chinese translation",
+      "eventSummaryZh": "Chinese translation",
+      "technologyAndInnovationZh": "Chinese translation",
+      "valueAndImpactZh": "Chinese translation"
     }
   ]
 }

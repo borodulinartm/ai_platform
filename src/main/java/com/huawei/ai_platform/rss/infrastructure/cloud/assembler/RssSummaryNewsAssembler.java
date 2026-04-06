@@ -9,12 +9,6 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-/**
- * Assembler for the converting from the service layer to the cloud
- *
- * @author Borodulin Artem
- * @since 2026.03.12
- */
 @Mapper(componentModel = "spring")
 public abstract class RssSummaryNewsAssembler {
     /**
@@ -25,9 +19,22 @@ public abstract class RssSummaryNewsAssembler {
      */
     public abstract List<RssNewsSummaryCloud> toSummaryCloud(List<RssNewsSummary> input);
 
-    @Mapping(target = "articles", source = "articles")
+    @Mapping(target = "articlesReport", source = "articles")
     public abstract RssNewsSummaryCloud toSummaryCloud(RssNewsSummary input);
 
-    @Mapping(target = "articleAbstract", source = "articleAbstract")
+    @Mapping(target = "articleTitleEn", source = "title")
+    @Mapping(target = "articleAbstractEn", source = "articleAbstract")
+    @Mapping(target = "articleTitleZh", source = "titleCn")
+    @Mapping(target = "articleAbstractZh", source = "abstractCn")
+    @Mapping(target = "backgroundEn", source = "background")
+    @Mapping(target = "effectsEn", source = "effects")
+    @Mapping(target = "eventSummaryEn", source = "eventSummary")
+    @Mapping(target = "technologyAndInnovationEn", source = "technologyAndInnovation")
+    @Mapping(target = "valueAndImpactEn", source = "valueAndImpact")
+    @Mapping(target = "backgroundZh", source = "backgroundCn")
+    @Mapping(target = "effectsZh", source = "effectsCn")
+    @Mapping(target = "eventSummaryZh", source = "eventSummaryCn")
+    @Mapping(target = "technologyAndInnovationZh", source = "technologyAndInnovationCn")
+    @Mapping(target = "valueAndImpactZh", source = "valueAndImpactCn")
     public abstract RssArticleSummaryCloud toArticleSummaryCloud(RssArticleSummary input);
 }
