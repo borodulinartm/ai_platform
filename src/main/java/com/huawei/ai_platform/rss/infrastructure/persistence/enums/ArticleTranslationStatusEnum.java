@@ -11,5 +11,14 @@ public enum ArticleTranslationStatusEnum {
     CLEANING_PROCESSING,
     TRANSLATING_PROCESSING,
     FINISH,
-    FAILURE
+    FAILURE;
+
+    /**
+     * Boolean flag means: whether article translated or not
+     *
+     * @return true if yes, false otherwise
+     */
+    public boolean isTranslated() {
+        return this == FINISH || this == FAILURE;
+    }
 }

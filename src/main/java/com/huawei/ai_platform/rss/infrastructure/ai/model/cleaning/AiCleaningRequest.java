@@ -17,4 +17,5 @@ public class AiCleaningRequest {
     private Long id;
     private String articleTitle;
     private String articleContent;
+    private String articleLink;
 }

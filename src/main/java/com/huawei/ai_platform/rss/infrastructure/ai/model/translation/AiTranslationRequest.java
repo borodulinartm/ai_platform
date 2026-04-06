@@ -15,8 +15,8 @@ import lombok.*;
 @Builder
 public class AiTranslationRequest {
     private long articleId;
-    private String articleTitleEn;
-    private String articleContentEn;
+    private String articleTitle;
+    private String articleContent;
     private String articleLink;
 }
 

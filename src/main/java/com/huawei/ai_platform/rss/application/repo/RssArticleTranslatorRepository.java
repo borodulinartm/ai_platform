@@ -15,14 +15,6 @@ import java.util.List;
  */
 public interface RssArticleTranslatorRepository {
     /**
-     * Performs translating news
-     *
-     * @param compacts list of untranslated news
-     * @return list of translated news
-     */
-    OperationResult syncTranslation(List<RssData> compacts);
-
-    /**
      * Extracts all untranslated news from datasource
      *
      * @return untranslated news

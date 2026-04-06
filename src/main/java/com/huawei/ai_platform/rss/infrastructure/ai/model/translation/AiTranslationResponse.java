@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 public class AiTranslationResponse {
     private long articleId;
     private boolean success;
+    private String articleTitleEn;
     private String articleTitleZh;
     private String articleContentZh;
     private String articleContentEn;
@@ -31,14 +32,15 @@ public class AiTranslationResponse {
      * Static method for success situations
      *
      * @param articleId        article id
-     * @param title            title (translated)
+     * @param articleTitleEn            title (translated to EN)
+     * @param articleTitleZh title (translated to ZH)
      * @param articleContentEn (content in EN, not translated)
      * @param articleContentZh (content in ZH, translated)
      * @return wrapper
      */
-    public static AiTranslationResponse successResponse(long articleId, String title, String articleContentEn,
-                                                        String articleContentZh) {
-        return new AiTranslationResponse(articleId, true, title, articleContentZh, articleContentEn);
+    public static AiTranslationResponse successResponse(long articleId, String articleTitleEn, String articleTitleZh,
+                                                        String articleContentEn, String articleContentZh) {
+        return new AiTranslationResponse(articleId, true, articleTitleEn, articleTitleZh, articleContentZh, articleContentEn);
     }
 
     /**
@@ -48,6 +50,6 @@ public class AiTranslationResponse {
      * @return Ai translation response
      */
     public static AiTranslationResponse failureResponse(long articleId) {
-        return new AiTranslationResponse(articleId, false, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY);
+        return new AiTranslationResponse(articleId, false, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY);
     }
 }

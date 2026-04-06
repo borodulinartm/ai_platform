@@ -1,18 +1,15 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import jakarta.annotation.Nonnull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.*;
-
 /**
  * AI content generator
  *
@@ -31,18 +26,17 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
  * @since 2026.03.23
  */
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class AiTranslatorRepo {
-    private static final int COUNT_ATTEMPTS = 10;
+    private final AiExecutor aiExecutor;
 
-    private final ChatClient chatClient;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    @Value("${ai.cleaning.countAttempts}")
+    private int maxCountAttempts;
 
-    public AiTranslatorRepo(ChatClient chatClient,
-                            ApplicationEventPublisher applicationEventPublisher) {
-        this.chatClient = chatClient;
-        this.applicationEventPublisher = applicationEventPublisher;
-    }
+    @Value("${ai.cleaning.temperature}")
+    private Double temperature;
+
 
     /**
      * Performs translation
@@ -57,46 +51,29 @@ public class AiTranslatorRepo {
 
         while (true) {
             try {
-                applicationEventPublisher.publishEvent(new TranslationProcessingEvent(listIds));
+                String resourceLocationZh = "prompt/translations/translation-prompt-zh.txt";
+                String resourceLocationEn = "prompt/translations/translation-prompt-en.txt";
+                String userPromptPath = "prompt/user-prompt.txt";
 
-                log.info("Run translation for ID's = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
-
-                String resourceLocationZh = "prompt/translations/system-prompt-for-content-zh.txt";
-                String resourceLocationTitle = "prompt/translations/system-prompt-for-title.txt";
-                String resourceLocationEn = "prompt/translations/system-prompt-for-content-en.txt";
-                String userPromptPath = "prompt/translations/user-prompt.txt";
-
-                String contentZh = vibeTranslating(request.getArticleContentEn(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
-                );
-                String cleanedEn = vibeTranslating(request.getArticleContentEn(),
+                String contentEn = vibeTranslating(request.getArticleContent(),
                         StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath
                 );
-                String titleZh = vibeTranslating(request.getArticleTitleEn(), resourceLocationTitle, userPromptPath);
-
-                AiTranslationResponse responseData = AiTranslationResponse.successResponse(request.getArticleId(),
-                        titleZh, cleanedEn, contentZh
-                );
-                applicationEventPublisher.publishEvent(new TranslationCompletedEvent(List.of(responseData), FINISH, "Success"));
-
-                log.info("SUCCESSFULLY Finish translation for ID's = {}", listIds.stream().map(Object::toString)
-                        .collect(Collectors.joining(","))
+                String contentZh = vibeTranslating(request.getArticleContent(),
+                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath
                 );
 
-                return responseData;
+                String titleEn = vibeTranslating(request.getArticleTitle(), resourceLocationEn, userPromptPath);
+                String titleZh = vibeTranslating(request.getArticleTitle(), resourceLocationZh, userPromptPath);
+
+                return AiTranslationResponse.successResponse(request.getArticleId(), titleEn, titleZh, contentEn, contentZh);
             } catch (Exception exception) {
-                if (countAttempts >= COUNT_ATTEMPTS) {
-                    log.error("An error has occurred during extracting data: {}; ID = {}", exception.getMessage(),
+                if (countAttempts >= maxCountAttempts) {
+                    log.error("STAGE 3 vs 3: An error has occurred during extracting data: {}; ID = {}", exception.getMessage(),
                             listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
 
-                    AiTranslationResponse aiTranslationResponse = AiTranslationResponse.failureResponse(request.getArticleId());
-                    applicationEventPublisher.publishEvent(new TranslationCompletedEvent(List.of(aiTranslationResponse), FAILURE,
-                            exception.getMessage())
-                    );
-
-                    return aiTranslationResponse;
+                    return AiTranslationResponse.failureResponse(request.getArticleId());
                 } else {
-                    log.warn("Attempt {} vs {}: For ID = {} an error has occurred. Text = {}", countAttempts++, COUNT_ATTEMPTS,
+                    log.warn("STAGE 3 vs 3: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}", countAttempts++, maxCountAttempts,
                             listIds.stream().map(Object::toString).collect(Collectors.joining(",")),
                             exception.getMessage());
                 }
@@ -118,24 +95,18 @@ public class AiTranslatorRepo {
 
         try (InputStream systemInputStream = systemPromptResource.getInputStream();
                 InputStream userInputStream = userPromptResource.getInputStream()) {
-            Message systemMessage = new SystemMessage(
-                    new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8)
-            );
-            Message userMessage = new UserMessage(
-                    String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8), data)
-            );
 
-            String res = chatClient.prompt(
-                    new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
-            ).call().content();
+            String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8), data);
 
-            if (res == null) {
-                return StringUtils.EMPTY;
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, temperature);
+            if (result == null) {
+                throw new AiNullResultException("Result from the AI is null");
             }
 
-            return res.trim();
+            return result.trim();
         } catch (IOException exception) {
-            throw new IllegalStateException(exception);
+            throw new AiInvalidStateException("An IO exception has occurred. Text = " + exception.getMessage());
         }
     }
 }

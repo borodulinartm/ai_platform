@@ -5,7 +5,9 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,14 +21,21 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class AiExecutor {
+    @Value("${spring.ai.openai.chat.options.temperature}")
+    private Double defaultTemperature;
+
     private final ChatClient chatClient;
 
-    public String performOperation(String systemPrompt, String userPrompt) {
+    public String performOperation(String systemPrompt, String userPrompt, Double temp) {
+        Double temperatureToPass = temp == null ? defaultTemperature : temp;
+
         Message systemMessage = new SystemMessage(systemPrompt);
         Message userMessage = new UserMessage(userPrompt);
 
         String res = chatClient.prompt(
-                new Prompt.Builder().messages(List.of(systemMessage, userMessage)).build()
+                new Prompt.Builder().messages(List.of(systemMessage, userMessage))
+                        .chatOptions(ChatOptions.builder().temperature(temperatureToPass).build())
+                        .build()
         ).call().content();
 
         if (res == null) {

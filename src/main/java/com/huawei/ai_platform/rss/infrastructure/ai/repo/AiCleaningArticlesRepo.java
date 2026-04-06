@@ -34,7 +34,7 @@ public class AiCleaningArticlesRepo {
     private int maxCountAttempts;
 
     @Value("${ai.cleaning.temperature}")
-    private float temperature;
+    private Double temperature;
 
     /**
      * Performs cleaning data for the input side
@@ -45,8 +45,8 @@ public class AiCleaningArticlesRepo {
     public @Nonnull AiCleaningResponse processCleaning(@Nonnull AiCleaningRequest cleaningRequest) {
         List<Long> listIds = List.of(cleaningRequest.getId());
 
-        String systemPrompt = "prompt/cleaning/cleaning-prompt-system.txt";
-        String userPrompt = "prompt/cleaning/cleaning-prompt-user.txt";
+        String systemPrompt = "prompt/cleaning/cleaning-prompt.txt";
+        String userPrompt = "prompt/user-prompt.txt";
 
         int countAttempts = 1;
         while (countAttempts <= maxCountAttempts) {
@@ -54,7 +54,7 @@ public class AiCleaningArticlesRepo {
                 String cleanedTitle = exec(systemPrompt, userPrompt, cleaningRequest.getArticleTitle());
                 String cleanedContent = exec(systemPrompt, userPrompt, cleaningRequest.getArticleContent());
 
-                return AiCleaningResponse.success(cleaningRequest.getId(), cleanedTitle, cleanedContent);
+                return AiCleaningResponse.success(cleaningRequest.getId(), cleanedTitle, cleanedContent, cleaningRequest.getArticleLink());
             } catch (Exception e) {
                 log.warn("AI Cleaning side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                         countAttempts++, maxCountAttempts,
@@ -89,7 +89,7 @@ public class AiCleaningArticlesRepo {
             String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
             String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8), data);
 
-            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent);
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, temperature);
             if (result == null) {
                 throw new AiNullResultException("Result from the AI is null");
             }
