@@ -59,4 +59,11 @@ public class LockRepo {
             lockDao.updateById(entity);
         }
     }
+
+    /**
+     * Performs lock releasing
+     */
+    public void releaseLocks() {
+        lockDao.releaseLocks();
+    }
 }
