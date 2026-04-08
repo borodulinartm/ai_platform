@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 
 import java.io.InputStream;
 import java.io.FileWriter;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AiTopArticlesOrchestrator {
 
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 5;
     private static final int TOP_ARTICLES_COUNT = 10;
 
     private final ChatClient chatClient;
@@ -334,8 +335,12 @@ public class AiTopArticlesOrchestrator {
                 }
             } catch (TimeoutException e) {
                 log.warn("Ranking attempt {}/{} timed out for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
+            } catch (RestClientException e) {
+                log.warn("Ranking attempt {}/{} API error for category {} batch {}: {}", attempt, MAX_ATTEMPTS, categoryName, batchNum, e.getMessage());
+                log.debug("Full RestClientException for category {} batch {}", categoryName, batchNum, e);
             } catch (Exception e) {
                 log.warn("Ranking attempt {}/{} failed for category {} batch {}: {}", attempt, MAX_ATTEMPTS, categoryName, batchNum, e.getMessage());
+                log.debug("Full exception for category {} batch {}", categoryName, batchNum, e);
             }
         }
         
@@ -420,8 +425,12 @@ public class AiTopArticlesOrchestrator {
                 }
             } catch (TimeoutException e) {
                 log.error("Summary attempt {}/{} timed out after {}ms for {}", attempt, MAX_ATTEMPTS, timeoutMs, categoryName);
+            } catch (RestClientException e) {
+                log.error("Summary attempt {}/{} API error for {}: {}", attempt, MAX_ATTEMPTS, categoryName, e.getMessage());
+                log.debug("Full RestClientException for category {}", categoryName, e);
             } catch (Exception e) {
                 log.error("Summary attempt {}/{} failed for {}: {}", attempt, MAX_ATTEMPTS, categoryName, e.getMessage());
+                log.debug("Full exception for category {}", categoryName, e);
             }
         }
         
@@ -530,20 +539,15 @@ public class AiTopArticlesOrchestrator {
             
             if (escaped) {
                 escaped = false;
+                if (!isValidJsonEscape(c, i, json)) {
+                    result.append('\\');
+                }
                 result.append(c);
                 continue;
             }
             
             if (c == '\\' && inString) {
-                if (i + 1 < json.length() && json.charAt(i + 1) == '\\') {
-                    if (i + 2 < json.length() && json.charAt(i + 2) == '"') {
-                        result.append('\\').append('"');
-                        i += 2;
-                        continue;
-                    }
-                }
                 escaped = true;
-                result.append(c);
                 continue;
             }
             
@@ -551,10 +555,49 @@ public class AiTopArticlesOrchestrator {
                 inString = !inString;
             }
             
+            if (inString && c < 32) {
+                result.append(escapeControlChar(c));
+                continue;
+            }
+            
             result.append(c);
         }
         
+        if (escaped) {
+            result.append('\\');
+        }
+        
         return result.toString();
+    }
+    
+    private boolean isValidJsonEscape(char c, int pos, String json) {
+        if (c == '"' || c == '\\' || c == '/' || c == 'b' || c == 'f' || 
+            c == 'n' || c == 'r' || c == 't') {
+            return true;
+        }
+        if (c == 'u' && pos + 4 < json.length()) {
+            for (int j = 1; j <= 4; j++) {
+                char hex = json.charAt(pos + j);
+                if (!isHexDigit(hex)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    private boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
+    
+    private String escapeControlChar(char c) {
+        return switch (c) {
+            case '\t' -> "\\t";
+            case '\n' -> "\\n";
+            case '\r' -> "\\r";
+            default -> String.format("\\u%04x", (int) c);
+        };
     }
 
     private String fixTruncatedJson(String json) {
