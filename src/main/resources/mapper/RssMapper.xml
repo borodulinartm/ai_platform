@@ -136,8 +136,9 @@
     <select id="queryArticlesByCategoryAndDatePaginated" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         select
             entry.id,
-            entry.title,
+            aTranslations.title_en as title,
             entry.author,
+            entry.content,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
             aTranslations.content_zh as contentZh,
