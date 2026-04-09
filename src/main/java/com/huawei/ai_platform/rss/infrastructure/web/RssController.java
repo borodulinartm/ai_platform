@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -59,23 +60,32 @@ public class RssController {
     }
 
     /**
-     * Manually triggers TOP-10 articles processing
+     * Manually triggers TOP-10 articles processing (async)
      *
      * @param reportDate for which date to process (defaults to yesterday)
-     * @return processing result
+     * @return accepted response immediately
      */
     @PostMapping("/v1/process-top-articles")
     public ResponseEntity<?> processTopArticles(
             @RequestParam(name = "report_date", required = false) LocalDate reportDate
     ) {
         LocalDate processDate = reportDate != null ? reportDate : LocalDate.now().minusDays(1);
-
-        OperationResult result = rssTopArticlesService.processTopArticles(processDate);
         
-        if (result.isFailed()) {
-            return ResponseEntity.internalServerError().body(result.getInfo());
-        } else {
-            return ResponseEntity.ok(result.getInfo());
-        }
+        log.info("Starting async TOP-10 processing for date: {}", processDate);
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                OperationResult result = rssTopArticlesService.processTopArticles(processDate);
+                if (result.isFailed()) {
+                    log.error("TOP-10 processing failed for date {}: {}", processDate, result.getInfo());
+                } else {
+                    log.info("TOP-10 processing completed for date {}: {}", processDate, result.getInfo());
+                }
+            } catch (Exception e) {
+                log.error("TOP-10 processing error for date {}", processDate, e);
+            }
+        });
+        
+        return ResponseEntity.accepted().body("Processing started for date: " + processDate);
     }
 }
