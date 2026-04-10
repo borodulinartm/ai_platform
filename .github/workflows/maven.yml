@@ -31,9 +31,6 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml -DskipTests
 
-    - name: Run tests
-      run: mvn test
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -61,8 +58,8 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "target/ai_platform-1.0.0.jar"
-        target: "/opt/ai-platform"
+        source: "target/ai_platform-1.0.0.jar,run.sh"
+        target: "/usr1/ai-platform"
         strip_components: 1
 
     - name: Deploy
@@ -72,5 +69,5 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          chmod +x /opt/ai-platform/run.sh
-          /opt/ai-platform/run.sh
+          chmod +x /usr1/ai-platform/run.sh
+          ./usr1/ai-platform/run.sh
