@@ -275,8 +275,8 @@ public class AiTopArticlesOrchestrator {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String articlesJson = objectMapper.writeValueAsString(batch);
-                String rankingFormat = loadResource("prompt/ranking-format.txt");
-                String prompt = loadResource("prompt/ranking-prompt.txt")
+                String rankingFormat = loadResource("/prompt/ranking-format.txt");
+                String prompt = loadResource("/prompt/ranking-prompt.txt")
                     .replace("{{categoryName}}", categoryName)
                     .replace("{{batchNum}}", String.valueOf(batchNum))
                     .replace("{{totalBatches}}", String.valueOf(totalBatches))
@@ -373,9 +373,9 @@ public class AiTopArticlesOrchestrator {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String articlesJson = objectMapper.writeValueAsString(topArticles);
-                String summaryFormat = loadResource("prompt/summary-format.txt")
+                String summaryFormat = loadResource("/prompt/summary-format.txt")
                     .replace("{{categoryId}}", String.valueOf(categoryId));
-                String prompt = loadResource("prompt/summary-prompt.txt")
+                String prompt = loadResource("/prompt/summary-prompt.txt")
                     .replace("{{categoryName}}", categoryName)
                     .replace("{{jsonFormat}}", summaryFormat)
                     + "\n\nArticles:\n" + articlesJson;
