@@ -55,10 +55,10 @@ jobs:
     - name: Copy JAR to server
       uses: appleboy/scp-action@master
       with:
-        host: ${{ secrets.SERVER_HOST }}
+        host: ${{ vars.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "target/ai_platform-1.0.0.jar,run.sh"
+        source: "target/ai_platform-1.0.0.jar"
         target: "/usr1/ai-platform"
         strip_components: 1
 
@@ -69,5 +69,4 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          chmod +x /usr1/ai-platform/run.sh
           ./usr1/ai-platform/run.sh
