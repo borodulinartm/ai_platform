@@ -445,8 +445,8 @@ public class AiTopArticlesOrchestrator {
 
     private String loadResource(String location) {
         try {
-            ClassPathResource resource = new ClassPathResource(location);
-            try (InputStream is = resource.getInputStream()) {
+            // ClassPathResource resource = new ClassPathResource(location);
+            try (InputStream is = this.getClass().getResourceAsStream(location);) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
