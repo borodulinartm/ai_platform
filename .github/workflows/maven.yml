@@ -67,6 +67,6 @@ jobs:
       with:
         host: ${{ vars.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           ./usr1/ai-platform/run.sh
