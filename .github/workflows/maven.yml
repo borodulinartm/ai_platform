@@ -69,4 +69,4 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          ./usr1/ai-platform/run.sh
+          sh /usr1/ai-platform/run.sh
