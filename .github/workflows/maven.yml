@@ -65,13 +65,12 @@ jobs:
 
     - name: Deploy
       uses: appleboy/ssh-action@master
-      env:
-          BASE_PATH_CLOUD: ${{ vars.BASE_PATH_CLOUD }}
-          LLM_URL: ${{ vars.LLM_URL }}
-          LLM_KEY: ${{ secrets.LLM_KEY }}
       with:
         host: ${{ vars.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          export BASE_PATH_CLOUD=${{ vars.BASE_PATH_CLOUD }}
+          export LLM_URL=${{ vars.LLM_URL }}
+          export LLM_KEY=${{ secrets.LLM_KEY }}
           sh /usr1/ai-platform/run.sh
