@@ -15,7 +15,6 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
@@ -446,7 +445,7 @@ public class AiTopArticlesOrchestrator {
     private String loadResource(String location) {
         try {
             // ClassPathResource resource = new ClassPathResource(location);
-            try (InputStream is = this.getClass().getResourceAsStream(location);) {
+            try (InputStream is = this.getClass().getResourceAsStream(location)) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
@@ -539,6 +538,7 @@ public class AiTopArticlesOrchestrator {
             
             if (escaped) {
                 escaped = false;
+                result.append('\\');
                 if (!isValidJsonEscape(c, i, json)) {
                     result.append('\\');
                 }
