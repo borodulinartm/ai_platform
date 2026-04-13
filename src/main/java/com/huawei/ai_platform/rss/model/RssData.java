@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.model;
 
 import com.huawei.ai_platform.rss.enums.RssTypeInfoEnum;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
@@ -38,6 +39,7 @@ public class RssData implements Serializable {
     private RssTypeInfoEnum typeInfoEnum;
 
     private ArticleTranslationStatusEnum translationStatusEnum;
+    private RssAttributeValue attributes;
 
     /**
      * Inversion method for simplicity

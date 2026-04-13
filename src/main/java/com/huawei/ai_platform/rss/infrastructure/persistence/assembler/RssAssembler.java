@@ -73,6 +73,7 @@ public class RssAssembler {
                     .articleLink(inputItem.getLink())
                     .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
                     .articleAuthors(authorList).articleTags(tagsList).feed(feed).rssCategory(category)
+                    .attributes(inputItem.getAttributes())
                     .build();
             resultList.add(data);
         }
