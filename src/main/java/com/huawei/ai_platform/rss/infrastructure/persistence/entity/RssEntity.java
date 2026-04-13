@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * Entity layer for the RSS
@@ -28,4 +29,6 @@ public class RssEntity {
     private String link;
     private Date date;
     private byte isRead;
+
+    private List<RssAttributeValue> attributes;
 }
