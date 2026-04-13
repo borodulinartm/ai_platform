@@ -176,7 +176,7 @@
     <select id="queryArticlesByIds" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
         select
             entry.id,
-            entry.title,
+            aTranslations.title_en as title,
             entry.author,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
