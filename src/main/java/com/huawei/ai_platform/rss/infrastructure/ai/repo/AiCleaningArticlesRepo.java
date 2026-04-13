@@ -5,18 +5,23 @@ import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateExc
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_JPEG;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_PNG;
 
 /**
  * Cleaner section for the AI
@@ -51,8 +56,18 @@ public class AiCleaningArticlesRepo {
         int countAttempts = 1;
         while (countAttempts <= maxCountAttempts) {
             try {
+                StringBuilder inputContent = new StringBuilder(cleaningRequest.getArticleContent());
+
+                if (cleaningRequest.getAttributes() != null && !CollectionUtils.isEmpty(cleaningRequest.getAttributes().getEnclosures())) {
+                    for (RssAttributeValue.Enclosure enclosure : cleaningRequest.getAttributes().getEnclosures()) {
+                        if (enclosure.getType() != null && (enclosure.getType() == IMAGE_JPEG || enclosure.getType() == IMAGE_PNG)) {
+                            inputContent.append(String.format("<img src=\"%s\"/>", enclosure.getUrl()));
+                        }
+                    }
+                }
+
                 String cleanedTitle = exec(systemPrompt, userPrompt, cleaningRequest.getArticleTitle());
-                String cleanedContent = exec(systemPrompt, userPrompt, cleaningRequest.getArticleContent());
+                String cleanedContent = exec(systemPrompt, userPrompt, inputContent.toString());
 
                 return AiCleaningResponse.success(cleaningRequest.getId(), cleanedTitle, cleanedContent, cleaningRequest.getArticleLink());
             } catch (Exception e) {

@@ -3,6 +3,8 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
+import java.util.List;
+
 /**
  * Result fetch data from the DB
  *
@@ -42,4 +44,6 @@ public class RssFetchData {
 
     private int categoryId;
     private String categoryName;
+
+    private RssAttributeValue attributes;
 }

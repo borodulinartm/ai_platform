@@ -37,8 +37,8 @@
         </where>
     </update>
 
-    <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content from admin_entry entry
+    <select id="getAfter" resultMap="rssFetchDataMap">
+        SELECT entry.id, entry.title, entry.content, entry.attributes from admin_entry entry
 
         <where>
             <if test="timestamp != null">
@@ -53,8 +53,8 @@
         order by entry.id
     </select>
 
-    <select id="getNewsWithTranslationByStatus" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum from admin_entry entry
+    <select id="getNewsWithTranslationByStatus" resultMap="rssFetchDataMap">
+        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
             INNER JOIN public.article_translations a on entry.id = a.article_create_date
 
         <where>
@@ -62,7 +62,7 @@
         </where>
     </select>
 
-    <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesBy" resultMap="rssFetchDataMap">
         select
             entry.id,
             entry.title,
@@ -71,6 +71,7 @@
             entry.link,
             entry.date,
             entry.tags,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aTranslations.content_en as cleanedContentEn,
@@ -99,7 +100,7 @@
         </where>
     </select>
 
-    <select id="queryArticlesByCategoryAndDate" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByCategoryAndDate" resultMap="rssFetchDataMap">
         select
             entry.id,
             entry.title,
@@ -108,6 +109,7 @@
             entry.link,
             entry.date,
             entry.tags,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aTranslations.content_en as cleanedContentEn,
@@ -133,7 +135,7 @@
         order by entry.date desc
     </select>
 
-    <select id="queryArticlesByCategoryAndDatePaginated" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByCategoryAndDatePaginated" resultMap="rssFetchDataMap">
         select
             entry.id,
             aTranslations.title_en as title,
@@ -141,6 +143,7 @@
             entry.content,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aCategory.id as categoryId
@@ -173,11 +176,12 @@
         </if>
     </select>
 
-    <select id="queryArticlesByIds" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByIds" resultMap="rssFetchDataMap">
         select
             entry.id,
             entry.title,
             entry.author,
+            entry.attributes,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
             aTranslations.content_zh as contentZh,
@@ -192,6 +196,11 @@
             #{id}
         </foreach>
     </select>
+
+    <resultMap id="rssFetchDataMap" type="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData" autoMapping="true">
+        <result column="attributes" property="attributes"
+                typeHandler="com.huawei.ai_platform.config.batis.RssAttributeTypeHandler"/>
+    </resultMap>
 
     <!--  After that ID we'll scan other news that is currently not in the article_translation_table  -->
     <select id="getMaxTranslatedTimestamp" resultType="long">
