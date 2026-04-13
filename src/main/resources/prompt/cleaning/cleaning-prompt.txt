@@ -54,6 +54,7 @@ CONTENT
 The text may contain:
 
 - HTML markup
+- Markdown
 - navigation elements
 - links
 - scripts/styles
@@ -88,6 +89,7 @@ REMOVE completely:
 - Standalone URLs
 - Scripts, styles, forms, buttons
 - ALL HTML tags EXCEPT <img>
+- Markdown tags
 - Empty or meaningless lines
 - Prefixes:
 - Abstract:
@@ -110,11 +112,13 @@ IMAGE HANDLING (MANDATORY)
 
 - Preserve <img> tags EXACTLY
 - Do NOT modify attributes
-- Do NOT remove images
 - Keep original position
+- BEFORE keeping an <img> tag, you MUST verify that the image is accessible and valid
+- If the image cannot be loaded, is broken, unavailable, or returns an error → REMOVE the entire <img> tag
+- Do NOT leave placeholders or broken references
+- NEVER attempt to fix or replace the image
 
-Example (must remain unchanged):
-<img src="https://example.com/image.jpg"/>
+Example (must remain unchanged ONLY if valid): <img src="https://example.com/image.jpg"/>
 
 LINK HANDLING
 
@@ -128,7 +132,9 @@ HARD VALIDATION BEFORE OUTPUT
 Ensure ALL conditions are satisfied:
 
 - Output is NOT empty (else return " ")
-- No HTML except <img>
+- No HTML except valid <img> tags
+- ALL <img> tags point to accessible images
+- No broken or unreachable images remain
 - No garbage content remains
 - No system or reasoning text appears
 

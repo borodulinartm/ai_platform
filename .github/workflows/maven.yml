@@ -9,11 +9,11 @@
 name: CI/CD
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  
+  # push:
+  #   branches: [ main, master ]
+  # pull_request:
+  #   branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -42,7 +42,6 @@ jobs:
   deploy:
     needs: build
     runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch'
     
     steps:
     - uses: actions/checkout@v4
