@@ -2,7 +2,7 @@ spring:
   http:
     client:
       connect-timeout: 20s
-      read-timeout: 5m
+      read-timeout: 10m
   profiles:
     active: local
   aop:
@@ -57,6 +57,7 @@ mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
 
 cloud:
+  windowSize: 7
   directories:
     category: category
     feed: feed

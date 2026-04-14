@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.driver;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * AI executor - driver class which implements some useful things
@@ -40,6 +42,10 @@ public class AiExecutor {
 
         if (res == null) {
             return null;
+        }
+
+        if (res.toLowerCase(Locale.ENGLISH).contains("no_content")) {
+            return StringUtils.EMPTY;
         }
 
         return res.trim();

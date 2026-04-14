@@ -66,10 +66,10 @@ public class AiCleaningArticlesRepo {
                     }
                 }
 
-                String cleanedTitle = exec(systemPrompt, userPrompt, cleaningRequest.getArticleTitle());
+//                String cleanedTitle = exec(systemPrompt, userPrompt, cleaningRequest.getArticleTitle());
                 String cleanedContent = exec(systemPrompt, userPrompt, inputContent.toString());
 
-                return AiCleaningResponse.success(cleaningRequest.getId(), cleanedTitle, cleanedContent, cleaningRequest.getArticleLink());
+                return AiCleaningResponse.success(cleaningRequest.getId(), cleaningRequest.getArticleTitle(), cleanedContent, cleaningRequest.getArticleLink());
             } catch (Exception e) {
                 log.warn("AI Cleaning side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                         countAttempts++, maxCountAttempts,
