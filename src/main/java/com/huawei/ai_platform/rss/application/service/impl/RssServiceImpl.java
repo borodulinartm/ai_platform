@@ -34,6 +34,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
+
 /**
  * Business logic layer
  *
@@ -156,7 +159,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                             if (item.getTranslationStatusEnum() == null) {
                                 return rssTranslationOrchestration.initTranslation(item);
                             } else {
-                                if (item.getTranslationStatusEnum() == ArticleTranslationStatusEnum.INIT) {
+                                if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
                                     AiCleaningRequest cleaningRequest = aiTranslationMapper.convert(item);
                                     rssTranslationOrchestration.cleanInputText(cleaningRequest);
 

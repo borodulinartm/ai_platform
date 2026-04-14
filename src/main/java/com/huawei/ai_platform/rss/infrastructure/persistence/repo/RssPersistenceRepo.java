@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.huawei.ai_platform.common.Constant;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
@@ -25,10 +26,12 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import static com.huawei.ai_platform.common.Constant.ZONE;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 
@@ -103,7 +106,12 @@ public class RssPersistenceRepo {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
 
         List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
-        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT));
+
+        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
+        // For failed state try to retranslate news
+        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(
+                FAILURE, DateUtils.getAsMicro(LocalDateTime.now().with(LocalTime.MIN).minusDays(30L), ZONE))
+        );
 
         return fetchDataList;
     }
