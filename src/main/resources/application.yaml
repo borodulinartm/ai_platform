@@ -57,6 +57,7 @@ mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
 
 cloud:
+  windowSize: 7
   directories:
     category: category
     feed: feed
