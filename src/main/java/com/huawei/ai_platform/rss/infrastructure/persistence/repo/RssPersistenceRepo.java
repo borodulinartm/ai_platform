@@ -1,7 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.huawei.ai_platform.common.Constant;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
@@ -20,13 +19,13 @@ import com.huawei.ai_platform.utils.DateUtils;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -45,6 +44,9 @@ import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 @RequiredArgsConstructor
 @Slf4j
 public class RssPersistenceRepo {
+    @Value("${cloud.windowSize:1}")
+    private long windowSize;
+
     private final RssDao rssDao;
     private final RssCategoryDao rssCategoryDao;
     private final RssFeedDao rssFeedDao;
@@ -108,9 +110,10 @@ public class RssPersistenceRepo {
         List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
 
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
-        // For failed state try to retranslate news
+        // For failed state try to retranslate news within window size
+        // Don't worry, I perform automatic uploading to the cloud within that window size
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(
-                FAILURE, DateUtils.getAsMicro(LocalDateTime.now().with(LocalTime.MIN).minusDays(30L), ZONE))
+                FAILURE, DateUtils.getAsMicro(LocalDateTime.now().with(LocalTime.MIN).minusDays(windowSize), ZONE))
         );
 
         return fetchDataList;
