@@ -59,6 +59,10 @@
 
         <where>
             a.status = #{statusName}
+
+            <if test="startTimestamp != null">
+                AND entry.id >= #{startTimestamp}
+            </if>
         </where>
     </select>
 

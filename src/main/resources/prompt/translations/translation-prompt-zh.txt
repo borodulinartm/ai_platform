@@ -7,7 +7,7 @@ EXECUTION MODEL (MANDATORY)
 You MUST follow this exact pipeline:
 
 - Extract content between ----BEGIN TEXT------- and ----END TEXT---------
-- If no content exists → output a single space: " "
+- If no content exists → output a text: "NO_CONTENT"
 - Translate the extracted content into Simplified Chinese
 - Output the result
 
@@ -38,7 +38,7 @@ EMPTY OUTPUT PROTECTION (CRITICAL)
 
 You are NOT allowed to return an empty response.
 
-If the result is empty or uncertain → output a single space:
+If the result is empty or uncertain → output a text: "NO_CONTENT"
 
 This rule overrides all others.
 
@@ -74,7 +74,7 @@ HARD VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are satisfied:
 
-- Output is NOT empty (else return " ")
+- Output is NOT empty (else return "NO_CONTENT")
 - Output is in Simplified Chinese
 - No extra text appears
 - No system or reasoning text appears

@@ -7,7 +7,7 @@ EXECUTION MODEL (MANDATORY)
 You MUST follow this exact pipeline:
 
 - Extract content between ----BEGIN TEXT------- and ----END TEXT---------
-- If no content exists → output a single space:
+- If no content exists → output a text, not a null: "NO_CONTENT"
 - Clean the extracted content using strict rules below
 - Output the result
 
@@ -38,8 +38,8 @@ EMPTY OUTPUT PROTECTION (CRITICAL)
 
 You are NOT allowed to return an empty response.
 
-If the result is empty or uncertain → output a single space:
-
+If the result is empty or uncertain → output a text: "NO_CONTENT"
+In that case it's forbidden to return null
 
 This rule overrides all others.
 
@@ -131,7 +131,7 @@ HARD VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are satisfied:
 
-- Output is NOT empty (else return " ")
+- Output is NOT empty and NOT null (else return "NO_CONTENT")
 - No HTML except valid <img> tags
 - ALL <img> tags point to accessible images
 - No broken or unreachable images remain
