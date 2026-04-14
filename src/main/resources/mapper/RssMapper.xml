@@ -183,7 +183,7 @@
     <select id="queryArticlesByIds" resultMap="rssFetchDataMap">
         select
             entry.id,
-            entry.title,
+            aTranslations.title_en as title,
             entry.author,
             entry.attributes,
             aTranslations.content_en as cleanedContentEn,
