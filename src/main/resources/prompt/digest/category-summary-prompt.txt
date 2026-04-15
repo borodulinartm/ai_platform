@@ -1,0 +1,14 @@
+Analyze the key trends and breakthrough developments from the following article abstracts in this category.
+
+Category: {{categoryName}}
+
+Article abstracts:
+{{abstracts}}
+
+Write a 3-4 sentence summary focusing on:
+- Major trends and patterns emerging in this field
+- Most significant breakthroughs or innovations mentioned
+- What these developments mean for the future
+- Key themes connecting these articles
+
+Return ONLY the summary text in English, nothing else. No markdown, no code blocks.

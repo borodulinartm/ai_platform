@@ -1,11 +1,12 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
 
-import java.util.Date;
 import java.util.List;
+import java.util.Date;
 
 /**
  * Entity layer for the RSS
@@ -29,6 +30,9 @@ public class RssEntity {
     private String link;
     private Date date;
     private byte isRead;
+
+    @TableField("id_feed")
+    private Integer feed;
 
     private List<RssAttributeValue> attributes;
 }

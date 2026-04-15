@@ -69,7 +69,10 @@ public class RssReportUploader {
 
         for (Map.Entry<Integer, List<RssNewsSummaryCloud>> item : mapByCategoryId.entrySet()) {
             Path path = Path.of(cleanBasicPath, newsSummaryPath, reportDateFormatted, String.valueOf(item.getKey()));
-            log.info("Uploading category {} with {} articles to {}", item.getKey(), item.getValue().size(), path);
+            int articleCount = item.getValue().stream()
+                .mapToInt(s -> s.getArticlesReport() != null ? s.getArticlesReport().size() : 0)
+                .sum();
+            log.info("Uploading category {} with {} articles to {}", item.getKey(), articleCount, path);
 
             try {
                 String jsonRepresentation = objectMapper.writeValueAsString(item.getValue());

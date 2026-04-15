@@ -1,0 +1,12 @@
+Translate the following text from English to Chinese.
+
+Text: {{text}}
+
+TRANSLATION RULES:
+1. Return ONLY the Chinese translation
+2. No explanations, no JSON, no markdown
+3. Preserve the meaning and tone
+4. Use proper Chinese characters
+5. Maintain neutral tone
+6. Keep names, numbers, and entities accurate
+7. Preserve paragraph structure and line breaks
