@@ -6,7 +6,14 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.*;
 
 import java.util.List;
+import java.util.Date;
 
+/**
+ * Entity layer for the RSS
+ *
+ * @author Borodulin Artem b60078502
+ * @since 2026.03.07
+ */
 @Getter
 @Setter
 @AllArgsConstructor
@@ -21,7 +28,7 @@ public class RssEntity {
     private String author;
     private String content;
     private String link;
-    private Long date;
+    private Date date;
     private byte isRead;
 
     @TableField("id_feed")

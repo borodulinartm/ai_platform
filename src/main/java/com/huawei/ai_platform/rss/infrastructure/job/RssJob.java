@@ -7,6 +7,7 @@ import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,9 @@ import java.time.LocalDateTime;
         havingValue = "true"
 )
 public class RssJob {
+    @Value("${cloud.windowSize:1}")
+    private long windowSize;
+
     private final RssSyncService rssService;
     private final RssTranslationService rssTranslationService;
     private final RssTopArticlesService rssTopArticlesService;
@@ -41,8 +45,7 @@ public class RssJob {
     public void runUploadingToCloud() {
         log.info("Run Rss uploading to the Huawei Cloud");
 
-        long previousDays = 1L;
-        for (long i = 1L; i <= previousDays; ++i) {
+        for (long i = 1L; i <= (windowSize + 1); ++i) {
             OperationResult result = rssService.uploadNewArticles(LocalDateTime.now().minusDays(i));
             log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
         }
@@ -66,9 +69,9 @@ public class RssJob {
 
     /**
      * Job for processing TOP-10 articles per category with summaries
-     * Runs daily at 2:00 AM GMT
+     * Runs daily at 00:01 AM GMT
      */
-    @Scheduled(cron = "0 0 2 * * ?", zone = "GMT")
+    @Scheduled(cron = "0 1 0 * * ?", zone = "GMT")
     @DbLock(category = "top_articles_processing_lock")
     public void runTopArticlesProcessing() {
         log.info("Run TOP-10 Articles Processing Job");

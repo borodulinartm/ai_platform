@@ -1,4 +1,4 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.model;
+package com.huawei.ai_platform.rss.infrastructure.ai.model.translation;
 
 import lombok.*;
 
@@ -15,8 +15,8 @@ import lombok.*;
 @Builder
 public class AiTranslationRequest {
     private long articleId;
-    private String articleTitleEn;
-    private String articleContentEn;
+    private String articleTitle;
+    private String articleContent;
     private String articleLink;
 }
 

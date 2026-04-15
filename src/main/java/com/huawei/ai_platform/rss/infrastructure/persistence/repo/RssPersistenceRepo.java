@@ -3,7 +3,7 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.repo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssArticleTranslationMapper;
 import com.huawei.ai_platform.rss.infrastructure.persistence.assembler.RssAssembler;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
@@ -19,6 +19,7 @@ import com.huawei.ai_platform.utils.DateUtils;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.huawei.ai_platform.common.Constant.ZONE;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
 import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 
@@ -42,6 +44,9 @@ import static com.huawei.ai_platform.utils.DateUtils.getAsSeconds;
 @RequiredArgsConstructor
 @Slf4j
 public class RssPersistenceRepo {
+    @Value("${cloud.windowSize:1}")
+    private long windowSize;
+
     private final RssDao rssDao;
     private final RssCategoryDao rssCategoryDao;
     private final RssFeedDao rssFeedDao;
@@ -101,10 +106,15 @@ public class RssPersistenceRepo {
      */
     public List<RssFetchData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
-        Long asSeconds = DateUtils.getAsSeconds(LocalDateTime.now().with(LocalTime.MIN), ZONE);
 
         List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
-        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT));
+
+        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
+        // For failed state try to retranslate news within window size
+        // Don't worry, I perform automatic uploading to the cloud within that window size
+        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(
+                FAILURE, DateUtils.getAsMicro(LocalDateTime.now().with(LocalTime.MIN).minusDays(windowSize), ZONE))
+        );
 
         return fetchDataList;
     }

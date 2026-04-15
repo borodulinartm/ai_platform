@@ -64,14 +64,16 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId()).translationExists(inputItem.isTranslationRecordExists())
-                    .articleTitleEn(inputItem.getTitle()).articleTitleZh(inputItem.getTitleZh())
+                    .articleId(inputItem.getId()).translationStatusEnum(inputItem.getTranslationStatusEnum())
+                    .articleTitleEn(StringUtils.isNoneBlank(inputItem.getTranslationTitleEn()) ? inputItem.getTranslationTitleEn() : inputItem.getTitle())
+                    .articleTitleZh(inputItem.getTitleZh())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
                     .articleContent(StringUtils.isNoneBlank(inputItem.getCleanedContentEn()) ? inputItem.getCleanedContentEn() : inputItem.getContent())
                     .articleContentZh(inputItem.getContentZh())
                     .articleLink(inputItem.getLink())
                     .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
                     .articleAuthors(authorList).articleTags(tagsList).feed(feed).rssCategory(category)
+                    .attributes(inputItem.getAttributes())
                     .build();
             resultList.add(data);
         }
