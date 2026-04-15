@@ -28,6 +28,14 @@ public class AiExecutor {
 
     private final ChatClient chatClient;
 
+    /**
+     * "Low-level" AI operation. This implementation uses spring AI (sync mode)
+     *
+     * @param systemPrompt system prompt
+     * @param userPrompt   user prompt
+     * @param temp         temperature
+     * @return Response from AI
+     */
     public String performOperation(String systemPrompt, String userPrompt, Double temp) {
         Double temperatureToPass = temp == null ? defaultTemperature : temp;
 

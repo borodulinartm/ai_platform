@@ -1,12 +1,19 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
+import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiValidationException;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.validation.ValidationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.validation.IAiValidation;
 import jakarta.annotation.Nonnull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,8 +23,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import static com.huawei.ai_platform.common.OperationResultEnum.FAILURE;
+import static com.huawei.ai_platform.common.OperationResultEnum.SUCCESS;
 
 /**
  * AI content generator
@@ -29,7 +37,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class AiTranslatorRepo {
+    public static final String RESOURCE_LOCATION_ZH = "prompt/translations/translation-prompt-zh.txt";
+    public static final String RESOURCE_LOCATION_EN = "prompt/translations/translation-prompt-en.txt";
+    public static final String USER_PROMPT_PATH = "prompt/user-prompt.txt";
+
     private final AiExecutor aiExecutor;
+    private final IAiValidation<String> aiTranslationValidatorZh;
+    private final IAiValidation<String> aiTranslationValidatorEn;
 
     @Value("${ai.translating.countAttempts}")
     private int maxCountAttempts;
@@ -44,38 +58,54 @@ public class AiTranslatorRepo {
      * @return response data
      */
     public AiTranslationResponse translate(@Nonnull AiTranslationRequest request) {
-        List<Long> listIds = List.of(request.getArticleId());
+        TranslationResponseWrapper titleEn = runTranslation(request.getArticleId(), request.getArticleTitle(),
+                RESOURCE_LOCATION_EN, aiTranslationValidatorEn);
+        TranslationResponseWrapper titleZh = runTranslation(request.getArticleId(), request.getArticleTitle(),
+                RESOURCE_LOCATION_ZH, aiTranslationValidatorZh);
+        TranslationResponseWrapper contentEn = runTranslation(request.getArticleId(), request.getArticleContent(),
+                RESOURCE_LOCATION_EN, aiTranslationValidatorEn);
+        TranslationResponseWrapper contentZh = runTranslation(request.getArticleId(), request.getArticleContent(),
+                RESOURCE_LOCATION_ZH, aiTranslationValidatorZh);
 
+        if (titleEn.isFailed() || titleZh.isFailed() || contentEn.isFailed() || contentZh.isFailed()) {
+            return AiTranslationResponse.failureResponse(request.getArticleId(), "AI Translating: count attempts has exceeded");
+        }
+
+        return AiTranslationResponse.successResponse(request.getArticleId(), titleEn.getTranslatedText(),
+                titleZh.getTranslatedText(), contentEn.getTranslatedText(), contentZh.getTranslatedText());
+    }
+
+    /**
+     * Runs translation
+     *
+     * @param id               for which article id do you want translate
+     * @param content          content which needs translation
+     * @param systemPromptPath path for the prompt
+     * @param validator        validator to check the results
+     * @return local wrapper of the state, message (if failed) and content translation
+     */
+    private TranslationResponseWrapper runTranslation(Long id, String content, String systemPromptPath, IAiValidation<String> validator) {
         int countAttempts = 1;
+
+        // I give 10 attempts for translating. If we exceed that limit go away
         while (countAttempts <= maxCountAttempts) {
             try {
-                String resourceLocationZh = "prompt/translations/translation-prompt-zh.txt";
-                String resourceLocationEn = "prompt/translations/translation-prompt-en.txt";
-                String userPromptPath = "prompt/user-prompt.txt";
+                String contentTranslated = vibeTranslating(content, systemPromptPath, temperature);
 
-                String contentEn = vibeTranslating(request.getArticleContent(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationEn : request.getArticleLink(), userPromptPath,
-                        temperature
-                );
-                String contentZh = vibeTranslating(request.getArticleContent(),
-                        StringUtils.isNoneBlank(resourceLocationEn) ? resourceLocationZh : request.getArticleLink(), userPromptPath,
-                        temperature
-                );
+                ValidationResponse response = runValidation(contentTranslated, validator);
+                if (response.isFailed()) {
+                    throw new AiValidationException(response.getErrors());
+                }
 
-                String titleEn = vibeTranslating(request.getArticleTitle(), resourceLocationEn, userPromptPath, temperature);
-                String titleZh = vibeTranslating(request.getArticleTitle(), resourceLocationZh, userPromptPath, temperature);
-
-                return AiTranslationResponse.successResponse(request.getArticleId(), titleEn, titleZh, contentEn, contentZh);
+                return TranslationResponseWrapper.of(SUCCESS, contentTranslated, "");
             } catch (Exception exception) {
                 log.warn("STAGE 3 vs 3: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}", countAttempts++, maxCountAttempts,
-                        listIds.stream().map(Object::toString).collect(Collectors.joining(",")),
-                        exception.getMessage());
+                        id, exception.getMessage());
             }
         }
 
-        log.error("AI Translating: count attempts has exceeded; ID = {}", listIds.stream().map(Object::toString).collect(Collectors.joining(",")));
-
-        return AiTranslationResponse.failureResponse(request.getArticleId(), "AI Translating: count attempts has exceeded");
+        log.error("AI Translating: count attempts has exceeded; ID = {}", id);
+        return TranslationResponseWrapper.of(FAILURE, content, "AI Translating: count attempts has exceeded");
     }
 
     /**
@@ -83,13 +113,12 @@ public class AiTranslatorRepo {
      *
      * @param data             data
      * @param systemPromptPath what a location
-     * @param userPromptPath   where stores user prompt
      * @param passedTemp       passed temp
      * @return vibed text
      */
-    private String vibeTranslating(String data, String systemPromptPath, String userPromptPath, Double passedTemp) {
+    private String vibeTranslating(String data, String systemPromptPath, Double passedTemp) {
         ClassPathResource systemPromptResource = new ClassPathResource(systemPromptPath);
-        ClassPathResource userPromptResource = new ClassPathResource(userPromptPath);
+        ClassPathResource userPromptResource = new ClassPathResource(AiTranslatorRepo.USER_PROMPT_PATH);
 
         try (InputStream systemInputStream = systemPromptResource.getInputStream();
              InputStream userInputStream = userPromptResource.getInputStream()) {
@@ -106,5 +135,43 @@ public class AiTranslatorRepo {
         } catch (IOException exception) {
             throw new AiInvalidStateException("An IO exception has occurred. Text = " + exception.getMessage());
         }
+    }
+
+    /**
+     * Checks output from the AI. The output must be in the same vibe level. Otherwise, error
+     *
+     * @param input         input (translated text from the AI)
+     * @param iAiValidation validation strategy. Each strategy defines own vibe
+     * @return Validation response
+     */
+    private ValidationResponse runValidation(String input, IAiValidation<String> iAiValidation) {
+        if (input == null) {
+            return ValidationResponse.failure("Input is null. Run again");
+        }
+
+        // Maybe content is empty. In that case, nothing to translate it's ok
+        if (StringUtils.isBlank(input)) {
+            return ValidationResponse.success();
+        }
+
+        return iAiValidation.validate(input);
+    }
+
+    /**
+     * Inner helpful class for storing translation response. Works only in that class
+     */
+    @Getter
+    @Setter
+    @AllArgsConstructor(staticName = "of")
+    private static class TranslationResponseWrapper {
+        private OperationResultEnum status;
+        private String translatedText;
+
+        private String errorMessage;
+
+        public boolean isFailed() {
+            return status == FAILURE;
+        }
+
     }
 }
