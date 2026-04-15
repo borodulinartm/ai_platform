@@ -26,6 +26,7 @@ public class RssAttributeValue {
     @AllArgsConstructor
     @NoArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Enclosure {
         private String url;
         private RssAttributeTypeEnum type;
