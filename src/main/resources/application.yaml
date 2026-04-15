@@ -31,19 +31,21 @@ ai:
   cleaning:
     temperature: 0.1
     countAttempts: 10
-  processing:
-    timeout: 1200000
+  digest:
     batch-size: 50
-    thread-pool-size: 2
     log-dir: /usr1/logs/llm
     ranking-model: deepseek/deepseek-v3.2
     ranking-temperature: 0.1
+    ranking-thread-pool-size: 20
+    ranking-timeout: 60000
     summary-model: deepseek/deepseek-v3.2
     summary-temperature: 0.4
-  scraper:
-    timeout: 15000
-    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    max-content-length: 20000
+    summary-thread-pool-size: 5
+    summary-timeout: 120000
+    translation-model: deepseek/deepseek-v3.2
+    translation-temperature: 0.2
+    translation-thread-pool-size: 15
+    translation-timeout: 30000
 
 logging:
   level:

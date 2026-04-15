@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -18,8 +19,8 @@ import lombok.*;
 @Builder
 @TableName(value = "admin_feed")
 public class RssFeedEntity {
-    @TableId
-    public int id;
+    @TableId(type = IdType.AUTO)
+    private Integer id;
     private String url;
     private int kind;
 
