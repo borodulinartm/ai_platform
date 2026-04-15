@@ -1,6 +1,8 @@
 package com.huawei.ai_platform.rss.model;
 
 import com.huawei.ai_platform.rss.enums.RssTypeInfoEnum;
+import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import lombok.*;
 
 import java.io.Serializable;
@@ -36,7 +38,8 @@ public class RssData implements Serializable {
     private RssCategory rssCategory;
     private RssTypeInfoEnum typeInfoEnum;
 
-    private boolean translationExists;
+    private ArticleTranslationStatusEnum translationStatusEnum;
+    private RssAttributeValue attributes;
 
     /**
      * Inversion method for simplicity
@@ -44,6 +47,10 @@ public class RssData implements Serializable {
      * @return true if article is not prepared to translation, false otherwise
      */
     public boolean isNotTranslationExists() {
-        return !translationExists;
+        if (translationStatusEnum == null) {
+            return true;
+        }
+
+        return !translationStatusEnum.isTranslated();
     }
 }

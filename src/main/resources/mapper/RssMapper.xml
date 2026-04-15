@@ -3,11 +3,12 @@
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
     <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         INSERT INTO article_translations
-            (article_create_date, title_zh, status, content_zh, content_en)
+            (article_create_date, title_en, title_zh, status, content_zh, content_en)
         VALUES
         <foreach collection="data" separator="," item="item">
             (
                 #{item.articleCreateDate},
+                #{item.titleEn},
                 #{item.titleZh},
                 #{item.status},
                 #{item.contentZh},
@@ -17,10 +18,9 @@
     </insert>
     
     <update id="queryUpdateArticleTranslation">
-        UPDATE article_translations SET title_zh = #{item.articleTitleZh},
-                                        content_zh = #{item.articleContentZh},
-                                        status = #{status},
-                                        reason = #{reason}, content_en = #{item.articleContentEn}
+        UPDATE article_translations SET title_zh = #{item.articleTitleZh}, title_en = #{item.articleTitleEn},
+                                        content_zh = #{item.articleContentZh}, content_en = #{item.articleContentEn},
+                                        status = #{status}, reason = #{reason}
         <where>
             article_create_date = #{item.articleId}
         </where>
@@ -28,6 +28,7 @@
 
     <update id="queryUpdateStatusByListData">
         UPDATE article_translations SET status = #{status}
+
         <where>
             article_create_date in
                 <foreach collection="data" item="item" open="(" close=")" separator=",">
@@ -36,8 +37,8 @@
         </where>
     </update>
 
-    <select id="getAfter" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content, false as translationRecordExists from admin_entry entry
+    <select id="getAfter" resultMap="rssFetchDataMap">
+        SELECT entry.id, entry.title, entry.content, entry.attributes from admin_entry entry
 
         <where>
             <if test="timestamp != null">
@@ -52,16 +53,20 @@
         order by entry.id
     </select>
 
-    <select id="getNewsWithTranslationByStatus" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
-        SELECT entry.id, entry.title, entry.content, true as translationRecordExists from admin_entry entry
+    <select id="getNewsWithTranslationByStatus" resultMap="rssFetchDataMap">
+        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
             INNER JOIN public.article_translations a on entry.id = a.article_create_date
 
         <where>
             a.status = #{statusName}
+
+            <if test="startTimestamp != null">
+                AND entry.id >= #{startTimestamp}
+            </if>
         </where>
     </select>
 
-    <select id="queryArticlesBy" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesBy" resultMap="rssFetchDataMap">
         select
             entry.id,
             entry.title,
@@ -70,9 +75,11 @@
             entry.link,
             entry.date,
             entry.tags,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aTranslations.content_en as cleanedContentEn,
+            aTranslations.title_en as translationTitleEn,
             feed.name as feedName,
             feed.priority as feedPriority,
             feed.description as feedDescription,
@@ -97,7 +104,7 @@
         </where>
     </select>
 
-    <select id="queryArticlesByCategoryAndDate" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByCategoryAndDate" resultMap="rssFetchDataMap">
         select
             entry.id,
             entry.title,
@@ -106,6 +113,7 @@
             entry.link,
             entry.date,
             entry.tags,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aTranslations.content_en as cleanedContentEn,
@@ -131,7 +139,7 @@
         order by entry.date desc
     </select>
 
-    <select id="queryArticlesByCategoryAndDatePaginated" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByCategoryAndDatePaginated" resultMap="rssFetchDataMap">
         select
             entry.id,
             aTranslations.title_en as title,
@@ -139,6 +147,7 @@
             entry.content,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
+            entry.attributes,
             aTranslations.content_zh as contentZh,
             aTranslations.title_zh as titleZh,
             aCategory.id as categoryId
@@ -171,11 +180,12 @@
         </if>
     </select>
 
-    <select id="queryArticlesByIds" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData">
+    <select id="queryArticlesByIds" resultMap="rssFetchDataMap">
         select
             entry.id,
-            entry.title,
+            aTranslations.title_en as title,
             entry.author,
+            entry.attributes,
             aTranslations.content_en as cleanedContentEn,
             entry.link,
             aTranslations.content_zh as contentZh,
@@ -190,6 +200,11 @@
             #{id}
         </foreach>
     </select>
+
+    <resultMap id="rssFetchDataMap" type="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData" autoMapping="true">
+        <result column="attributes" property="attributes"
+                typeHandler="com.huawei.ai_platform.config.batis.RssAttributeTypeHandler"/>
+    </resultMap>
 
     <!--  After that ID we'll scan other news that is currently not in the article_translation_table  -->
     <select id="getMaxTranslatedTimestamp" resultType="long">

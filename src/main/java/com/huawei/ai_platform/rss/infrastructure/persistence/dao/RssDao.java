@@ -1,7 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.persistence.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssArticleTranslationEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssEntity;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData;
@@ -47,10 +47,12 @@ public interface RssDao extends BaseMapper<RssEntity> {
     /**
      * Extracts articles with records in translation section
      *
-     * @param statusEnum by which status
+     * @param statusEnum     by which status
+     * @param startTimestamp start timestamp (for failure situations)
      * @return list of the rss fetch data
      */
-    List<RssFetchData> getNewsWithTranslationByStatus(@Param("statusName") ArticleTranslationStatusEnum statusEnum);
+    List<RssFetchData> getNewsWithTranslationByStatus(@Param("statusName") ArticleTranslationStatusEnum statusEnum,
+                                                      @Param("startTimestamp") Long startTimestamp);
 
     /**
      * Extracts max untranslated article
@@ -102,8 +104,8 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @return list of articles
      */
     List<RssFetchData> queryArticlesByCategoryAndDate(@Param("categoryId") int categoryId,
-                                                        @Param("startTime") Long startTime,
-                                                        @Param("endTime") Long endTime);
+                                                      @Param("startTime") Long startTime,
+                                                      @Param("endTime") Long endTime);
 
     /**
      * Extracts articles by category and date range with pagination
@@ -116,10 +118,10 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @return list of articles
      */
     List<RssFetchData> queryArticlesByCategoryAndDatePaginated(@Param("categoryId") int categoryId,
-                                                                 @Param("startTime") Long startTime,
-                                                                 @Param("endTime") Long endTime,
-                                                                 @Param("offset") int offset,
-                                                                 @Param("limit") int limit);
+                                                               @Param("startTime") Long startTime,
+                                                               @Param("endTime") Long endTime,
+                                                               @Param("offset") int offset,
+                                                               @Param("limit") int limit);
 
     /**
      * Counts articles by category and date range
@@ -130,8 +132,8 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @return count of articles
      */
     int countArticlesByCategoryAndDate(@Param("categoryId") int categoryId,
-                                        @Param("startTime") Long startTime,
-                                        @Param("endTime") Long endTime);
+                                       @Param("startTime") Long startTime,
+                                       @Param("endTime") Long endTime);
 
     List<RssFetchData> queryArticlesByIds(@Param("ids") Collection<Long> ids);
 }
