@@ -1,7 +1,8 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.dto.ArticleRanking;
+import com.huawei.ai_platform.rss.infrastructure.ai.dto.ArticleSummary;
+import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssArticleSummaryCloud;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao;
 import com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao;
@@ -10,14 +11,10 @@ import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssFetchData
 import com.huawei.ai_platform.rss.infrastructure.ai.scraper.WebScraperService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 
 import java.io.InputStream;
 import java.io.FileWriter;
@@ -34,7 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Component
@@ -51,13 +47,19 @@ public class AiTopArticlesOrchestrator {
     private final WebScraperService webScraperService;
 
     private final int batchSize;
-    private final int threadPoolSize;
-    private final int timeoutMs;
+    private final int rankingThreadPoolSize;
+    private final int summaryThreadPoolSize;
+    private final int translationThreadPoolSize;
+    private final int rankingTimeoutMs;
+    private final int summaryTimeoutMs;
+    private final int translationTimeoutMs;
     private final Path llmLogDir;
-    private final String reasoningModel;
+    private final String rankingModel;
     private final String summaryModel;
+    private final String translationModel;
     private final Double rankingTemperature;
     private final Double summaryTemperature;
+    private final Double translationTemperature;
     
     public AiTopArticlesOrchestrator(
         ChatClient chatClient,
@@ -65,27 +67,39 @@ public class AiTopArticlesOrchestrator {
         RssCategoryDao rssCategoryDao,
         RssDao rssDao,
         WebScraperService webScraperService,
-        @Value("${ai.processing.batch-size:100}") int batchSize,
-        @Value("${ai.processing.thread-pool-size:5}") int threadPoolSize,
-        @Value("${ai.processing.timeout:600000}") int timeoutMs,
-        @Value("${ai.processing.log-dir:./logs/llm}") String logDir,
-        @Value("${ai.processing.reasoning-model:deepseek/deepseek-v3.2}") String reasoningModel,
-        @Value("${ai.processing.ranking-temperature:0.1}") Double rankingTemperature,
-        @Value("${ai.processing.summary-model:deepseek/deepseek-v3.2}") String summaryModel,
-        @Value("${ai.processing.summary-temperature:0.4}") Double summaryTemperature) {
+        @Value("${ai.digest.batch-size:100}") int batchSize,
+        @Value("${ai.digest.ranking-thread-pool-size:10}") int rankingThreadPoolSize,
+        @Value("${ai.digest.summary-thread-pool-size:5}") int summaryThreadPoolSize,
+        @Value("${ai.digest.ranking-timeout:60000}") int rankingTimeoutMs,
+        @Value("${ai.digest.summary-timeout:120000}") int summaryTimeoutMs,
+        @Value("${ai.digest.log-dir:./logs/llm}") String logDir,
+        @Value("${ai.digest.ranking-model:deepseek/deepseek-v3.2}") String rankingModel,
+        @Value("${ai.digest.ranking-temperature:0.1}") Double rankingTemperature,
+        @Value("${ai.digest.summary-model:deepseek/deepseek-v3.2}") String summaryModel,
+        @Value("${ai.digest.summary-temperature:0.4}") Double summaryTemperature,
+        @Value("${ai.digest.translation-model:deepseek/deepseek-v3.2}") String translationModel,
+        @Value("${ai.digest.translation-temperature:0.3}") Double translationTemperature,
+        @Value("${ai.digest.translation-thread-pool-size:10}") int translationThreadPoolSize,
+        @Value("${ai.digest.translation-timeout:30000}") int translationTimeoutMs) {
         this.chatClient = chatClient;
         this.objectMapper = objectMapper;
         this.rssCategoryDao = rssCategoryDao;
         this.rssDao = rssDao;
         this.webScraperService = webScraperService;
         this.batchSize = batchSize;
-        this.threadPoolSize = threadPoolSize;
-        this.timeoutMs = timeoutMs;
+        this.rankingThreadPoolSize = rankingThreadPoolSize;
+        this.summaryThreadPoolSize = summaryThreadPoolSize;
+        this.rankingTimeoutMs = rankingTimeoutMs;
+        this.summaryTimeoutMs = summaryTimeoutMs;
         this.llmLogDir = Paths.get(logDir);
-        this.reasoningModel = reasoningModel;
+        this.rankingModel = rankingModel;
         this.rankingTemperature = rankingTemperature;
         this.summaryModel = summaryModel;
         this.summaryTemperature = summaryTemperature;
+        this.translationModel = translationModel;
+        this.translationTemperature = translationTemperature;
+        this.translationThreadPoolSize = translationThreadPoolSize;
+        this.translationTimeoutMs = translationTimeoutMs;
         try {
             Files.createDirectories(llmLogDir);
         } catch (IOException e) {
@@ -138,7 +152,7 @@ public class AiTopArticlesOrchestrator {
             scoresByCategory.put(ca.categoryId(), Collections.synchronizedList(new ArrayList<>()));
         }
 
-        try (ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize)) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(rankingThreadPoolSize)) {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
 
             for (var batchCtx : allBatches) {
@@ -151,8 +165,7 @@ public class AiTopArticlesOrchestrator {
                         batchCtx.categoryId(), 
                         batchCtx.categoryName(), 
                         batchCtx.batch(), 
-                        batchCtx.batchNum(), 
-                        batchCtx.totalBatches(),
+                        batchCtx.batchNum(),
                         batchCtx.runTimestamp()
                     );
                     scoresByCategory.get(batchCtx.categoryId()).addAll(scores);
@@ -174,7 +187,7 @@ public class AiTopArticlesOrchestrator {
         }
 
         List<CompletableFuture<RssNewsSummaryCloud>> summaryFutures = new ArrayList<>();
-        try (ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize)) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(summaryThreadPoolSize)) {
             for (var ca : categoriesWithArticles) {
                 var scores = scoresByCategory.get(ca.categoryId());
                 if (scores.isEmpty()) {
@@ -266,94 +279,92 @@ public class AiTopArticlesOrchestrator {
         return result;
     }
 
-    private List<ArticleScore> rankBatch(int categoryId, String categoryName,
+private List<ArticleScore> rankBatch(int categoryId, String categoryName,
                                          List<ArticleData> batch,
-                                       int batchNum, int totalBatches, String runTimestamp) {
-        List<ArticleRanking> bestResult = null;
-        int bestSize = 0;
+                                        int batchNum, String runTimestamp) {
+        List<ArticleScore> selectedArticles = new ArrayList<>();
+        List<ArticleData> remaining = new ArrayList<>(batch);
         
-        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            try {
-                String articlesJson = objectMapper.writeValueAsString(batch);
-                String rankingFormat = loadResource("prompt/ranking-format.txt");
-                String prompt = loadResource("prompt/ranking-prompt.txt")
-                    .replace("{{categoryName}}", categoryName)
-                    .replace("{{batchNum}}", String.valueOf(batchNum))
-                    .replace("{{totalBatches}}", String.valueOf(totalBatches))
-                    .replace("{{jsonFormat}}", rankingFormat)
-                    + "\n\nArticles:\n" + articlesJson;
-
-                String response = CompletableFuture.supplyAsync(() ->
-                    chatClient.prompt()
-                        .user(prompt)
-                        .options(OpenAiChatOptions.builder()
-                            .model(reasoningModel)
-                            .temperature(rankingTemperature)
-                            .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
-                            .build())
-                        .call()
-                        .content()
-                ).get(timeoutMs, TimeUnit.MILLISECONDS);
-
-                logLlmOutput("ranking_batch" + batchNum, categoryId, response, runTimestamp);
-
-                String json = extractArrayFromObject(extractJsonFromResponse(response));
-                BeanOutputConverter<List<ArticleRanking>> converter = new BeanOutputConverter<>(
-                    new ParameterizedTypeReference<>() {}
-                );
-                List<ArticleRanking> rankings = converter.convert(json);
+        int toSelect = Math.min(TOP_ARTICLES_COUNT, batch.size());
+        
+        for (int i = 0; i < toSelect && !remaining.isEmpty(); i++) {
+            log.info("Selecting article {}/{} from {} remaining in category {} batch {}", 
+                i + 1, toSelect, remaining.size(), categoryName, batchNum);
+            
+            ArticleData selected = null;
+            
+            for (int retry = 1; retry <= MAX_ATTEMPTS; retry++) {
+                Integer selectedIndex = selectMostRelevant(remaining, categoryName, categoryId, runTimestamp);
                 
-                if (rankings != null && !rankings.isEmpty()) {
-                    int minAcceptable = (batch.size() * 4) / 5;
-                    
-                    if (rankings.size() >= batch.size()) {
-                        log.info("Ranking attempt {}/{} returned full batch ({} scores) for category {} batch {}", 
-                            attempt, MAX_ATTEMPTS, rankings.size(), categoryName, batchNum);
-                        return rankings.stream()
-                            .filter(Objects::nonNull)
-                            .map(r -> new ArticleScore(r.id(), r.score()))
-                            .toList();
-                    }
-                    
-                    if (rankings.size() >= minAcceptable) {
-                        log.info("Ranking attempt {}/{} returned {} scores for {} articles (>= 80%) for category {} batch {}, accepting", 
-                            attempt, MAX_ATTEMPTS, rankings.size(), batch.size(), categoryName, batchNum);
-                        return rankings.stream()
-                            .filter(Objects::nonNull)
-                            .map(r -> new ArticleScore(r.id(), r.score()))
-                            .toList();
-                    }
-                    
-                    if (rankings.size() > bestSize) {
-                        bestResult = rankings;
-                        bestSize = rankings.size();
-                    }
-                    log.warn("Ranking attempt {}/{} returned {} scores for {} articles in category {} batch {}, retrying", 
-                        attempt, MAX_ATTEMPTS, rankings.size(), batch.size(), categoryName, batchNum);
-                } else {
-                    log.warn("Ranking attempt {}/{} returned empty for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
+                if (selectedIndex != null && selectedIndex >= 1 && selectedIndex <= remaining.size()) {
+                    selected = remaining.remove(selectedIndex - 1);
+                    break;
                 }
-            } catch (TimeoutException e) {
-                log.warn("Ranking attempt {}/{} timed out for category {} batch {}", attempt, MAX_ATTEMPTS, categoryName, batchNum);
-            } catch (RestClientException e) {
-                log.warn("Ranking attempt {}/{} API error for category {} batch {}: {}", attempt, MAX_ATTEMPTS, categoryName, batchNum, e.getMessage());
-                log.debug("Full RestClientException for category {} batch {}", categoryName, batchNum, e);
-            } catch (Exception e) {
-                log.warn("Ranking attempt {}/{} failed for category {} batch {}: {}", attempt, MAX_ATTEMPTS, categoryName, batchNum, e.getMessage());
-                log.debug("Full exception for category {} batch {}", categoryName, batchNum, e);
+                
+                log.warn("Selection attempt {}/{} returned invalid index for category {} batch {}", 
+                    retry, MAX_ATTEMPTS, categoryName, batchNum);
             }
+            
+            if (selected == null) {
+                log.error("Failed to select article after {} attempts for category {} batch {}, stopping selection", 
+                    MAX_ATTEMPTS, categoryName, batchNum);
+                break;
+            }
+            
+            selectedArticles.add(new ArticleScore(selected.id(), toSelect - i));
+            log.info("Selected article {} in category {} batch {}", selected.title(), categoryName, batchNum);
         }
         
-        if (bestResult != null) {
-            log.warn("Using best partial result with {} scores (expected {}) for category {} batch {}", 
-                bestSize, batch.size(), categoryName, batchNum);
-            return bestResult.stream()
-                .filter(Objects::nonNull)
-                .map(r -> new ArticleScore(r.id(), r.score()))
-                .toList();
+        return selectedArticles;
+    }
+    
+    private Integer selectMostRelevant(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
+        StringBuilder articlesList = new StringBuilder();
+        
+        for (int i = 0; i < articles.size(); i++) {
+            ArticleData a = articles.get(i);
+            String abstractText = a.content();
+            if (abstractText != null && abstractText.length() > 300) {
+                abstractText = abstractText.substring(0, 300) + "...";
+            }
+            articlesList.append(String.format("%d. %s\n   %s\n", 
+                i + 1, 
+                a.title() != null ? a.title() : "No title",
+                abstractText != null ? abstractText : "No abstract"));
         }
         
-        return List.of();
+        String promptTemplate = loadResource("/prompt/digest/selection-prompt.txt");
+        String prompt = promptTemplate
+            .replace("{{categoryName}}", categoryName)
+            .replace("{{articlesList}}", articlesList.toString());
+        
+        try {
+            String response = CompletableFuture.supplyAsync(() ->
+                chatClient.prompt()
+                    .user(prompt)
+                    .options(OpenAiChatOptions.builder()
+                        .model(rankingModel)
+                        .temperature(rankingTemperature)
+                        .build())
+                    .call()
+                    .content()
+            ).get(rankingTimeoutMs, TimeUnit.MILLISECONDS);
+            
+            logLlmOutput("selection", categoryId, response, runTimestamp);
+            
+            String cleaned = response.trim().replaceAll("[^0-9]", "");
+            
+            if (cleaned.isEmpty()) {
+                log.warn("No number found in response: {}", response);
+                return null;
+            }
+            
+            return Integer.parseInt(cleaned);
+            
+        } catch (Exception e) {
+            log.error("Failed to select article: {}", e.getMessage());
+            return null;
+        }
     }
 
     private <T> List<List<T>> splitIntoBatches(List<T> list, int size) {
@@ -366,20 +377,60 @@ public class AiTopArticlesOrchestrator {
 
     private RssNewsSummaryCloud generateSummaries(int categoryId, String categoryName,
                                               List<ArticleData> topArticles, String runTimestamp) {
-        RssNewsSummaryCloud bestResult = null;
-        int bestSize = 0;
-        int minAcceptable = (topArticles.size() * 4) / 5;
+        List<RssArticleSummaryCloud> articleSummaries = new ArrayList<>();
+        List<String> articleAbstracts = new ArrayList<>();
+        
+        for (int i = 0; i < topArticles.size(); i++) {
+            ArticleData article = topArticles.get(i);
+            
+            try {
+                log.info("Generating summary for article {}/{} from {}: {}", i + 1, topArticles.size(), categoryName,   article.title());
+                
+                RssArticleSummaryCloud summary = generateArticleSummary(article, categoryId, runTimestamp);
+                
+                if (summary != null) {
+                    articleSummaries.add(summary);
+                    articleAbstracts.add(summary.getArticleAbstractEn());
+                }
+                
+            } catch (Exception e) {
+                log.error("Failed to summarize article {}: {}", article.id(), e.getMessage());
+            }
+        }
+        
+        if (articleSummaries.isEmpty()) {
+            log.warn("No article summaries generated for category {}", categoryName);
+            return null;
+        }
+        
+        log.info("Generated {} article summaries for category {}", articleSummaries.size(), categoryName);
+        
+        String categorySummaryEn = generateCategorySummary(articleAbstracts, categoryName);
+        String categorySummaryZh = categorySummaryEn != null ? translate(categorySummaryEn) : null;
+        
+        return RssNewsSummaryCloud.builder()
+            .categoryId(categoryId)
+            .articlesReport(articleSummaries)
+            .articleTopSummaryEn(categorySummaryEn != null ? categorySummaryEn : "")
+            .articleTopSummaryZh(categorySummaryZh != null ? categorySummaryZh : "")
+            .build();
+    }
+    
+    private RssArticleSummaryCloud generateArticleSummary(ArticleData article, int categoryId, String runTimestamp) {
+        String title = article.title() != null ? article.title() : "No title";
+        String abstractText = article.content() != null ? article.content() : "No abstract";
+        String scrapedContent = article.scrapedContent() != null && !article.scrapedContent().isBlank() 
+            ? article.scrapedContent() 
+            : "No scraped content available";
+        
+        String promptTemplate = loadResource("/prompt/digest/article-summary-prompt.txt");
+        String prompt = promptTemplate
+            .replace("{{title}}", title)
+            .replace("{{abstract}}", abstractText)
+            .replace("{{scrapedContent}}", scrapedContent);
         
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                String articlesJson = objectMapper.writeValueAsString(topArticles);
-                String summaryFormat = loadResource("prompt/summary-format.txt")
-                    .replace("{{categoryId}}", String.valueOf(categoryId));
-                String prompt = loadResource("prompt/summary-prompt.txt")
-                    .replace("{{categoryName}}", categoryName)
-                    .replace("{{jsonFormat}}", summaryFormat)
-                    + "\n\nArticles:\n" + articlesJson;
-
                 String response = CompletableFuture.supplyAsync(() ->
                     chatClient.prompt()
                         .user(prompt)
@@ -390,54 +441,131 @@ public class AiTopArticlesOrchestrator {
                             .build())
                         .call()
                         .content()
-                ).get(timeoutMs, TimeUnit.MILLISECONDS);
-
-                logLlmOutput("summary", categoryId, response, runTimestamp);
-
-                String json = extractJsonFromResponse(response);
-                BeanOutputConverter<RssNewsSummaryCloud> converter = 
-                    new BeanOutputConverter<>(RssNewsSummaryCloud.class);
-                RssNewsSummaryCloud output = converter.convert(json);
+).get(summaryTimeoutMs, TimeUnit.MILLISECONDS);
                 
-                if (output != null && output.getArticlesReport() != null && !output.getArticlesReport().isEmpty()) {
-                    int size = output.getArticlesReport().size();
-                    
-                    if (size >= topArticles.size()) {
-                        log.info("Summary attempt {}/{} returned all {} articles for {}", 
-                            attempt, MAX_ATTEMPTS, size, categoryName);
-                        return output;
-                    }
-                    
-                    if (size >= minAcceptable) {
-                        log.info("Summary attempt {}/{} returned {} articles for {} (>= 80%), accepting", 
-                            attempt, MAX_ATTEMPTS, size, categoryName);
-                        return output;
-                    }
-                    
-                    if (size > bestSize) {
-                        bestResult = output;
-                        bestSize = size;
-                    }
-                    log.warn("Summary attempt {}/{} returned {} articles for {} input in category {}, retrying", 
-                        attempt, MAX_ATTEMPTS, size, topArticles.size(), categoryName);
-                } else {
-                    log.warn("Summary attempt {}/{} returned null/empty for {}", attempt, MAX_ATTEMPTS, categoryName);
-                }
-            } catch (TimeoutException e) {
-                log.error("Summary attempt {}/{} timed out after {}ms for {}", attempt, MAX_ATTEMPTS, timeoutMs, categoryName);
-            } catch (RestClientException e) {
-                log.error("Summary attempt {}/{} API error for {}: {}", attempt, MAX_ATTEMPTS, categoryName, e.getMessage());
-                log.debug("Full RestClientException for category {}", categoryName, e);
+                logLlmOutput("article_" + article.id(), categoryId, response, runTimestamp);
+                
+                String json = extractJsonFromResponse(response);
+                ArticleSummary summaryEn = objectMapper.readValue(json, ArticleSummary.class);
+                
+                return buildFullSummary(article, summaryEn);
+                
             } catch (Exception e) {
-                log.error("Summary attempt {}/{} failed for {}: {}", attempt, MAX_ATTEMPTS, categoryName, e.getMessage());
-                log.debug("Full exception for category {}", categoryName, e);
+                log.warn("Article summary attempt {}/{} failed for article {}: {}", 
+                    attempt, MAX_ATTEMPTS, article.id(), e.getMessage());
             }
         }
         
-        if (bestResult != null) {
-            log.warn("Using best partial summary with {} articles (expected {}) for category {}", 
-                bestSize, topArticles.size(), categoryName);
-            return bestResult;
+        return null;
+    }
+    
+    private RssArticleSummaryCloud buildFullSummary(ArticleData article, ArticleSummary summaryEn) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(translationThreadPoolSize)) {
+            CompletableFuture<String> titleZh = CompletableFuture.supplyAsync(() -> translate(article.title()), executor);
+            CompletableFuture<String> abstractZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.articleAbstract()), executor);
+            CompletableFuture<String> backgroundZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.background()), executor);
+            CompletableFuture<String> eventSummaryZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.eventSummary()), executor);
+            CompletableFuture<String> techZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.technologyAndInnovation()), executor);
+            CompletableFuture<String> valueZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.valueAndImpact()), executor);
+            CompletableFuture<String> effectsZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.effects()), executor);
+            
+            CompletableFuture.allOf(titleZh, abstractZh, backgroundZh, eventSummaryZh, techZh, valueZh, effectsZh).join();
+            
+            return RssArticleSummaryCloud.builder()
+                .articleTitleEn(article.title())
+                .articleTitleZh(titleZh.get())
+                .articleAbstractEn(summaryEn.articleAbstract())
+                .articleAbstractZh(abstractZh.get())
+                .backgroundEn(summaryEn.background())
+                .backgroundZh(backgroundZh.get())
+                .eventSummaryEn(summaryEn.eventSummary())
+                .eventSummaryZh(eventSummaryZh.get())
+                .technologyAndInnovationEn(summaryEn.technologyAndInnovation())
+                .technologyAndInnovationZh(techZh.get())
+                .valueAndImpactEn(summaryEn.valueAndImpact())
+                .valueAndImpactZh(valueZh.get())
+                .effectsEn(summaryEn.effects())
+                .effectsZh(effectsZh.get())
+                .articleLink(article.link())
+                .authors(article.authors())
+                .build();
+        } catch (Exception e) {
+            log.warn("Translation failed: {}", e.getMessage());
+            return RssArticleSummaryCloud.builder()
+                .articleTitleEn(article.title())
+                .articleTitleZh(translate(article.title()))
+                .articleAbstractEn(summaryEn.articleAbstract())
+                .articleAbstractZh(translate(summaryEn.articleAbstract()))
+                .backgroundEn(summaryEn.background())
+                .backgroundZh(translate(summaryEn.background()))
+                .eventSummaryEn(summaryEn.eventSummary())
+                .eventSummaryZh(translate(summaryEn.eventSummary()))
+                .technologyAndInnovationEn(summaryEn.technologyAndInnovation())
+                .technologyAndInnovationZh(translate(summaryEn.technologyAndInnovation()))
+                .valueAndImpactEn(summaryEn.valueAndImpact())
+                .valueAndImpactZh(translate(summaryEn.valueAndImpact()))
+                .effectsEn(summaryEn.effects())
+                .effectsZh(translate(summaryEn.effects()))
+                .articleLink(article.link())
+                .authors(article.authors())
+                .build();
+        }
+    }
+    
+    private String translate(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        
+        String promptTemplate = loadResource("/prompt/digest/translation-prompt.txt");
+        String prompt = promptTemplate.replace("{{text}}", text);
+        
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                String response = chatClient.prompt()
+                    .user(prompt)
+                    .options(OpenAiChatOptions.builder()
+                        .model(translationModel)
+                        .temperature(translationTemperature)
+                        .build())
+                    .call()
+                    .content();
+                
+                return response.trim();
+                
+            } catch (Exception e) {
+                log.warn("Translation attempt {}/{} failed: {}", attempt, MAX_ATTEMPTS, e.getMessage());
+            }
+        }
+        
+        return text;
+    }
+    
+    private record TranslationResult(String translation) {}
+    
+    private String generateCategorySummary(List<String> articleAbstracts, String categoryName) {
+        if (articleAbstracts.isEmpty()) {
+            return null;
+        }
+        
+        String combinedAbstracts = String.join("\n\n", articleAbstracts);
+        
+        String promptTemplate = loadResource("/prompt/digest/category-summary-prompt.txt");
+        String prompt = promptTemplate
+            .replace("{{categoryName}}", categoryName)
+            .replace("{{abstracts}}", combinedAbstracts);
+        
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                String response = chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
+                
+                return response.trim();
+            } catch (Exception e) {
+                log.warn("Category summary attempt {}/{} failed: {}", attempt, MAX_ATTEMPTS, e.getMessage());
+            }
         }
         
         return null;
@@ -445,8 +573,8 @@ public class AiTopArticlesOrchestrator {
 
     private String loadResource(String location) {
         try {
-            ClassPathResource resource = new ClassPathResource(location);
-            try (InputStream is = resource.getInputStream()) {
+            // ClassPathResource resource = new ClassPathResource(location);
+            try (InputStream is = this.getClass().getResourceAsStream(location)) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
@@ -539,6 +667,7 @@ public class AiTopArticlesOrchestrator {
             
             if (escaped) {
                 escaped = false;
+                result.append('\\');
                 if (!isValidJsonEscape(c, i, json)) {
                     result.append('\\');
                 }
