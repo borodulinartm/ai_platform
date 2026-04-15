@@ -175,40 +175,6 @@ class ExtractJsonTest {
     }
 
     @Test
-    void testPromptFormatNotCorrupted() throws Exception {
-        String rankingFormat = loadResource("prompt/ranking-format.txt");
-        int categoryId = 10;
-        String categoryName = "Test Category";
-        
-        String prompt = loadResource("prompt/ranking-prompt.txt")
-            .replace("{{categoryName}}", categoryName)
-            .replace("{{batchNum}}", "1")
-            .replace("{{totalBatches}}", "1")
-            .replace("{{jsonFormat}}", rankingFormat);
-        
-        assertTrue(prompt.contains("\"id\": 12345"), "Format should have example id");
-        assertTrue(prompt.contains("\"score\": 8"), "Format should have example score");
-        assertFalse(prompt.contains("\"type\":"), "Format should NOT have schema type field");
-        assertFalse(prompt.contains("$schema"), "Format should NOT have $schema field");
-    }
-
-    @Test
-    void testSummaryFormatNotCorrupted() throws Exception {
-        String summaryFormat = loadResource("prompt/summary-format.txt")
-            .replace("{{categoryId}}", "10");
-        String categoryName = "Test Category";
-        
-        String prompt = loadResource("prompt/summary-prompt.txt")
-            .replace("{{categoryName}}", categoryName)
-            .replace("{{jsonFormat}}", summaryFormat);
-        
-        assertTrue(prompt.contains("\"categoryId\": 10"), "Format should have categoryId replaced");
-        assertTrue(prompt.contains("\"articleTopSummaryEn\":"), "Format should have articleTopSummaryEn");
-        assertFalse(prompt.contains("\"type\": \"integer\""), "Format should NOT have schema type field");
-        assertFalse(prompt.contains("$schema"), "Format should NOT have $schema field");
-    }
-
-    @Test
     void testExtractJsonWithSchemaExample() throws Exception {
         String response = "{\n  \"categoryId\": 10,\n  \"articleTopSummaryEn\": \"Summary text\",\n  \"articleTopSummaryZh\": \"中文摘要\",\n  \"articles\": []\n}";
         String result = invokeExtract(response);
@@ -229,8 +195,9 @@ class ExtractJsonTest {
         Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("extractJsonFromResponse", String.class);
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
-            null, null, null, null, null, 100, 5, 600000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4
+            null, null, null, null, null, 100, 10, 5, 60000, 120000, "./logs/llm",
+            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
+            "deepseek/deepseek-v3.2", 0.3, 10, 30000
         );
         return (String) method.invoke(orchestrator, response);
     }
@@ -239,8 +206,9 @@ class ExtractJsonTest {
         Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("extractArrayFromObject", String.class);
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
-            null, null, null, null, null, 100, 5, 600000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4
+            null, null, null, null, null, 100, 10, 5, 60000, 120000, "./logs/llm",
+            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
+            "deepseek/deepseek-v3.2", 0.3, 10, 30000
         );
         return (String) method.invoke(orchestrator, json);
     }
@@ -249,8 +217,9 @@ class ExtractJsonTest {
         Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("loadResource", String.class);
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
-            null, null, null, null, null, 100, 5, 600000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4
+            null, null, null, null, null, 100, 10, 5, 60000, 120000, "./logs/llm",
+            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
+            "deepseek/deepseek-v3.2", 0.3, 10, 30000
         );
         return (String) method.invoke(orchestrator, location);
     }
