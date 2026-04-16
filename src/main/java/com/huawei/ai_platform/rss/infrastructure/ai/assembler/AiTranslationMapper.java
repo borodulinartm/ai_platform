@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.assembler;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.scrapping.AiScrappingRequest;
 import com.huawei.ai_platform.rss.model.RssData;
 import jakarta.annotation.Nonnull;
 import org.mapstruct.Mapper;
@@ -22,5 +23,5 @@ public abstract class AiTranslationMapper {
      */
     @Mapping(target = "articleTitle", source = "articleTitleEn")
     @Mapping(target = "id", source = "articleId")
-    public abstract AiCleaningRequest convert(@Nonnull RssData rssData);
+    public abstract AiScrappingRequest convert(@Nonnull RssData rssData);
 }

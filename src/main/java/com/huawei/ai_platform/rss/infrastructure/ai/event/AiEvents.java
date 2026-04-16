@@ -3,11 +3,8 @@ package com.huawei.ai_platform.rss.infrastructure.ai.event;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.CleaningCreatedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.*;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.scrapping.AiScrappingRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -15,8 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.CLEANING_PROCESSING;
-import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.TRANSLATING_PROCESSING;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.*;
 
 /**
  * Consumer event class for some AI events
@@ -38,10 +34,20 @@ public class AiEvents {
             rssTranslationService.insertNewArticleTranslations(List.of(translationCreatedEvent.getRecords()),
                     translationCreatedEvent.getStatusEnum());
 
-            AiCleaningRequest cleaningRequests = aiTranslationMapper.convert(translationCreatedEvent.getRecords());
-            rssTranslationOrchestration.cleanInputText(cleaningRequests);
+            AiScrappingRequest scrappingRequest = aiTranslationMapper.convert(translationCreatedEvent.getRecords());
+            rssTranslationOrchestration.scrapContent(scrappingRequest);
         } else {
             log.warn("For 'onCreateRequestToTranslation' produced empty data");
+        }
+    }
+
+    @EventListener
+    public void onCreateScrapingRequest(ScrappingCreatedEvent aiScrappingRequest) {
+        if (aiScrappingRequest != null) {
+            List<Long> idList = List.of(aiScrappingRequest.getAiScrappingRequest().getId());
+            rssTranslationService.queryUpdateStatusByListData(idList, SCRAPPING_PROCESSING);
+        } else {
+            log.warn("For 'onCreateScrapingRequest' produced empty data");
         }
     }
 
@@ -50,6 +56,8 @@ public class AiEvents {
         if (cleaningCreatedEvent != null) {
             List<Long> idList = List.of(cleaningCreatedEvent.getAiCleaningRequest().getId());
             rssTranslationService.queryUpdateStatusByListData(idList, CLEANING_PROCESSING);
+
+            rssTranslationOrchestration.cleanInputText(cleaningCreatedEvent.getAiCleaningRequest());
         } else {
             log.warn("For 'onCreateCleaningTranslation' produced empty data");
         }

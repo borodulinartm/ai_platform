@@ -2,6 +2,7 @@ package com.huawei.ai_platform.rss.application.service;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.scrapping.AiScrappingRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.model.RssData;
 
@@ -19,6 +20,13 @@ public interface RssTranslationOrchestration {
      * @return success if saga has started correctly, failed otherwise
      */
     OperationResult initTranslation(RssData inputList);
+
+    /**
+     * Performs scrapping from the Internet by provided URL
+     *
+     * @param aiScrappingRequest ai scrapping request
+     */
+    void scrapContent(AiScrappingRequest aiScrappingRequest);
 
     /**
      * Performs cleaning text

@@ -25,6 +25,10 @@ spring:
           temperature: 0.2
 
 ai:
+  scrapping:
+    temperature: 0.1
+    countAttempts: 10
+    symbolsThreshold: 150
   translating:
     temperature: 0.2
     countAttempts: 10

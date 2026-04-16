@@ -10,6 +10,7 @@ import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestratio
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.scrapping.AiScrappingRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -160,8 +161,8 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                                 return rssTranslationOrchestration.initTranslation(item);
                             } else {
                                 if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
-                                    AiCleaningRequest cleaningRequest = aiTranslationMapper.convert(item);
-                                    rssTranslationOrchestration.cleanInputText(cleaningRequest);
+                                    AiScrappingRequest cleaningRequest = aiTranslationMapper.convert(item);
+                                    rssTranslationOrchestration.scrapContent(cleaningRequest);
 
                                     return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
                                 }

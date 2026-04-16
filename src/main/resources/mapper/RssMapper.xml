@@ -38,7 +38,7 @@
     </update>
 
     <select id="getAfter" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, entry.attributes from admin_entry entry
+        SELECT entry.id, entry.title, entry.content, entry.link, entry.attributes from admin_entry entry
 
         <where>
             <if test="timestamp != null">
@@ -54,7 +54,7 @@
     </select>
 
     <select id="getNewsWithTranslationByStatus" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
+        SELECT entry.id, entry.title, entry.link, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
             INNER JOIN public.article_translations a on entry.id = a.article_create_date
 
         <where>
