@@ -61,7 +61,7 @@ public class AiTranslationZhValidator implements IAiValidation<String> {
             return ValidationResponse.failure("Total is 0");
         }
 
-        if (chinese == 0) {
+        if (chinese == 0 && total > 50) {
             return ValidationResponse.failure("Count of Chinese symbols is 0");
         }
 

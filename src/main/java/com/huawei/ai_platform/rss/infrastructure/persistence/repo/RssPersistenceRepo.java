@@ -82,12 +82,12 @@ public class RssPersistenceRepo {
     }
 
     /**
-     * Extracts list of categories
+     * Extracts list of categories (only categories without errors)
      *
      * @return list of categories
      */
     public List<RssCategoryEntity> getCategories() {
-        return rssCategoryDao.selectList(new LambdaQueryWrapper<>());
+        return rssCategoryDao.queryCategoriesList();
     }
 
     /**

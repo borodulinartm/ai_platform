@@ -19,4 +19,6 @@ public class RssCategoryCloud {
 
     private String categoryNameEn;
     private String categoryNameZh;
+
+    private int position;
 }

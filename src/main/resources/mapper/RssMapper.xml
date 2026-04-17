@@ -89,7 +89,7 @@
             aCategory.id as categoryId,
             aCategory.name as categoryName
         from admin_entry entry
-        left join article_translations aTranslations on aTranslations.article_create_date = entry.id
+        inner join article_translations aTranslations on aTranslations.article_create_date = entry.id and aTranslations.status = 'FINISH'
         left join admin_feed feed ON entry.id_feed = feed.id
         left join admin_category aCategory ON feed.category = aCategory.id
 

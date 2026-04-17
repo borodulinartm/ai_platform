@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
  * Rss category DAO layer
  *
@@ -12,4 +14,10 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface RssCategoryDao extends BaseMapper<RssCategoryEntity> {
+    /**
+     * Performs extracting RSS category entity (only without errors)
+     *
+     * @return list of an entities
+     */
+    List<RssCategoryEntity> queryCategoriesList();
 }

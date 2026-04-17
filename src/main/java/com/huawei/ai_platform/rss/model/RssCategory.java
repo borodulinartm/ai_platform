@@ -20,4 +20,6 @@ public class RssCategory implements Serializable {
 
     private String categoryNameEn;
     private String categoryNameZh;
+
+    private int position;
 }

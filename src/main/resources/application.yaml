@@ -15,6 +15,8 @@ spring:
     username: freshrss
     password: freshrss
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
   ai:
     openai:
       base-url: ${LLM_URL}
