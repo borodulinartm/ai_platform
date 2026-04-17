@@ -97,6 +97,7 @@ public class RssAssembler {
                             .categoryId(categoryEntity.getId())
                             .categoryNameEn(categoryArr[0].trim())
                             .categoryNameZh(categoryArr.length > 1 ? categoryArr[1].trim() : StringUtils.EMPTY)
+                            .position(categoryEntity.getAttributes() != null ? categoryEntity.getAttributes().getPosition() : Integer.MAX_VALUE)
                             .build()
             );
         }

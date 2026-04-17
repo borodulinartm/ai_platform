@@ -25,7 +25,7 @@ public class RssAttributeTypeHandler extends BaseTypeHandler<RssAttributeValue> 
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, RssAttributeValue parameter, JdbcType jdbcType)
-                throws SQLException {
+            throws SQLException {
         try {
             ps.setString(i, mapper.writeValueAsString(parameter));
         } catch (JsonProcessingException e) {
@@ -48,8 +48,14 @@ public class RssAttributeTypeHandler extends BaseTypeHandler<RssAttributeValue> 
         return toValue(cs.getString(columnIndex));
     }
 
+    /**
+     * Performs converting from string to JSON value
+     *
+     * @param input input data
+     * @return Rss attribute value
+     */
     private RssAttributeValue toValue(String input) {
-        if (StringUtils.isBlank(input)) {
+        if (StringUtils.isBlank(input) || input.equals("[]")) {
             return null;
         }
 

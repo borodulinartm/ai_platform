@@ -39,8 +39,9 @@ public class RssJob {
     /**
      * Job for uploading into data storage components of our RSS
      * Just in case we upload data for {@code previousDays} several days ago
+     * Need uploader more often because the amount of articles is too high and AI cannot finished translate news in time
      */
-    @Scheduled(cron = "0 0 1 * * ?", zone = "GMT")
+    @Scheduled(cron = "0 0 * * * ?", zone = "GMT")
     @DbLock(category = "articles_uploading_lock")
     public void runUploadingToCloud() {
         log.info("Run Rss uploading to the Huawei Cloud");

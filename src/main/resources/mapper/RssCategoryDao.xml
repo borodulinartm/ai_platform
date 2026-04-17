@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssCategoryDao">
-
+    <select id="queryCategoriesList" resultMap="categoryMap">
+        SELECT * from admin_category
+        <where>
+            error = 0
+        </where>
+    </select>
+    
+    <resultMap id="categoryMap" type="com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssCategoryEntity"
+                autoMapping="true">
+        <result column="attributes" property="attributes" typeHandler="com.huawei.ai_platform.config.batis.RssCategoryTypeHandler"/>
+    </resultMap>
 </mapper>
