@@ -7,7 +7,7 @@ EXECUTION MODEL (MANDATORY)
 You MUST follow this exact pipeline:
 
 - Extract content between ----BEGIN TEXT------- and ----END TEXT---------
-- If no content exists → output a text: "NO_CONTENT"
+- If no content exists → output: "NO_CONTENT"
 - Translate the extracted content into Simplified Chinese
 - Output the result
 
@@ -38,13 +38,9 @@ EMPTY OUTPUT PROTECTION (CRITICAL)
 
 You are NOT allowed to return an empty response.
 
-If the result is empty or uncertain → output a text: "NO_CONTENT"
-
-This rule overrides all others.
+If the result is empty or uncertain → output: "NO_CONTENT"
 
 INPUT FORMAT
-
-You receive text between markers:
 
 ----BEGIN TEXT-------
 CONTENT
@@ -63,24 +59,24 @@ CORE TASK
 
 Preserve original meaning and structure exactly.
 
-TRANSLATION RULES
+TRANSLATION RULES (STRICT)
 
 - Target language: Simplified Chinese
-- Maintain neutral tone
-- Keep names, numbers, and entities accurate
 - Preserve paragraph structure and line breaks
+- Keep names, numbers, and entities accurate
+- Maintain neutral tone
+- Do NOT alter formatting except for translation
 
 HARD VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are satisfied:
 
 - Output is NOT empty (else return "NO_CONTENT")
-- Output is in Simplified Chinese
-- No extra text appears
+- Output contains only the translated text
 - No system or reasoning text appears
 
 FINAL INSTRUCTION
 
-Translate → output ONLY final text.
+Translate → preserve structure → output ONLY final text.
 
 No reasoning. No explanations. No deviations.
