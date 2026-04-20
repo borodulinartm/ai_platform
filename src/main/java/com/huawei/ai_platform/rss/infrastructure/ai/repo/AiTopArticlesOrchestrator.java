@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class AiTopArticlesOrchestrator {
-
     private static final int MAX_ATTEMPTS = 5;
     private static final int TOP_ARTICLES_COUNT = 10;
 
@@ -461,21 +460,21 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
     
     private RssArticleSummaryCloud buildFullSummary(ArticleData article, ArticleSummary summaryEn) {
         try (ExecutorService executor = Executors.newFixedThreadPool(translationThreadPoolSize)) {
-            CompletableFuture<String> titleZh = CompletableFuture.supplyAsync(() -> translate(article.title()), executor);
-            CompletableFuture<String> abstractZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.articleAbstract()), executor);
             CompletableFuture<String> backgroundZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.background()), executor);
             CompletableFuture<String> eventSummaryZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.eventSummary()), executor);
             CompletableFuture<String> techZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.technologyAndInnovation()), executor);
             CompletableFuture<String> valueZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.valueAndImpact()), executor);
             CompletableFuture<String> effectsZh = CompletableFuture.supplyAsync(() -> translate(summaryEn.effects()), executor);
             
-            CompletableFuture.allOf(titleZh, abstractZh, backgroundZh, eventSummaryZh, techZh, valueZh, effectsZh).join();
+            CompletableFuture.allOf(backgroundZh, eventSummaryZh, techZh, valueZh, effectsZh).get(
+                translationTimeoutMs, TimeUnit.MILLISECONDS
+            );
             
             return RssArticleSummaryCloud.builder()
                 .articleTitleEn(article.title())
-                .articleTitleZh(titleZh.get())
-                .articleAbstractEn(summaryEn.articleAbstract())
-                .articleAbstractZh(abstractZh.get())
+                .articleTitleZh(article.titleZh())
+                .articleAbstractEn(article.content())
+                .articleAbstractZh(article.contentZh())
                 .backgroundEn(summaryEn.background())
                 .backgroundZh(backgroundZh.get())
                 .eventSummaryEn(summaryEn.eventSummary())
@@ -493,9 +492,9 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             log.warn("Translation failed: {}", e.getMessage());
             return RssArticleSummaryCloud.builder()
                 .articleTitleEn(article.title())
-                .articleTitleZh(translate(article.title()))
-                .articleAbstractEn(summaryEn.articleAbstract())
-                .articleAbstractZh(translate(summaryEn.articleAbstract()))
+                .articleTitleZh(article.titleZh())
+                .articleAbstractEn(article.content())
+                .articleAbstractZh(article.contentZh())
                 .backgroundEn(summaryEn.background())
                 .backgroundZh(translate(summaryEn.background()))
                 .eventSummaryEn(summaryEn.eventSummary())
@@ -532,7 +531,6 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
                     .content();
                 
                 return response.trim();
-                
             } catch (Exception e) {
                 log.warn("Translation attempt {}/{} failed: {}", attempt, MAX_ATTEMPTS, e.getMessage());
             }
@@ -573,7 +571,6 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
 
     private String loadResource(String location) {
         try {
-            // ClassPathResource resource = new ClassPathResource(location);
             try (InputStream is = this.getClass().getResourceAsStream(location)) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
