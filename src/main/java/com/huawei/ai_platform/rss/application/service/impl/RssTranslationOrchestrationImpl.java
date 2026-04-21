@@ -13,6 +13,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslat
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiCleaningArticlesRepo;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
+import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,9 +58,11 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
             applicationEventPublisher.publishEvent(new TranslationProcessingEvent(aiTranslationRequest));
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getId(), response.getReason());
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, "Some reason"));
+            boolean isRelevanceFailure = response.getReason() != null && response.getReason().contains("RELEVANCE_CHECK_FAILED");
+            ArticleTranslationStatusEnum statusToUse = isRelevanceFailure ? SKIPPED : FAILURE;
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, statusToUse, response.getReason()));
 
-            log.error("STAGE 2 vs 3: Translation for ID = {} has completed with failure :(", cleaningRequests.getId());
+            log.info("STAGE 2 vs 3: {} for ID = {}", isRelevanceFailure ? "SKIPPED (relevance check failed)" : "FAILURE", cleaningRequests.getId());
         }
     }
 

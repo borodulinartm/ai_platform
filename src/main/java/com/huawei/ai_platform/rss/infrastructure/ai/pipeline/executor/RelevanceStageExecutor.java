@@ -1,0 +1,92 @@
+package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.executor;
+
+import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.IAiStageExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
+import jakarta.annotation.Nonnull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class RelevanceStageExecutor implements IAiStageExecutor {
+
+    private final AiExecutor aiExecutor;
+
+    @Value("${ai.digest.relevance-threshold:5}")
+    private int threshold;
+
+    @Override
+    public AIStageResponse runStage(@Nonnull AiStageParameters parameters) {
+        int countAttempts = 1;
+
+        ClassPathResource systemPromptResource = new ClassPathResource(parameters.getSystemPrompt());
+        ClassPathResource userPromptResource = new ClassPathResource(parameters.getUserPrompt());
+
+        while (countAttempts <= parameters.getMaxAttempts()) {
+            try (InputStream systemInputStream = systemPromptResource.getInputStream();
+                 InputStream userInputStream = userPromptResource.getInputStream()) {
+
+                String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
+                String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
+                        parameters.getUserPayload()
+                );
+
+                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, parameters.getTemperature());
+                if (result == null) {
+                    throw new AiNullResultException("Result from the AI is null");
+                }
+
+                int score = parseScore(result.trim());
+
+                if (score == -1) {
+                    log.warn("Invalid score on attempt {}/{}: {}", countAttempts, parameters.getMaxAttempts(), result);
+                    countAttempts++;
+                    continue;
+                }
+
+                if (score <= threshold) {
+                    log.info("Relevance check failed (score={})", score);
+                    return AIStageResponse.failure("RELEVANCE_CHECK_FAILED: score=" + score);
+                }
+
+                log.info("Relevance check passed (score={})", score);
+                return AIStageResponse.success(String.valueOf(score));
+
+            } catch (Exception e) {
+                log.warn("Relevance check attempt {}/{} failed: {}", countAttempts++, parameters.getMaxAttempts(), e.getMessage());
+            }
+        }
+
+        log.warn("Relevance check failed after {} attempts, defaulting to pass", parameters.getMaxAttempts());
+        return AIStageResponse.success("10");
+    }
+
+    private int parseScore(String response) {
+        String cleaned = response.trim();
+        String numberOnly = cleaned.replaceAll("[^0-9]", "");
+
+        if (numberOnly.isEmpty()) {
+            return -1;
+        }
+
+        try {
+            int score = Integer.parseInt(numberOnly);
+            if (score < 1 || score > 10) {
+                return -1;
+            }
+            return score;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+}

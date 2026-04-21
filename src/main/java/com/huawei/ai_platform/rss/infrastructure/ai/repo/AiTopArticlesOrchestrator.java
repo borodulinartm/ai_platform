@@ -318,24 +318,12 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
     }
     
     private Integer selectMostRelevant(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
-        StringBuilder articlesList = new StringBuilder();
-        
-        for (int i = 0; i < articles.size(); i++) {
-            ArticleData a = articles.get(i);
-            String abstractText = a.content();
-            if (abstractText != null && abstractText.length() > 300) {
-                abstractText = abstractText.substring(0, 300) + "...";
-            }
-            articlesList.append(String.format("%d. %s\n   %s\n", 
-                i + 1, 
-                a.title() != null ? a.title() : "No title",
-                abstractText != null ? abstractText : "No abstract"));
-        }
-        
+        String articlesList = toString(articles);
+
         String promptTemplate = loadResource("/prompt/digest/selection-prompt.txt");
         String prompt = promptTemplate
             .replace("{{categoryName}}", categoryName)
-            .replace("{{articlesList}}", articlesList.toString());
+            .replace("{{articlesList}}", articlesList);
         
         try {
             String response = CompletableFuture.supplyAsync(() ->
@@ -364,6 +352,23 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             log.error("Failed to select article: {}", e.getMessage());
             return null;
         }
+    }
+
+    private static String toString(List<ArticleData> articles) {
+        StringBuilder articlesList = new StringBuilder();
+
+        for (int i = 0; i < articles.size(); i++) {
+            ArticleData a = articles.get(i);
+            String abstractText = a.content();
+            if (abstractText != null && abstractText.length() > 300) {
+                abstractText = abstractText.substring(0, 300) + "...";
+            }
+            articlesList.append(String.format("%d. %s\n   %s\n",
+                i + 1,
+                a.title() != null ? a.title() : "No title",
+                abstractText != null ? abstractText : "No abstract"));
+        }
+        return articlesList.toString();
     }
 
     private <T> List<List<T>> splitIntoBatches(List<T> list, int size) {
@@ -538,8 +543,6 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
         
         return text;
     }
-    
-    private record TranslationResult(String translation) {}
     
     private String generateCategorySummary(List<String> articleAbstracts, String categoryName) {
         if (articleAbstracts.isEmpty()) {

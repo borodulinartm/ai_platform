@@ -33,6 +33,7 @@ ai:
   cleaning:
     temperature: 0.1
     countAttempts: 10
+    relevance-threshold: 5
   digest:
     batch-size: 50
     log-dir: /usr1/logs/llm
