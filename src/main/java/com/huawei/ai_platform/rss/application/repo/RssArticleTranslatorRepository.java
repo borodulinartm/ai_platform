@@ -1,6 +1,5 @@
 package com.huawei.ai_platform.rss.application.repo;
 
-import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -38,6 +37,15 @@ public interface RssArticleTranslatorRepository {
      * @param statusEnum which status do you want
      */
     void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum);
+
+    /**
+     * Updates data by list of the statuses with reason
+     *
+     * @param idList     list of id data
+     * @param statusEnum which status do you want
+     * @param reason     reason for the update
+     */
+    void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum, String reason);
 
     /**
      * Creates new article translation

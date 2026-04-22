@@ -3,8 +3,6 @@ package com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
 import lombok.*;
 
-import java.util.List;
-
 /**
  * Cleaning request for the AI
  *
@@ -21,5 +19,6 @@ public class AiCleaningRequest {
     private String articleTitle;
     private String articleContent;
     private String articleLink;
+    private String categoryName;
     private RssAttributeValue attributes;
 }
