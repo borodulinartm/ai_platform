@@ -1,6 +1,5 @@
 package com.huawei.ai_platform.rss.application.repo;
 
-import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssData;
