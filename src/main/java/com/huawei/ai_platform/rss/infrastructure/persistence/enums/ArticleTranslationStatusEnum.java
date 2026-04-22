@@ -8,6 +8,7 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.enums;
  */
 public enum ArticleTranslationStatusEnum {
     INIT,
+    RELEVANCE_CHECK_PROCESSING,
     CLEANING_PROCESSING,
     TRANSLATING_PROCESSING,
     FINISH,
