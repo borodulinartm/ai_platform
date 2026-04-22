@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 public class RelevanceStageExecutor implements IAiStageExecutor {
     private final AiExecutor aiExecutor;
 
-    @Value("${ai.digest.relevance-threshold:5}")
+    @Value("${ai.relevance.relevance-threshold:4}")
     private int threshold;
 
     @Override

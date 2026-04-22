@@ -1,7 +1,5 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.RelevanceCheckRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.IAiStageExecutor;
@@ -27,29 +25,21 @@ public class AiRelevanceCheckRepo {
 
     private final IAiStageExecutor relevanceStageExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${ai.cleaning.countAttempts}")
+    @Value("${ai.relevance.countAttempts}")
     private int maxCountAttempts;
 
-    @Value("${ai.cleaning.temperature}")
+    @Value("${ai.relevance.temperature}")
     private Double temperature;
 
     public boolean checkRelevance(RelevanceCheckRequest request) {
-        String relevancePrompt = "prompt/cleaning/relevance-check-prompt.txt";
+        String relevancePrompt = "prompt/relevance/relevance-check-prompt.txt";
         String userPrompt = "prompt/user-prompt.txt";
 
-        String payload;
-        try {
-            payload = objectMapper.writeValueAsString(new RelevancePayload(
-                    request.getTitle() != null ? request.getTitle() : "",
-                    request.getContent() != null ? request.getContent() : "",
-                    request.getCategoryName() != null ? request.getCategoryName() : ""
-            ));
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize relevance request", e);
-            return false;
-        }
+        String payload = String.format("Category: %s\nTitle: %s\nContent: %s",
+                request.getCategoryName() != null ? request.getCategoryName() : "",
+                request.getTitle() != null ? request.getTitle() : "",
+                request.getContent() != null ? request.getContent() : "");
 
         AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME)
                 .addStage(
@@ -61,6 +51,4 @@ public class AiRelevanceCheckRepo {
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);
         return pipelineResponse.isSuccess();
     }
-
-    private record RelevancePayload(String title, String content, String categoryName) {}
 }
