@@ -31,7 +31,6 @@ public class AiCleaningArticlesRepo {
     public static final String PIPELINE_NAME = "CLEANING";
 
     private final IAiStageExecutor defaultAiExecutor;
-    private final IAiStageExecutor relevanceStageExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
 
     @Value("${ai.cleaning.countAttempts}")
@@ -76,7 +75,6 @@ public class AiCleaningArticlesRepo {
      * @return response from the pipeline
      */
     private AIPipelineResponse exec(AiCleaningRequest request, String payload) {
-        String relevancePrompt = "prompt/cleaning/relevance-check-prompt.txt";
         String cleaningHtmlPrompt = "prompt/cleaning/cleaning-prompt.txt";
         String noisePrompt = "prompt/cleaning/noise-removing-prompt.txt";
         String normalizingPrompt = "prompt/cleaning/normalization-prompt.txt";
@@ -84,11 +82,6 @@ public class AiCleaningArticlesRepo {
         String userPrompt = "prompt/user-prompt.txt";
 
         AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME)
-                .addStage(
-                        request.getId(), "RELEVANCE CHECK", relevanceStageExecutor,
-                        relevancePrompt, userPrompt, payload,
-                        "", temperature, maxCountAttempts
-                )
                 .addStage(
                         request.getId(), "CLEANING STAGE", defaultAiExecutor, cleaningHtmlPrompt, userPrompt, payload,
                         "", temperature, maxCountAttempts
