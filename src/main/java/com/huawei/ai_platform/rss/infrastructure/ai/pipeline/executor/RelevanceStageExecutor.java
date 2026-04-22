@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @Slf4j
 public class RelevanceStageExecutor implements IAiStageExecutor {
-
     private final AiExecutor aiExecutor;
 
     @Value("${ai.digest.relevance-threshold:5}")
@@ -55,20 +54,19 @@ public class RelevanceStageExecutor implements IAiStageExecutor {
                 }
 
                 if (score <= threshold) {
-                    log.info("Relevance check failed (score={})", score);
+                    log.info("Relevance check failed for ID={} (score={})", parameters.getId(), score);
                     return AIStageResponse.failure("RELEVANCE_CHECK_FAILED: score=" + score);
                 }
 
-                log.info("Relevance check passed (score={})", score);
-                return AIStageResponse.success(String.valueOf(score));
-
+                log.info("Relevance check passed for ID={} (score={})", parameters.getId(), score);
+                return AIStageResponse.success(parameters.getUserPayload());
             } catch (Exception e) {
-                log.warn("Relevance check attempt {}/{} failed: {}", countAttempts++, parameters.getMaxAttempts(), e.getMessage());
+                log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, parameters.getMaxAttempts(), parameters.getId(), e.getMessage());
             }
         }
 
-        log.warn("Relevance check failed after {} attempts, defaulting to pass", parameters.getMaxAttempts());
-        return AIStageResponse.success("10");
+        log.warn("Relevance check failed after {} attempts for ID={}, defaulting to pass", parameters.getMaxAttempts(), parameters.getId());
+        return AIStageResponse.success(parameters.getUserPayload());
     }
 
     private int parseScore(String response) {
