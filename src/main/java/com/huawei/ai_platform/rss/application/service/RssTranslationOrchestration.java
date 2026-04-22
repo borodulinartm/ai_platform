@@ -28,6 +28,13 @@ public interface RssTranslationOrchestration {
     void cleanInputText(AiCleaningRequest cleaningRequests);
 
     /**
+     * Performs relevance check
+     *
+     * @param cleaningRequests clean request for the article
+     */
+    void checkRelevance(AiCleaningRequest cleaningRequests);
+
+    /**
      * Translated input data
      *
      * @param aiTranslationRequestList ai translation request
