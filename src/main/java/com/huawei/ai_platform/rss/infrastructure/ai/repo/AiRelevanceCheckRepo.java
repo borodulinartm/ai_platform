@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Relevance check section for the AI
  *
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AiRelevanceCheckRepo {
     public static final String PIPELINE_NAME = "RELEVANCE_CHECK";
+    private static final Pattern SCORE_PATTERN = Pattern.compile("score=(\\d+)");
 
     private final IAiStageExecutor relevanceStageExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
@@ -32,7 +36,7 @@ public class AiRelevanceCheckRepo {
     @Value("${ai.relevance.temperature}")
     private Double temperature;
 
-    public boolean checkRelevance(RelevanceCheckRequest request) {
+    public RelevanceCheckResult checkRelevance(RelevanceCheckRequest request) {
         String relevancePrompt = "prompt/relevance/relevance-check-prompt.txt";
         String userPrompt = "prompt/user-prompt.txt";
 
@@ -49,6 +53,20 @@ public class AiRelevanceCheckRepo {
                 ).build();
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);
-        return pipelineResponse.isSuccess();
+        int score = extractScore(pipelineResponse.getFailureReason());
+        return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, pipelineResponse.getFailureReason());
     }
+
+    private int extractScore(String failureReason) {
+        if (failureReason == null) {
+            return -1;
+        }
+        Matcher matcher = SCORE_PATTERN.matcher(failureReason);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return -1;
+    }
+
+    public record RelevanceCheckResult(boolean passed, int score, String reason) {}
 }

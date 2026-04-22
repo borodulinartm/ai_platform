@@ -59,10 +59,10 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
                 .categoryName(cleaningRequests.getCategoryName())
                 .build();
 
-        boolean passed = aiRelevanceCheckRepo.checkRelevance(request);
+        AiRelevanceCheckRepo.RelevanceCheckResult result = aiRelevanceCheckRepo.checkRelevance(request);
 
-        applicationEventPublisher.publishEvent(new RelevanceCheckCompletedEvent(cleaningRequests, passed, null));
-        log.info("STAGE 2 vs 4: relevance check completed with passed={} for ID = {}", passed, cleaningRequests.getId());
+        applicationEventPublisher.publishEvent(new RelevanceCheckCompletedEvent(cleaningRequests, result.passed(), result.score(), result.reason()));
+        log.info("STAGE 2 vs 4: relevance check completed with passed={}, score={} for ID = {}", result.passed(), result.score(), cleaningRequests.getId());
     }
 
     @Override

@@ -22,7 +22,7 @@ public class AIPipelineResponse {
     private String failureReason;
 
     public static AIPipelineResponse success(String pipelineName, String payload) {
-        return new AIPipelineResponse(true, pipelineName,  payload,"");
+        return new AIPipelineResponse(true, pipelineName, payload, "");
     }
 
     public static AIPipelineResponse failure(String pipelineName, String reason) {

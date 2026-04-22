@@ -93,7 +93,8 @@ public interface RssDao extends BaseMapper<RssEntity> {
      * @param articleTranslationStatusEnum status information
      */
     void queryUpdateStatusByListData(@Param("data") List<Long> items,
-                                     @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum);
+                                     @Param("status") ArticleTranslationStatusEnum articleTranslationStatusEnum,
+                                     @Param("reason") String reason);
 
     /**
      * Extracts articles by category and date range

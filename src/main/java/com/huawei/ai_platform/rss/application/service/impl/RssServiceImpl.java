@@ -202,6 +202,15 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     }
 
     @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum, String reason) {
+        if (CollectionUtils.isEmpty(idList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateStatusByListData(idList, statusEnum, reason);
+    }
+
+    @Override
     public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
         if (CollectionUtils.isEmpty(rssDataList) || statusEnum == null) {
             throw new IllegalArgumentException("Arguments must be not null");

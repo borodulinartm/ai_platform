@@ -40,6 +40,15 @@ public interface RssTranslationService {
     void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum);
 
     /**
+     * Updates status for group of the records with reason
+     *
+     * @param idList     list of ID articles
+     * @param statusEnum which status do you want to set
+     * @param reason     reason for the update
+     */
+    void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum, String reason);
+
+    /**
      * Performs inserting translations
      *
      * @param rssDataList list of the rss data

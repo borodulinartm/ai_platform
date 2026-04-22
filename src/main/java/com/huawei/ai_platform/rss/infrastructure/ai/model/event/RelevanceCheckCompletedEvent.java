@@ -17,5 +17,6 @@ import lombok.*;
 public class RelevanceCheckCompletedEvent {
     private AiCleaningRequest aiCleaningRequest;
     private boolean passed;
+    private int score;
     private String reason;
 }

@@ -55,7 +55,7 @@ public class RelevanceStageExecutor implements IAiStageExecutor {
 
                 if (score <= threshold) {
                     log.info("Relevance check failed for ID={} (score={})", parameters.getId(), score);
-                    return AIStageResponse.failure("RELEVANCE_CHECK_FAILED: score=" + score);
+                    return AIStageResponse.failure("score=" + score + ", threshold=" + threshold);
                 }
 
                 log.info("Relevance check passed for ID={} (score={})", parameters.getId(), score);

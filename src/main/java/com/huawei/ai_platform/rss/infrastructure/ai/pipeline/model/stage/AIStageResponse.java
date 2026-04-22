@@ -17,7 +17,7 @@ public class AIStageResponse {
     private String failureReason;
 
     public static AIStageResponse success(String payload) {
-        return new AIStageResponse(true,  payload,"");
+        return new AIStageResponse(true, payload, "");
     }
 
     public static AIStageResponse failure(String reason) {

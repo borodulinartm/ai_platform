@@ -66,7 +66,7 @@ public class AiEvents {
                 rssTranslationOrchestration.cleanInputText(event.getAiCleaningRequest());
             } else {
                 List<Long> idList = List.of(event.getAiCleaningRequest().getId());
-                rssTranslationService.queryUpdateStatusByListData(idList, SKIPPED);
+                rssTranslationService.queryUpdateStatusByListData(idList, SKIPPED, event.getReason());
             }
         } else {
             log.warn("For 'onRelevanceCheckCompleted' produced empty data");
