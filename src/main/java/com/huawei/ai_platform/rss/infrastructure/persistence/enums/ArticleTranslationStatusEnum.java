@@ -8,10 +8,12 @@ package com.huawei.ai_platform.rss.infrastructure.persistence.enums;
  */
 public enum ArticleTranslationStatusEnum {
     INIT,
+    RELEVANCE_CHECK_PROCESSING,
     CLEANING_PROCESSING,
     TRANSLATING_PROCESSING,
     FINISH,
-    FAILURE;
+    FAILURE,
+    SKIPPED;
 
     /**
      * Boolean flag means: whether article translated or not
@@ -19,6 +21,6 @@ public enum ArticleTranslationStatusEnum {
      * @return true if yes, false otherwise
      */
     public boolean isTranslated() {
-        return this == FINISH || this == FAILURE;
+        return this == FINISH || this == FAILURE || this == SKIPPED;
     }
 }

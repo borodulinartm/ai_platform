@@ -159,7 +159,16 @@ public class RssPersistenceRepo {
     @Transactional
     public void queryUpdateStatusByListData(@Nonnull List<Long> idList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
         if (!CollectionUtils.isEmpty(idList)) {
-            rssDao.queryUpdateStatusByListData(idList, statusEnum);
+            rssDao.queryUpdateStatusByListData(idList, statusEnum, null);
+        } else {
+            log.info("queryUpdateStatusByListData(): Nothing to update");
+        }
+    }
+
+    @Transactional
+    public void queryUpdateStatusByListData(@Nonnull List<Long> idList, @Nonnull ArticleTranslationStatusEnum statusEnum, String reason) {
+        if (!CollectionUtils.isEmpty(idList)) {
+            rssDao.queryUpdateStatusByListData(idList, statusEnum, reason);
         } else {
             log.info("queryUpdateStatusByListData(): Nothing to update");
         }

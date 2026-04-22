@@ -146,6 +146,11 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     }
 
     @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum, String reason) {
+        persistenceRepo.queryUpdateStatusByListData(idList, statusEnum, reason);
+    }
+
+    @Override
     public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
         persistenceRepo.insertArticleTranslations(rssDataList, INIT);
     }
