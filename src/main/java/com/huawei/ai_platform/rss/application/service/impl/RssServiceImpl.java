@@ -158,8 +158,8 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                                 return rssTranslationOrchestration.initTranslation(item);
                             } else {
                                 if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
-                                    AiCleaningRequest cleaningRequest = aiTranslationMapper.convert(item);
-                                    rssTranslationOrchestration.cleanInputText(cleaningRequest);
+                                    AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
+                                    rssTranslationOrchestration.checkRelevance(relevanceRequest);
 
                                     return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
                                 }
