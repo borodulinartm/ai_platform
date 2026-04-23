@@ -25,7 +25,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 @Slf4j
 public class AiTranslatorRepo {
-    public static final String PIPELINE_NAME = "CLEANING";
+    public static final String PIPELINE_NAME = "TRANSLATING";
 
     private final IAiStageExecutor defaultAiExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
@@ -70,14 +70,14 @@ public class AiTranslatorRepo {
 
         String userPrompt = "prompt/user-prompt.txt";
 
-        AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME)
+        AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME, payload)
                 .addStage(
-                        request.getArticleId(), "TRANSLATING", defaultAiExecutor, translationPrompt, userPrompt, payload,
-                        "", temperature, maxCountAttempts
+                        request.getArticleId(), "TRANSLATING", defaultAiExecutor, translationPrompt, userPrompt,
+                        "", null, temperature, maxCountAttempts
                 )
                 .addStage(
                         request.getArticleId(), "NORMALIZATION STAGE", defaultAiExecutor, normalizingPrompt, userPrompt,
-                        "", temperature, maxCountAttempts
+                        "", null, temperature, maxCountAttempts
                 ).build();
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);

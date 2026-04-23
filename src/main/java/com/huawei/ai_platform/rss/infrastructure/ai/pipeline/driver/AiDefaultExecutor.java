@@ -2,6 +2,8 @@ package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiValidationException;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import jakarta.annotation.Nonnull;
@@ -26,7 +28,8 @@ public class AiDefaultExecutor implements IAiStageExecutor {
     private final AiExecutor aiExecutor;
 
     @Override
-    public AIStageResponse runStage(@Nonnull AiStageParameters aiStageParameters) {
+    public AIStageResponse runStage(@Nonnull AiStageParameters aiStageParameters,
+                                    @Nonnull AiPipelineContext pipelineContext) {
         int countAttempts = 1;
 
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
@@ -38,12 +41,17 @@ public class AiDefaultExecutor implements IAiStageExecutor {
 
                 String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
                 String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        aiStageParameters.getUserPayload()
+                        pipelineContext.getStageResult(pipelineContext.getPreviousStage())
                 );
 
                 String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
                 if (result == null) {
                     throw new AiNullResultException("Result from the AI is null");
+                }
+
+                if (aiStageParameters.getValidationPredicate() != null &&
+                       ! aiStageParameters.getValidationPredicate().test(pipelineContext.getStageResult(pipelineContext.getPreviousStage()), result)) {
+                    throw new AiValidationException("Result is null");
                 }
 
                 return AIStageResponse.success(result.trim());

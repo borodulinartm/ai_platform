@@ -18,6 +18,10 @@ public class AiValidationException extends RuntimeException {
         this.result = message;
     }
 
+    public AiValidationException(String message) {
+        this.result = List.of(message);
+    }
+
     @Override
     public String getMessage() {
         if (CollectionUtils.isEmpty(result)) {

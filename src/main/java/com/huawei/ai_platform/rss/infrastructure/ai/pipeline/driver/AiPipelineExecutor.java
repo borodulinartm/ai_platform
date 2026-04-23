@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
@@ -27,24 +28,29 @@ public class AiPipelineExecutor {
      *
      */
     public @Nonnull AIPipelineResponse executePipeline(@Nonnull AiPipelineRequest request) {
+        AiPipelineContext pipelineContext = new AiPipelineContext();
+
         if (!CollectionUtils.isEmpty(request.getStages())) {
-            String userPayload = null;
-            for (AiStage aiStage : request.getStages()) {
-                if (userPayload != null) {
-                    aiStage.getParameters().setUserPayload(userPayload);
+            for (int i = 0; i < request.getStages().size(); ++i) {
+                AiStage aiStage = request.getStages().get(i);
+
+                if (i == 0) {
+                    pipelineContext.setInitial(request.getPayload());
                 }
 
                 IAiStageExecutor stageExecutor = aiStage.getExecutor();
 
-                AIStageResponse responseForStage = stageExecutor.runStage(aiStage.getParameters());
+                AIStageResponse responseForStage = stageExecutor.runStage(aiStage.getParameters(), pipelineContext);
                 if (!responseForStage.isSuccess()) {
                     return AIPipelineResponse.failure(request.getName(), responseForStage.getFailureReason());
                 }
 
-                userPayload = responseForStage.getPayload();
+                pipelineContext.addStageResult(aiStage.getStageName(), responseForStage.getPayload());
+                pipelineContext.setPreviousStage(aiStage.getStageName());
             }
 
-            return AIPipelineResponse.success(request.getName(), userPayload);
+            String latestStage = request.getStages().getLast().getStageName();
+            return AIPipelineResponse.success(request.getName(), pipelineContext.getStageResult(latestStage));
         } else {
             return AIPipelineResponse.success(request.getName(), StringUtils.EMPTY);
         }

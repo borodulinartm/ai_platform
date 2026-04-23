@@ -57,7 +57,7 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
             applicationEventPublisher.publishEvent(new TranslationProcessingEvent(aiTranslationRequest));
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getId(), response.getReason());
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, "Some reason"));
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, translationResponse.getReason()));
 
             log.error("STAGE 2 vs 3: Translation for ID = {} has completed with failure :(", cleaningRequests.getId());
         }
@@ -73,7 +73,7 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
             log.info("STAGE 3 vs 3: translation for ID = {} has completed successfully", aiTranslationRequestList.getArticleId());
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getArticleId(), response.getReason());
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, "Some reason"));
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, translationResponse.getReason()));
 
             log.error("STAGE 3 vs 3: translation for ID = {} has completed with failure :(", aiTranslationRequestList.getArticleId());
         }

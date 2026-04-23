@@ -7,6 +7,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.IAiStageExec
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineBuilder;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.validation.AiHtmlValidation;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
@@ -81,18 +82,17 @@ public class AiCleaningArticlesRepo {
 
         String userPrompt = "prompt/user-prompt.txt";
 
-        AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME)
+        AiPipelineRequest pipelineRequest = AiPipelineBuilder.createBuilder(PIPELINE_NAME, payload)
                 .addStage(
-                        request.getId(), "CLEANING STAGE", defaultAiExecutor, cleaningHtmlPrompt, userPrompt, payload,
-                        "", temperature, maxCountAttempts
+                        request.getId(), "CLEANING STAGE", defaultAiExecutor, cleaningHtmlPrompt, userPrompt,
+                        "", new AiHtmlValidation(), temperature, maxCountAttempts
                 )
                 .addStage(
-                        request.getId(), "REMOVING NOISE STAGE", defaultAiExecutor, noisePrompt, userPrompt,
-                        "", temperature, maxCountAttempts
+                        request.getId(), "REMOVING NOISE STAGE", defaultAiExecutor, noisePrompt, userPrompt, "", null, temperature, maxCountAttempts
                 )
                 .addStage(
                         request.getId(), "NORMALIZATION STAGE", defaultAiExecutor, normalizingPrompt, userPrompt,
-                        "", temperature, maxCountAttempts
+                        "", null, temperature, maxCountAttempts
                 ).build();
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);

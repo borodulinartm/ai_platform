@@ -18,5 +18,6 @@ import java.util.List;
 @Builder
 public class AiPipelineRequest {
     private String name;
+    private String payload;
     private List<AiStage> stages;
 }

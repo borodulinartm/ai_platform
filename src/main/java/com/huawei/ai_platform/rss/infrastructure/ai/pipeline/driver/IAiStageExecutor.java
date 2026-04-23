@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import jakarta.annotation.Nonnull;
@@ -18,5 +19,6 @@ public interface IAiStageExecutor {
      * @param aiStageParameters AI stage parameters wrapper
      * @return AI stage response
      */
-    AIStageResponse runStage(@Nonnull AiStageParameters aiStageParameters);
+    AIStageResponse runStage(@Nonnull AiStageParameters aiStageParameters,
+                             @Nonnull AiPipelineContext context);
 }

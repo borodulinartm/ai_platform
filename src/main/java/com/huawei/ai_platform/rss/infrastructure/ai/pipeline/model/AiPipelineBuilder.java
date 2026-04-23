@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 
 /**
  * Builder pattern for the AI pipeline side
@@ -22,25 +23,17 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AiPipelineBuilder {
     private String pipelineName;
+    private String inputPayload;
     private List<AiStage> stages;
 
-    public static AiPipelineBuilder createBuilder(String pipelineName) {
+    public static AiPipelineBuilder createBuilder(String pipelineName, String inputPayload) {
         List<AiStage> stages = new ArrayList<>();
-        return new AiPipelineBuilder(pipelineName, stages);
+        return new AiPipelineBuilder(pipelineName, inputPayload, stages);
     }
 
     public AiPipelineBuilder addStage(long id, String stageName, IAiStageExecutor executor, String systemPrompt,
-                                      String userPrompt, String model, double temperature, int maxAttempts) {
-        AiStageParameters parameters = new AiStageParameters(id, stageName, systemPrompt, userPrompt, "", model, temperature,
-                maxAttempts);
-        stages.add(new AiStage(stageName, parameters, executor));
-
-        return this;
-    }
-
-    public AiPipelineBuilder addStage(long id, String stageName, IAiStageExecutor executor, String systemPrompt,
-                                      String userPrompt, String payload, String model, double temperature, int maxAttempts) {
-        AiStageParameters parameters = new AiStageParameters(id, stageName, systemPrompt, userPrompt, payload, model, temperature,
+                                      String userPrompt, String model, BiPredicate<String, String> validator, double temperature, int maxAttempts) {
+        AiStageParameters parameters = new AiStageParameters(id, stageName, systemPrompt, userPrompt, model, validator, temperature,
                 maxAttempts);
         stages.add(new AiStage(stageName, parameters, executor));
 
@@ -48,6 +41,6 @@ public class AiPipelineBuilder {
     }
 
     public AiPipelineRequest build() {
-        return new AiPipelineRequest(pipelineName, stages);
+        return new AiPipelineRequest(pipelineName, inputPayload, stages);
     }
 }
