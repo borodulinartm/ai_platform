@@ -54,7 +54,7 @@ public class RelevanceStageExecutor implements IAiStageExecutor {
                 }
 
                 if (score <= threshold) {
-                    return AIStageResponse.failure("score=" + score + ", threshold=" + threshold);
+                    return AIStageResponse.failure(String.valueOf(score), "score=" + score + ", threshold=" + threshold);
                 }
 
                 return AIStageResponse.success(String.valueOf(score));
