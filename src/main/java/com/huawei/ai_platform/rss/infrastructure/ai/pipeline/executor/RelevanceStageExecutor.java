@@ -57,14 +57,14 @@ public class RelevanceStageExecutor implements IAiStageExecutor {
                     return AIStageResponse.failure("score=" + score + ", threshold=" + threshold);
                 }
 
-                return AIStageResponse.success(result);
+                return AIStageResponse.success(String.valueOf(score));
             } catch (Exception e) {
                 log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, parameters.getMaxAttempts(), parameters.getId(), e.getMessage());
             }
         }
 
-        log.warn("Relevance check failed after {} attempts for ID={}, defaulting to pass", parameters.getMaxAttempts(), parameters.getId());
-        return AIStageResponse.failure("failed after " + parameters.getMaxAttempts() + " attempts");
+        log.warn("Relevance check failed after {} attempts for ID={}, defaulting to score=5", parameters.getMaxAttempts(), parameters.getId());
+        return AIStageResponse.success("5");
     }
 
     private int parseScore(String response) {

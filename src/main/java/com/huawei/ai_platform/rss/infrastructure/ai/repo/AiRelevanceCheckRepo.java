@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
-
 /**
  * Relevance check section for the AI
  *
@@ -52,7 +50,8 @@ public class AiRelevanceCheckRepo {
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);
         int score = Integer.parseInt(pipelineResponse.getPayload().trim());
-        return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, pipelineResponse.getPayload());
+        String reason = pipelineResponse.isSuccess() ? String.valueOf(score) : pipelineResponse.getFailureReason();
+        return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, reason);
     }
 
     public record RelevanceCheckResult(boolean passed, int score, String reason) {}
