@@ -26,108 +26,61 @@ FORBIDDEN in output:
 - CSS classes or inline styles
 - prefixes or suffixes
 - raw text without HTML tags
+- HEADING TAGS (<h1>, <h2>, <h3>, <h4>, <h5>, <h6>)
 
-SEMANTIC STRUCTURE (STRICT)
+INLINE FORMATTING ONLY (STRICT)
 
-Use this HTML hierarchy - choose appropriate tags based on content type:
+Use ONLY these inline tags for text beautification:
 
-TITLES:
-- <h1> main title (one per article, first element after extraction)
-- <h2> major sections (only if article has clear distinct parts)
-- <h3> subsections (only within an <h2>)
-- <h4> details (only within an <h3>)
-
-TEXT:
-- <p> standard paragraphs
-- <span> inline text with semantic meaning
-- <strong> important terms (key information)
-- <em> emphasis (subtle stress)
-- <mark> highlighted/search-relevant text
-- <small> secondary information, fine print
-- <abbr> abbreviations (use title attribute)
-- <sub> subscript (chemical formulas, etc.)
-- <sup> superscript (powers, footnotes, etc.)
-
-QUOTES & CALLS:
-- <blockquote> quotations, callouts, notable quotes
-- <figure> standalone content (images with captions, quotes)
-- <figcaption> caption text within <figure>
-- <cite> source attribution
-
-LISTS:
-- <ul> unordered lists (bullets)
-- <ol> ordered lists (numbered steps)
-- <li> list items (never use bare text as list items)
-- <dl> definition lists (terms with definitions)
-- <dt> definition term
-- <dd> definition description
-
-TABLES (for tabular data):
-- <table> table container
-- <thead> header row group
-- <tbody> body row group
-- <tr> table row
-- <th> header cell (scope attribute for accessibility)
-- <td> data cell
-
-CODE & TECHNICAL:
-- <pre> code block container
-- <code> inline code
+- <p> paragraphs (wrap each logical paragraph)
+- <strong> important terms, key information
+- <em> emphasis, subtle stress
+- <mark> highlighted text, search-relevant content
+- <small> secondary information, fine print, disclaimers
+- <abbr> abbreviations (use title attribute for full form)
+- <sub> subscript (chemical formulas, footnotes)
+- <sup> superscript (powers, ordinal indicators)
+- <code> inline code snippets, technical terms
 - <kbd> keyboard input
-- <samp> sample output
-- <var> variable names
+- <s> or <del> strikethrough (deleted text)
+- <u> underlined text (rare, for proper nouns or emphasis)
 
-MEDIA:
-- <img> images (preserve src, add alt text)
-- <figure> image with caption
-- <figcaption> image caption
+BLOCK SEPARATION
 
-SEMANTIC SECTIONS:
-- <article> self-contained article content
-- <section> thematic grouping (use only within article)
-- <aside> tangential information
-- <details> collapsible disclosure (use with <summary>)
-- <summary> disclosure heading
+Use these tags for content structure:
 
-OTHER:
-- <hr> thematic break between major sections
-- <br> intentional line break within paragraph
-- <a> links (meaningful link text, not raw URLs)
-- <time> dates/time (use datetime attribute)
-
-STRUCTURE RULES
-
-For article structure:
-1. <h1> is the first element, one per article
-2. Use <section> only for major thematic groupings
-3. Every <section> should have a heading
-4. Never skip heading levels (h1 → h2 → h3 → h4)
-5. Lists must contain only <li> elements
-6. Tables need both <thead> and <tbody>
-7. Use <figure> for images with captions
+- <p> paragraph (REQUIRED for each logical block of text)
+- <br> line break within paragraph (rare, for poetry or addresses)
+- <hr> thematic break between distinct content sections
+- <blockquote> quotations, notable statements
+- <pre> preformatted text (code blocks, preserved whitespace)
+- <ul> unordered lists (bullet points)
+- <ol> ordered lists (numbered steps)
+- <li> list items (required inside <ul> or <ol>)
 
 CONTENT RULES
 
-- Blank line between all block-level elements
-- Convert logical paragraphs to <p>
-- Use <br> only for intentional line breaks (poetry, address)
-- Preserve <img> tags exactly as provided
-- Use <strong> on key terms (once, not repeated)
+- Split text into logical paragraphs with <p> tags
+- Add blank line between all <p> elements
+- Use <strong> for key terms (sparingly, once per concept)
 - Use <em> for subtle emphasis
-- Links must have descriptive text, not "click here"
+- Use <mark> for important highlights (very sparingly)
+- Use <small> for disclaimers, dates, secondary info
+- Wrap code snippets in <code>
+- Use <blockquote> for quotes over 2 lines
+- Wrap list items in <li> inside <ul> or <ol>
+- Never use heading tags (<h1>-<h6>) - forbidden
 
 CONSISTENCY RULES
 
-For beautiful, consistent output:
-- Use semantic HTML5 tags only
+- Use semantic HTML5 inline tags only
 - No inline styles or class attributes
-- Proper nest hierarchy (ul > li, table > thead/tbody > tr > th/td)
-- All images should have alt text (copy from src if none)
-- Abbreviations need title attribute for full text
-- Dates in <time> with machine-readable datetime attribute
-- <figure> for any image with caption
-- Blockquotes for quotes over 40 words
-- <details>/<summary> for optional expanded information
+- No heading tags (h1-h6) - use <strong> for emphasis instead
+- All paragraphs wrapped in <p>
+- Proper nesting (ul/ol > li, blockquote > p)
+- Abbreviations need title attribute
+- Blockquotes can contain <p> for multi-paragraph quotes
+- Lists: each item on separate line with <li>
 
 VALIDATION BEFORE OUTPUT
 
@@ -135,12 +88,12 @@ Ensure ALL conditions are met:
 - Output is NOT empty (else return "NO_CONTENT")
 - Output contains only valid HTML tags and text
 - No Markdown formatting appears
+- No heading tags (<h1>, <h2>, <h3>, <h4>, <h5>, <h6>)
 - All tags are properly closed
-- Heading hierarchy is maintained (no level skips)
-- Required child elements present (thead needs th, ul/ol needs li, etc.)
+- Each logical paragraph wrapped in <p>
+- Inline tags properly nested within <p>
 
 FINAL INSTRUCTION
 
-Format article → output ONLY final semantic HTML.
-
-No reasoning. No explanations. No deviations.
+Format article → output ONLY final HTML with inline formatting.
+No headings. No reasoning. No explanations. No deviations.
