@@ -28,4 +28,8 @@ public class AIPipelineResponse {
     public static AIPipelineResponse failure(String pipelineName, String reason) {
         return new AIPipelineResponse(false, pipelineName, "", reason);
     }
+
+    public static AIPipelineResponse failure(String pipelineName, String payload, String reason) {
+        return new AIPipelineResponse(false, pipelineName, payload, reason);
+    }
 }

@@ -23,4 +23,8 @@ public class AIStageResponse {
     public static AIStageResponse failure(String reason) {
         return new AIStageResponse(false, "", reason);
     }
+
+    public static AIStageResponse failure(String payload, String reason) {
+        return new AIStageResponse(false, payload, reason);
+    }
 }
