@@ -49,10 +49,10 @@ public class AiRelevanceCheckRepo {
                 ).build();
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);
-        int score = Integer.parseInt(pipelineResponse.getPayload().trim());
-        String reason = pipelineResponse.isSuccess() ? String.valueOf(score) : pipelineResponse.getFailureReason();
+        String score = pipelineResponse.getPayload().trim();
+        String reason = pipelineResponse.isSuccess() ? score : pipelineResponse.getFailureReason();
         return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, reason);
     }
 
-    public record RelevanceCheckResult(boolean passed, int score, String reason) {}
+    public record RelevanceCheckResult(boolean passed, String score, String reason) {}
 }
