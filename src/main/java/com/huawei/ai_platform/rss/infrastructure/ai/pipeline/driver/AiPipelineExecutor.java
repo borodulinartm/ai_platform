@@ -38,7 +38,7 @@ public class AiPipelineExecutor {
 
                 AIStageResponse responseForStage = stageExecutor.runStage(aiStage.getParameters());
                 if (!responseForStage.isSuccess()) {
-                    return AIPipelineResponse.failure(request.getName(), responseForStage.getFailureReason());
+                    return AIPipelineResponse.failure(request.getName(), responseForStage.getPayload(), responseForStage.getFailureReason());
                 }
 
                 userPayload = responseForStage.getPayload();

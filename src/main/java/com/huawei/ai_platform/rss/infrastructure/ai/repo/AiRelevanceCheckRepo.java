@@ -49,24 +49,9 @@ public class AiRelevanceCheckRepo {
                 ).build();
 
         AIPipelineResponse pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest);
-        String score = pipelineResponse.isSuccess()
-                ? pipelineResponse.getPayload().trim()
-                : extractScoreFromReason(pipelineResponse.getFailureReason());
+        String score = pipelineResponse.getPayload().trim();
         String reason = pipelineResponse.isSuccess() ? score : pipelineResponse.getFailureReason();
         return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, reason);
-    }
-
-    private String extractScoreFromReason(String reason) {
-        if (reason == null || !reason.contains("score=")) {
-            return "-1";
-        }
-        try {
-            String afterScore = reason.substring(reason.indexOf("score=") + 6);
-            String numberOnly = afterScore.split("[^0-9]")[0];
-            return numberOnly.isEmpty() ? "-1" : numberOnly;
-        } catch (Exception e) {
-            return "-1";
-        }
     }
 
     public record RelevanceCheckResult(boolean passed, String score, String reason) {}
