@@ -16,16 +16,13 @@ jobs:
           script: |
             cd /usr1/logs/ai_platform
             tar -zcf logs.tar.gz *.log
-
-      - name: Copy logs from remote to local
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ vars.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "/usr1/logs/ai_platform/logs.tar.gz"
-          target: "./"
-          direction: download
+      
+      - name: Download file from remote server
+        run: |
+          # 格式：scp -P 端口 用户名@主机:远程文件路径 本地保存路径
+          scp -P 22 \
+          ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/usr1/logs/ai_platform/logs.tar.gz \
+          ./logs.tar.gz
 
       - name: Unzip logs
         run: tar -zxf logs.tar.gz
