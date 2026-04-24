@@ -21,7 +21,7 @@ jobs:
         run: |
           echo 'start to download'
           # 格式：scp -P 端口 用户名@主机:远程文件路径 本地保存路径
-          scp -P 22 \
+          sshpass -p '${{ secrets.SSH_PRIVATE_KEY }}' scp -P 22 \
           ${{ secrets.SERVER_USER }}@${{ vars.SERVER_HOST }}:/usr1/logs/ai_platform/logs.tar.gz \
           ./logs.tar.gz
 
