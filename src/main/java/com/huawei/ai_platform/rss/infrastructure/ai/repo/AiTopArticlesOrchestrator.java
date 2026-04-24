@@ -44,6 +44,7 @@ public class AiTopArticlesOrchestrator {
     private final RssCategoryDao rssCategoryDao;
     private final RssDao rssDao;
     private final WebScraperService webScraperService;
+    private final ArticleDedupService articleDedupService;
 
     private final int batchSize;
     private final int rankingThreadPoolSize;
@@ -66,6 +67,7 @@ public class AiTopArticlesOrchestrator {
         RssCategoryDao rssCategoryDao,
         RssDao rssDao,
         WebScraperService webScraperService,
+        ArticleDedupService articleDedupService,
         @Value("${ai.digest.batch-size:100}") int batchSize,
         @Value("${ai.digest.ranking-thread-pool-size:10}") int rankingThreadPoolSize,
         @Value("${ai.digest.summary-thread-pool-size:5}") int summaryThreadPoolSize,
@@ -85,6 +87,7 @@ public class AiTopArticlesOrchestrator {
         this.rssCategoryDao = rssCategoryDao;
         this.rssDao = rssDao;
         this.webScraperService = webScraperService;
+        this.articleDedupService = articleDedupService;
         this.batchSize = batchSize;
         this.rankingThreadPoolSize = rankingThreadPoolSize;
         this.summaryThreadPoolSize = summaryThreadPoolSize;
@@ -206,8 +209,10 @@ public class AiTopArticlesOrchestrator {
                     continue;
                 }
 
-                List<ArticleData> topArticles = deduplicateToTopN(
-                    allSortedIds, scoreMap, TOP_ARTICLES_COUNT, ca.categoryName(), ca.categoryId(), ca.runTimestamp()
+                List<RssFetchData> allFetchData = rssDao.queryArticlesByIds(allSortedIds);
+                List<ArticleData> allSortedArticles = toArticleDataListWithScores(allFetchData, scoreMap);
+                List<ArticleData> topArticles = articleDedupService.deduplicateToTopN(
+                    allSortedArticles, TOP_ARTICLES_COUNT, ca.categoryName()
                 );
 
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
@@ -378,106 +383,6 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             batches.add(list.subList(i, Math.min(i + size, list.size())));
         }
         return batches;
-    }
-
-    private List<ArticleData> deduplicateToTopN(List<Long> allSortedIds, Map<Long, Double> scoreMap,
-                                                 int targetCount, String categoryName, int categoryId, String runTimestamp) {
-        int poolSize = targetCount * 2;
-        int consumed = 0;
-        List<ArticleData> uniqueArticles = new ArrayList<>();
-
-        while (uniqueArticles.size() < targetCount && consumed < allSortedIds.size()) {
-            int needed = poolSize - uniqueArticles.size();
-            List<Long> nextBatchIds = allSortedIds.subList(consumed, Math.min(consumed + needed, allSortedIds.size()));
-            consumed += nextBatchIds.size();
-
-            List<RssFetchData> fetchData = rssDao.queryArticlesByIds(nextBatchIds);
-            List<ArticleData> newArticles = toArticleDataListWithScores(fetchData, scoreMap);
-
-            List<ArticleData> candidates = new ArrayList<>(uniqueArticles);
-            candidates.addAll(newArticles);
-
-            if (candidates.size() <= targetCount) {
-                uniqueArticles = candidates;
-                break;
-            }
-
-            uniqueArticles = callLlmDedup(candidates, categoryName, categoryId, runTimestamp);
-            log.info("Dedup round for category {}: {} candidates -> {} unique (target={})",
-                categoryName, candidates.size(), uniqueArticles.size(), targetCount);
-        }
-
-        return uniqueArticles.stream().limit(targetCount).toList();
-    }
-
-    private List<ArticleData> callLlmDedup(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
-        if (articles.size() <= 1) {
-            return articles;
-        }
-
-        String articlesList = toStringShort(articles);
-        String promptTemplate = loadResource("/prompt/digest/dedup-prompt.txt");
-        String prompt = promptTemplate
-            .replace("{{categoryName}}", categoryName)
-            .replace("{{articlesList}}", articlesList);
-
-        try {
-            String response = CompletableFuture.supplyAsync(() ->
-                chatClient.prompt()
-                    .user(prompt)
-                    .options(OpenAiChatOptions.builder()
-                        .model(rankingModel)
-                        .temperature(0.1)
-                        .build())
-                    .call()
-                    .content()
-            ).get(rankingTimeoutMs, TimeUnit.MILLISECONDS);
-
-            logLlmOutput("dedup", categoryId, response, runTimestamp);
-
-            String cleaned = response.trim().replaceAll("[^0-9,]", "");
-            if (cleaned.isEmpty()) {
-                log.warn("Dedup returned empty for category {}, keeping all", categoryName);
-                return articles;
-            }
-
-            List<Integer> keepIndices = new ArrayList<>();
-            for (String part : cleaned.split(",")) {
-                try {
-                    int idx = Integer.parseInt(part.trim());
-                    if (idx >= 1 && idx <= articles.size()) {
-                        keepIndices.add(idx - 1);
-                    }
-                } catch (NumberFormatException ignored) {}
-            }
-
-            if (keepIndices.isEmpty()) {
-                log.warn("Dedup returned no valid indices for category {}, keeping all", categoryName);
-                return articles;
-            }
-
-            List<ArticleData> deduped = new ArrayList<>();
-            for (int idx : keepIndices) {
-                deduped.add(articles.get(idx));
-            }
-
-            return deduped;
-        } catch (Exception e) {
-            log.error("Dedup failed for category {}: {}, keeping all", categoryName, e.getMessage());
-            return articles;
-        }
-    }
-
-    private String toStringShort(List<ArticleData> articles) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < articles.size(); i++) {
-            ArticleData a = articles.get(i);
-            String snippet = a.content() != null && a.content().length() > 250
-                ? a.content().substring(0, 250) + "..."
-                : (a.content() != null ? a.content() : "No content");
-            sb.append(String.format("%d. %s\n   %s\n", i + 1, a.title() != null ? a.title() : "No title", snippet));
-        }
-        return sb.toString();
     }
 
     private RssNewsSummaryCloud generateSummaries(int categoryId, String categoryName,
