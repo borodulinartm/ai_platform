@@ -205,13 +205,15 @@ public class AiTopArticlesOrchestrator {
                     continue;
                 }
 
+                Map<Long, Double> scoreMap = scores.stream()
+                    .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
+                List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
+                var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
+                topArticles = deduplicateArticles(topArticles, ca.categoryName(), ca.categoryId(), ca.runTimestamp());
+
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
-                    log.info("Generating summary for category {} with {} top articles", ca.categoryName(), topIds.size());
-                    Map<Long, Double> scoreMap = scores.stream()
-                        .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
-                    List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
-                    var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
-                    var topArticlesWithContent = scrapeArticleContent(topArticles);
+                    log.info("Generating summary for category {} with {} top articles (after dedup)", ca.categoryName(), topArticles.size());
+                    var topArticlesWithContent = scrapeArticleContent(topArticles);                    var topArticlesWithContent = scrapeArticleContent(topArticles);
                     RssNewsSummaryCloud summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
                     log.info("Completed summary for category {}", ca.categoryName());
                     return summary;
@@ -377,6 +379,69 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             batches.add(list.subList(i, Math.min(i + size, list.size())));
         }
         return batches;
+    }
+
+    private List<ArticleData> deduplicateArticles(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
+        if (articles.size() <= 1) {
+            return articles;
+        }
+
+        String articlesList = toString(articles);
+        String promptTemplate = loadResource("/prompt/digest/dedup-prompt.txt");
+        String prompt = promptTemplate
+            .replace("{{categoryName}}", categoryName)
+            .replace("{{articlesList}}", articlesList);
+
+        try {
+            String response = CompletableFuture.supplyAsync(() ->
+                chatClient.prompt()
+                    .user(prompt)
+                    .options(OpenAiChatOptions.builder()
+                        .model(rankingModel)
+                        .temperature(0.1)
+                        .build())
+                    .call()
+                    .content()
+            ).get(rankingTimeoutMs, TimeUnit.MILLISECONDS);
+
+            logLlmOutput("dedup", categoryId, response, runTimestamp);
+
+            String cleaned = response.trim().replaceAll("[^0-9,]", "");
+            if (cleaned.isEmpty()) {
+                log.warn("Dedup returned no indices for category {}, keeping all articles", categoryName);
+                return articles;
+            }
+
+            List<Integer> keepIndices = new ArrayList<>();
+            for (String part : cleaned.split(",")) {
+                try {
+                    int idx = Integer.parseInt(part.trim());
+                    if (idx >= 1 && idx <= articles.size()) {
+                        keepIndices.add(idx - 1);
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+
+            if (keepIndices.isEmpty()) {
+                log.warn("Dedup returned no valid indices for category {}, keeping all articles", categoryName);
+                return articles;
+            }
+
+            List<ArticleData> deduped = new ArrayList<>();
+            for (int idx : keepIndices) {
+                deduped.add(articles.get(idx));
+            }
+
+            if (deduped.size() < articles.size()) {
+                log.info("Dedup removed {} duplicates from category {} ({} -> {} articles)",
+                    articles.size() - deduped.size(), categoryName, articles.size(), deduped.size());
+            }
+
+            return deduped;
+        } catch (Exception e) {
+            log.error("Dedup failed for category {}: {}, keeping all articles", categoryName, e.getMessage());
+            return articles;
+        }
     }
 
     private RssNewsSummaryCloud generateSummaries(int categoryId, String categoryName,

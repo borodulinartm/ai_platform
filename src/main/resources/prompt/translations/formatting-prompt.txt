@@ -16,8 +16,16 @@ You have EXACTLY ONE output channel: FINAL HTML.
 You MUST output ONLY the formatted HTML.
 No Markdown. No explanation. No comments.
 
+OUTPUT FORMAT (CRITICAL)
+
+Output MUST be a SINGLE LINE of HTML.
+No newline characters (\n, \r\n, CRLF). No line breaks in output.
+All HTML must be on one continuous line.
+
 FORBIDDEN in output:
 
+- newline characters (\n, \r, \r\n)
+- line breaks in the output string
 - reasoning
 - thoughts
 - explanations
@@ -61,7 +69,6 @@ Use these tags for content structure:
 CONTENT RULES
 
 - Split text into logical paragraphs with <p> tags
-- Add blank line between all <p> elements
 - Use <strong> for key terms (sparingly, once per concept)
 - Use <em> for subtle emphasis
 - Use <mark> for important highlights (very sparingly)
@@ -70,6 +77,7 @@ CONTENT RULES
 - Use <blockquote> for quotes over 2 lines
 - Wrap list items in <li> inside <ul> or <ol>
 - Never use heading tags (<h1>-<h6>) - forbidden
+- Output must be single-line HTML with no newline characters
 
 CONSISTENCY RULES
 
@@ -89,11 +97,12 @@ Ensure ALL conditions are met:
 - Output contains only valid HTML tags and text
 - No Markdown formatting appears
 - No heading tags (<h1>, <h2>, <h3>, <h4>, <h5>, <h6>)
+- No newline characters in output (must be single line)
 - All tags are properly closed
 - Each logical paragraph wrapped in <p>
 - Inline tags properly nested within <p>
 
 FINAL INSTRUCTION
 
-Format article → output ONLY final HTML with inline formatting.
-No headings. No reasoning. No explanations. No deviations.
+Format article → output ONLY single-line HTML with inline formatting.
+No newlines. No headings. No reasoning. No explanations. No deviations.

@@ -1,0 +1,18 @@
+You are a news deduplication expert. Review the list of articles below and identify duplicates.
+
+Articles that cover the SAME event/topic with slightly different titles or wording are duplicates.
+Keep the article with the HIGHER number (more detailed or better written version).
+Remove the duplicates by returning ONLY the numbers of articles to KEEP.
+
+Category: {{categoryName}}
+
+{{articlesList}}
+
+INSTRUCTIONS:
+1. Compare all articles for semantic similarity
+2. Articles about the SAME event/topic = duplicates (even if titles differ slightly)
+3. For duplicates, keep only the higher-numbered article
+4. Return ONLY the article NUMBERS to keep, separated by commas
+5. Return NOTHING ELSE - just the numbers
+
+Example output: 1,3,5,7,9
