@@ -194,26 +194,25 @@ public class AiTopArticlesOrchestrator {
                     continue;
                 }
                 
-                List<Long> topIds = scores.stream()
+                Map<Long, Double> scoreMap = scores.stream()
+                    .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
+                List<Long> allSortedIds = scores.stream()
                     .sorted(Comparator.comparingDouble(ArticleScore::score).reversed())
-                    .limit(TOP_ARTICLES_COUNT)
                     .map(ArticleScore::id)
                     .toList();
                 
-                if (topIds.isEmpty()) {
+                if (allSortedIds.isEmpty()) {
                     log.warn("No top articles for category {}", ca.categoryName());
                     continue;
                 }
 
-                Map<Long, Double> scoreMap = scores.stream()
-                    .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
-                List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
-                var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
-                topArticles = deduplicateArticles(topArticles, ca.categoryName(), ca.categoryId(), ca.runTimestamp());
+                List<ArticleData> topArticles = deduplicateToTopN(
+                    allSortedIds, scoreMap, TOP_ARTICLES_COUNT, ca.categoryName(), ca.categoryId(), ca.runTimestamp()
+                );
 
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
                     log.info("Generating summary for category {} with {} top articles (after dedup)", ca.categoryName(), topArticles.size());
-                    var topArticlesWithContent = scrapeArticleContent(topArticles);                    var topArticlesWithContent = scrapeArticleContent(topArticles);
+                    var topArticlesWithContent = scrapeArticleContent(topArticles);
                     RssNewsSummaryCloud summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
                     log.info("Completed summary for category {}", ca.categoryName());
                     return summary;
@@ -381,12 +380,42 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
         return batches;
     }
 
-    private List<ArticleData> deduplicateArticles(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
+    private List<ArticleData> deduplicateToTopN(List<Long> allSortedIds, Map<Long, Double> scoreMap,
+                                                 int targetCount, String categoryName, int categoryId, String runTimestamp) {
+        int poolSize = targetCount * 2;
+        int consumed = 0;
+        List<ArticleData> uniqueArticles = new ArrayList<>();
+
+        while (uniqueArticles.size() < targetCount && consumed < allSortedIds.size()) {
+            int needed = poolSize - uniqueArticles.size();
+            List<Long> nextBatchIds = allSortedIds.subList(consumed, Math.min(consumed + needed, allSortedIds.size()));
+            consumed += nextBatchIds.size();
+
+            List<RssFetchData> fetchData = rssDao.queryArticlesByIds(nextBatchIds);
+            List<ArticleData> newArticles = toArticleDataListWithScores(fetchData, scoreMap);
+
+            List<ArticleData> candidates = new ArrayList<>(uniqueArticles);
+            candidates.addAll(newArticles);
+
+            if (candidates.size() <= targetCount) {
+                uniqueArticles = candidates;
+                break;
+            }
+
+            uniqueArticles = callLlmDedup(candidates, categoryName, categoryId, runTimestamp);
+            log.info("Dedup round for category {}: {} candidates -> {} unique (target={})",
+                categoryName, candidates.size(), uniqueArticles.size(), targetCount);
+        }
+
+        return uniqueArticles.stream().limit(targetCount).toList();
+    }
+
+    private List<ArticleData> callLlmDedup(List<ArticleData> articles, String categoryName, int categoryId, String runTimestamp) {
         if (articles.size() <= 1) {
             return articles;
         }
 
-        String articlesList = toString(articles);
+        String articlesList = toStringShort(articles);
         String promptTemplate = loadResource("/prompt/digest/dedup-prompt.txt");
         String prompt = promptTemplate
             .replace("{{categoryName}}", categoryName)
@@ -408,40 +437,43 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
 
             String cleaned = response.trim().replaceAll("[^0-9,]", "");
             if (cleaned.isEmpty()) {
-                log.warn("Dedup returned no indices for category {}, keeping all articles", categoryName);
+                log.warn("Dedup returned empty for category {}, keeping all", categoryName);
                 return articles;
             }
 
-            List<Integer> keepIndices = new ArrayList<>();
+            Set<Long> keepIds = new HashSet<>();
             for (String part : cleaned.split(",")) {
                 try {
-                    int idx = Integer.parseInt(part.trim());
-                    if (idx >= 1 && idx <= articles.size()) {
-                        keepIndices.add(idx - 1);
-                    }
+                    keepIds.add(Long.parseLong(part.trim()));
                 } catch (NumberFormatException ignored) {}
             }
 
-            if (keepIndices.isEmpty()) {
-                log.warn("Dedup returned no valid indices for category {}, keeping all articles", categoryName);
+            if (keepIds.isEmpty()) {
+                log.warn("Dedup returned no valid IDs for category {}, keeping all", categoryName);
                 return articles;
             }
 
-            List<ArticleData> deduped = new ArrayList<>();
-            for (int idx : keepIndices) {
-                deduped.add(articles.get(idx));
-            }
-
-            if (deduped.size() < articles.size()) {
-                log.info("Dedup removed {} duplicates from category {} ({} -> {} articles)",
-                    articles.size() - deduped.size(), categoryName, articles.size(), deduped.size());
-            }
+            List<ArticleData> deduped = articles.stream()
+                .filter(a -> keepIds.contains(a.id()))
+                .toList();
 
             return deduped;
         } catch (Exception e) {
-            log.error("Dedup failed for category {}: {}, keeping all articles", categoryName, e.getMessage());
+            log.error("Dedup failed for category {}: {}, keeping all", categoryName, e.getMessage());
             return articles;
         }
+    }
+
+    private String toStringShort(List<ArticleData> articles) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < articles.size(); i++) {
+            ArticleData a = articles.get(i);
+            String snippet = a.content() != null && a.content().length() > 250
+                ? a.content().substring(0, 250) + "..."
+                : (a.content() != null ? a.content() : "No content");
+            sb.append(String.format("ID=%d. %s\n   %s\n", a.id(), a.title() != null ? a.title() : "No title", snippet));
+        }
+        return sb.toString();
     }
 
     private RssNewsSummaryCloud generateSummaries(int categoryId, String categoryName,
