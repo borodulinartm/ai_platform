@@ -22,7 +22,7 @@ jobs:
           echo 'start to download'
           # 格式：scp -P 端口 用户名@主机:远程文件路径 本地保存路径
           scp -P 22 \
-          ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/usr1/logs/ai_platform/logs.tar.gz \
+          ${{ secrets.SERVER_USER }}@${{ vars.SERVER_HOST }}:/usr1/logs/ai_platform/logs.tar.gz \
           ./logs.tar.gz
 
       - name: Unzip logs
