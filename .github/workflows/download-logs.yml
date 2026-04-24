@@ -1,0 +1,36 @@
+name: Download Remote Logs
+on:
+  workflow_dispatch:
+
+jobs:
+  download-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download logs via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SSH_PRIVATE_KEY }}
+          # 第一步：在远程服务器把日志打包
+          script: |
+            cd /usr1/logs/ai_platform
+            tar -zcf logs.tar.gz *.log
+
+      - name: Copy logs from remote to local
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "/usr1/logs/ai_platform/logs.tar.gz"
+          target: "./"
+
+      - name: Unzip logs
+        run: tar -zxf logs.tar.gz
+
+      - name: Upload logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: ./*.log
