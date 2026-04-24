@@ -25,6 +25,7 @@ jobs:
           password: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "/usr1/logs/ai_platform/logs.tar.gz"
           target: "./"
+          direction: download
 
       - name: Unzip logs
         run: tar -zxf logs.tar.gz
