@@ -44,6 +44,7 @@ public class AiTopArticlesOrchestrator {
     private final RssCategoryDao rssCategoryDao;
     private final RssDao rssDao;
     private final WebScraperService webScraperService;
+    private final ArticleDedupService articleDedupService;
 
     private final int batchSize;
     private final int rankingThreadPoolSize;
@@ -66,6 +67,7 @@ public class AiTopArticlesOrchestrator {
         RssCategoryDao rssCategoryDao,
         RssDao rssDao,
         WebScraperService webScraperService,
+        ArticleDedupService articleDedupService,
         @Value("${ai.digest.batch-size:100}") int batchSize,
         @Value("${ai.digest.ranking-thread-pool-size:10}") int rankingThreadPoolSize,
         @Value("${ai.digest.summary-thread-pool-size:5}") int summaryThreadPoolSize,
@@ -85,6 +87,7 @@ public class AiTopArticlesOrchestrator {
         this.rssCategoryDao = rssCategoryDao;
         this.rssDao = rssDao;
         this.webScraperService = webScraperService;
+        this.articleDedupService = articleDedupService;
         this.batchSize = batchSize;
         this.rankingThreadPoolSize = rankingThreadPoolSize;
         this.summaryThreadPoolSize = summaryThreadPoolSize;
@@ -194,23 +197,26 @@ public class AiTopArticlesOrchestrator {
                     continue;
                 }
                 
-                List<Long> topIds = scores.stream()
+                Map<Long, Double> scoreMap = scores.stream()
+                    .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
+                List<Long> allSortedIds = scores.stream()
                     .sorted(Comparator.comparingDouble(ArticleScore::score).reversed())
-                    .limit(TOP_ARTICLES_COUNT)
                     .map(ArticleScore::id)
                     .toList();
                 
-                if (topIds.isEmpty()) {
+                if (allSortedIds.isEmpty()) {
                     log.warn("No top articles for category {}", ca.categoryName());
                     continue;
                 }
 
+                List<RssFetchData> allFetchData = rssDao.queryArticlesByIds(allSortedIds);
+                List<ArticleData> allSortedArticles = toArticleDataListWithScores(allFetchData, scoreMap);
+                List<ArticleData> topArticles = articleDedupService.deduplicateToTopN(
+                    allSortedArticles, TOP_ARTICLES_COUNT, ca.categoryName()
+                );
+
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
-                    log.info("Generating summary for category {} with {} top articles", ca.categoryName(), topIds.size());
-                    Map<Long, Double> scoreMap = scores.stream()
-                        .collect(Collectors.toMap(ArticleScore::id, ArticleScore::score));
-                    List<RssFetchData> fetchData = rssDao.queryArticlesByIds(topIds);
-                    var topArticles = toArticleDataListWithScores(fetchData, scoreMap);
+                    log.info("Generating summary for category {} with {} top articles (after dedup)", ca.categoryName(), topArticles.size());
                     var topArticlesWithContent = scrapeArticleContent(topArticles);
                     RssNewsSummaryCloud summary = generateSummaries(ca.categoryId(), ca.categoryName(), topArticlesWithContent, ca.runTimestamp());
                     log.info("Completed summary for category {}", ca.categoryName());
