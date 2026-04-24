@@ -441,21 +441,25 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
                 return articles;
             }
 
-            Set<Long> keepIds = new HashSet<>();
+            List<Integer> keepIndices = new ArrayList<>();
             for (String part : cleaned.split(",")) {
                 try {
-                    keepIds.add(Long.parseLong(part.trim()));
+                    int idx = Integer.parseInt(part.trim());
+                    if (idx >= 1 && idx <= articles.size()) {
+                        keepIndices.add(idx - 1);
+                    }
                 } catch (NumberFormatException ignored) {}
             }
 
-            if (keepIds.isEmpty()) {
-                log.warn("Dedup returned no valid IDs for category {}, keeping all", categoryName);
+            if (keepIndices.isEmpty()) {
+                log.warn("Dedup returned no valid indices for category {}, keeping all", categoryName);
                 return articles;
             }
 
-            List<ArticleData> deduped = articles.stream()
-                .filter(a -> keepIds.contains(a.id()))
-                .toList();
+            List<ArticleData> deduped = new ArrayList<>();
+            for (int idx : keepIndices) {
+                deduped.add(articles.get(idx));
+            }
 
             return deduped;
         } catch (Exception e) {
@@ -471,7 +475,7 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             String snippet = a.content() != null && a.content().length() > 250
                 ? a.content().substring(0, 250) + "..."
                 : (a.content() != null ? a.content() : "No content");
-            sb.append(String.format("ID=%d. %s\n   %s\n", a.id(), a.title() != null ? a.title() : "No title", snippet));
+            sb.append(String.format("%d. %s\n   %s\n", i + 1, a.title() != null ? a.title() : "No title", snippet));
         }
         return sb.toString();
     }
