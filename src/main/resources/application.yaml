@@ -28,11 +28,27 @@ spring:
 
 ai:
   translating:
-    temperature: 0.2
-    countAttempts: 10
+    translatingStage:
+      temperature: 0.2
+      countAttempts: 10
+      model: deepseek/deepseek-v3.2
+    normalizationStage:
+      temperature: 0.1
+      countAttempts: 10
+      model: deepseek/deepseek-v3.2
   cleaning:
-    temperature: 0.1
-    countAttempts: 10
+    removingHtml:
+      temperature: 0.1
+      countAttempts: 10
+      model: deepseek/deepseek-v3.2
+    removingNoise:
+      temperature: 0.1
+      countAttempts: 10
+      model: deepseek/deepseek-v3.2
+    normalization:
+      temperature: 0.2
+      countAttempts: 10
+      model: deepseek/deepseek-v3.2
   digest:
     batch-size: 50
     log-dir: /usr1/logs/llm

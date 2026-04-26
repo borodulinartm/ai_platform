@@ -11,8 +11,8 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreat
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiCleaningArticlesRepo;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning.AiCleaningArticlesRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.translation.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.model.RssData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,12 +1,10 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
+package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
-import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiValidationException;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
-import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -24,12 +22,11 @@ import java.nio.charset.StandardCharsets;
 @Component("defaultAiExecutor")
 @RequiredArgsConstructor
 @Slf4j
-public class AiDefaultExecutor implements IAiStageExecutor {
+public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
     private final AiExecutor aiExecutor;
 
     @Override
-    public AIStageResponse runStage(@Nonnull AiStageParameters aiStageParameters,
-                                    @Nonnull AiPipelineContext pipelineContext) {
+    public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
         int countAttempts = 1;
 
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
@@ -41,7 +38,7 @@ public class AiDefaultExecutor implements IAiStageExecutor {
 
                 String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
                 String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        pipelineContext.getStageResult(pipelineContext.getPreviousStage())
+                        inputParam
                 );
 
                 String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
@@ -49,23 +46,17 @@ public class AiDefaultExecutor implements IAiStageExecutor {
                     throw new AiNullResultException("Result from the AI is null");
                 }
 
-                if (aiStageParameters.getValidationPredicate() != null &&
-                       ! aiStageParameters.getValidationPredicate().test(pipelineContext.getStageResult(pipelineContext.getPreviousStage()), result)) {
-                    throw new AiValidationException("Result is null");
-                }
-
-                return AIStageResponse.success(result.trim());
+                return result.trim();
             } catch (Exception e) {
                 log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
-                        aiStageParameters.getName(),
+                        aiStageParameters.getStageName(),
                         countAttempts++, aiStageParameters.getMaxAttempts(), aiStageParameters.getId(),
                         e.getMessage()
                 );
             }
         }
 
-        return AIStageResponse.failure(String.format("AI %s: count attempts has exceeded; ID = %s",
-                aiStageParameters.getName(), aiStageParameters.getId())
-        );
+        throw new AiInvalidStateException(String.format("AI %s: count attempts has exceeded; ID = %s",
+                aiStageParameters.getStageName(), aiStageParameters.getId()));
     }
 }
