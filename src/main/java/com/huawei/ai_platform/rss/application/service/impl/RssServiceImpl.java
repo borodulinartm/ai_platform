@@ -45,7 +45,7 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 @RequiredArgsConstructor
 @Slf4j
 public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
-    public static final int COUNT_THREADS = 1;
+    public static final int COUNT_THREADS = 15;
 
     private final RssRepository rssRepository;
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;

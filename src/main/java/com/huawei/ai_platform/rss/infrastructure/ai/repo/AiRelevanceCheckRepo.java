@@ -35,7 +35,7 @@ public class AiRelevanceCheckRepo {
     private final AiFunction1Executor<String, String> relevanceStageExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
 
-    // AI cleaning parameters
+    // AI relevance parameters
     @Value("${ai.relevance.countAttempts}")
     private int maxCountAttemptsRelevance;
     @Value("${ai.relevance.temperature}")
@@ -53,17 +53,20 @@ public class AiRelevanceCheckRepo {
                 .addStage(addRelevanceCheckingPrompt(request)).build();
 
         AIPipelineResponse<String> pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest, payload);
-        int score = Integer.parseInt(pipelineResponse.getPayload().trim());
 
-        return new RelevanceCheckResult(pipelineResponse.isSuccess(), score, pipelineResponse.getPayload());
+        if (pipelineResponse.isSuccess()) {
+            int score = Integer.parseInt(pipelineResponse.getPayload().trim());
+            return new RelevanceCheckResult(true, score, pipelineResponse.getPayload());
+        } else {
+            return new RelevanceCheckResult(false, -1, pipelineResponse.getFailureReason());
+        }
     }
 
     private AiStage addRelevanceCheckingPrompt(RelevanceCheckRequest relevanceCheckRequest) {
-        String relevancePrompt = "prompt/relevance/relevance-check-prompt.txt";
         String stageName = "RELEVANCE_STAGE";
 
         AiStageParameters stageParameters = new AiStageParameters(stageName,
-                relevanceCheckRequest.getId(), relevancePrompt, USER_PROMPT, modelRelevance, temperatureRelevance, maxCountAttemptsRelevance
+                relevanceCheckRequest.getId(), RELEVANCE_PROMPT, USER_PROMPT, modelRelevance, temperatureRelevance, maxCountAttemptsRelevance
         );
 
         return AiStageBuilder.with1Parameter(stageName, RELEVANCE_INPUT, RELEVANCE_OUTPUT, stageParameters,

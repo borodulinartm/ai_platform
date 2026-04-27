@@ -62,7 +62,6 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
         AiRelevanceCheckRepo.RelevanceCheckResult result = aiRelevanceCheckRepo.checkRelevance(request);
 
         applicationEventPublisher.publishEvent(new RelevanceCheckCompletedEvent(cleaningRequests, result.passed(), result.reason()));
-        log.info("STAGE 2 vs 4: relevance check completed with passed={}, score={} for ID = {}", result.passed(), result.score(), cleaningRequests.getId());
     }
 
     @Override
