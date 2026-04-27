@@ -5,7 +5,6 @@ Abstract: {{abstract}}
 Full content: {{scrapedContent}}
 
 Analyze this article and return a JSON object with these EXACT fields:
-- articleAbstract: Key developments and trends in this article (2-3 sentences)
 - background: What context or trends does this fit into? What's the bigger picture? (2-4 sentences)
 - eventSummary: The main breakthrough or development in one sentence max 25 words
 - technologyAndInnovation: What new technologies, methods, or innovations are introduced? (2-4 sentences)

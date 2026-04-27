@@ -27,12 +27,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
@@ -160,8 +158,8 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                                 return rssTranslationOrchestration.initTranslation(item);
                             } else {
                                 if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
-                                    AiCleaningRequest cleaningRequest = aiTranslationMapper.convert(item);
-                                    rssTranslationOrchestration.cleanInputText(cleaningRequest);
+                                    AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
+                                    rssTranslationOrchestration.checkRelevance(relevanceRequest);
 
                                     return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
                                 }
@@ -201,6 +199,15 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
         }
 
         rssArticleTranslatorRepository.queryUpdateStatusByListData(idList, statusEnum);
+    }
+
+    @Override
+    public void queryUpdateStatusByListData(List<Long> idList, ArticleTranslationStatusEnum statusEnum, String reason) {
+        if (CollectionUtils.isEmpty(idList) || statusEnum == null) {
+            throw new IllegalArgumentException("Arguments must be not null");
+        }
+
+        rssArticleTranslatorRepository.queryUpdateStatusByListData(idList, statusEnum, reason);
     }
 
     @Override

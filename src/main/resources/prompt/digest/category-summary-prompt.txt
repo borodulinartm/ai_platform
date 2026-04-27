@@ -11,4 +11,4 @@ Write a 3-4 sentence summary focusing on:
 - What these developments mean for the future
 - Key themes connecting these articles
 
-Return ONLY the summary text in English, nothing else. No markdown, no code blocks.
+Return ONLY the summary text in English, nothing else. No Markdown, no code blocks.

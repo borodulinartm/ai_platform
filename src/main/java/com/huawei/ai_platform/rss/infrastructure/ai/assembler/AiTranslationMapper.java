@@ -22,5 +22,6 @@ public abstract class AiTranslationMapper {
      */
     @Mapping(target = "articleTitle", source = "articleTitleEn")
     @Mapping(target = "id", source = "articleId")
+    @Mapping(target = "categoryName", source = "rssCategory.categoryNameEn")
     public abstract AiCleaningRequest convert(@Nonnull RssData rssData);
 }

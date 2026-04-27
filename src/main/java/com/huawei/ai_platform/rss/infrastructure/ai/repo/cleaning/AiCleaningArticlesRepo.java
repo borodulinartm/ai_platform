@@ -40,7 +40,6 @@ public class AiCleaningArticlesRepo {
 
     // AiTypedKeys
     private static final AiTypedKey<String> CLEANING_STAGE_INPUT = AiTypedKey.of(String.class, "CLEANING_STAGE_INPUT");
-
     private static final AiTypedKey<String> CLEANING_STAGE_OUTPUT = AiTypedKey.of(String.class, "CLEANING_STAGE_OUTPUT");
     private static final AiTypedKey<String> NOISE_REMOVING_STAGE_OUTPUT = AiTypedKey.of(String.class, "NOISE_REMOVING_STAGE_OUTPUT");
     private static final AiTypedKey<String> NORMALIZATION_STAGE_OUTPUT = AiTypedKey.of(String.class, "NORMALIZATION_STAGE_OUTPUT");
@@ -56,7 +55,7 @@ public class AiCleaningArticlesRepo {
     @Value("${ai.cleaning.removingHtml.model}")
     private String modelCleaning;
 
-    // AI cleaning parameters
+    // AI removing noise parameters
     @Value("${ai.cleaning.removingNoise.countAttempts}")
     private int maxCountAttemptsNoiseRemoving;
     @Value("${ai.cleaning.removingNoise.temperature}")
@@ -64,7 +63,7 @@ public class AiCleaningArticlesRepo {
     @Value("${ai.cleaning.removingNoise.model}")
     private String modelNoiseRemoving;
 
-    // AI cleaning parameters
+    // AI normalization parameters
     @Value("${ai.cleaning.normalization.countAttempts}")
     private int maxCountAttemptsNormalization;
     @Value("${ai.cleaning.normalization.temperature}")
@@ -137,7 +136,6 @@ public class AiCleaningArticlesRepo {
                 defaultAiExecutor
         );
     }
-
 
     /**
      * Performs executing data in the pipeline side

@@ -27,6 +27,11 @@ spring:
           temperature: 0.2
 
 ai:
+  relevance:
+    model: deepseek/deepseek-v3.2
+    temperature: 0.1
+    countAttempts: 10
+    relevance-threshold: 4
   translating:
     translatingStage:
       temperature: 0.2
@@ -36,6 +41,10 @@ ai:
       temperature: 0.1
       countAttempts: 10
       model: deepseek/deepseek-v3.2
+    formattingStage:
+      model: deepseek/deepseek-v3.2
+      temperature: 0.1
+      countAttempts: 10
   cleaning:
     removingHtml:
       temperature: 0.1

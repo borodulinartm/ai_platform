@@ -5,12 +5,16 @@ import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.RelevanceCheckRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.CleaningCreatedEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCompletedEvent;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiRelevanceCheckRepo;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning.AiCleaningArticlesRepo;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.translation.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.model.RssData;
@@ -33,19 +37,37 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 public class RssTranslationOrchestrationImpl implements RssTranslationOrchestration {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final AiCleaningArticlesRepo aiCleaningArticlesRepo;
+    private final AiRelevanceCheckRepo aiRelevanceCheckRepo;
     private final AiTranslatorRepo aiTranslatorRepo;
 
     @Override
     public OperationResult initTranslation(RssData inputList) {
-        log.info("STAGE 1 vs 3: accepting an ID = {}", inputList.getArticleId());
+        log.info("STAGE 1 vs 4: accepting an ID = {}", inputList.getArticleId());
         applicationEventPublisher.publishEvent(new TranslationCreatedEvent(inputList, INIT));
 
         return OperationResult.builder().state(OperationResultEnum.SUCCESS).reason("").build();
     }
 
     @Override
+    public void checkRelevance(AiCleaningRequest cleaningRequests) {
+        log.info("STAGE 2 vs 4: running relevance check for ID = {}", cleaningRequests.getId());
+
+        RelevanceCheckRequest request = RelevanceCheckRequest.builder()
+                .id(cleaningRequests.getId())
+                .title(cleaningRequests.getArticleTitle())
+                .content(cleaningRequests.getArticleContent())
+                .categoryName(cleaningRequests.getCategoryName())
+                .build();
+
+        AiRelevanceCheckRepo.RelevanceCheckResult result = aiRelevanceCheckRepo.checkRelevance(request);
+
+        applicationEventPublisher.publishEvent(new RelevanceCheckCompletedEvent(cleaningRequests, result.passed(), result.reason()));
+        log.info("STAGE 2 vs 4: relevance check completed with passed={}, score={} for ID = {}", result.passed(), result.score(), cleaningRequests.getId());
+    }
+
+    @Override
     public void cleanInputText(AiCleaningRequest cleaningRequests) {
-        log.info("STAGE 2 vs 3: running cleaning for the ID = {}", cleaningRequests.getId());
+        log.info("STAGE 3 vs 4: running cleaning for the ID = {}", cleaningRequests.getId());
         applicationEventPublisher.publishEvent(new CleaningCreatedEvent(cleaningRequests));
 
         AiCleaningResponse response = aiCleaningArticlesRepo.processCleaning(cleaningRequests);
@@ -57,25 +79,25 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
             applicationEventPublisher.publishEvent(new TranslationProcessingEvent(aiTranslationRequest));
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getId(), response.getReason());
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, translationResponse.getReason()));
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, response.getReason()));
 
-            log.error("STAGE 2 vs 3: Translation for ID = {} has completed with failure :(", cleaningRequests.getId());
+            log.info("STAGE 3 vs 4: FAILURE for ID = {}", cleaningRequests.getId());
         }
     }
 
     @Override
     public void translateInputData(AiTranslationRequest aiTranslationRequestList) {
-        log.info("STAGE 3 vs 3: running translating for the ID = {}", aiTranslationRequestList.getArticleId());
+        log.info("STAGE 4 vs 4: running translating for the ID = {}", aiTranslationRequestList.getArticleId());
 
         AiTranslationResponse response = aiTranslatorRepo.translate(aiTranslationRequestList);
         if (response.isSuccess()) {
             applicationEventPublisher.publishEvent(new TranslationCompletedEvent(response, FINISH, "Success"));
-            log.info("STAGE 3 vs 3: translation for ID = {} has completed successfully", aiTranslationRequestList.getArticleId());
+            log.info("STAGE 4 vs 4: translation for ID = {} has completed successfully", aiTranslationRequestList.getArticleId());
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getArticleId(), response.getReason());
             applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, translationResponse.getReason()));
 
-            log.error("STAGE 3 vs 3: translation for ID = {} has completed with failure :(", aiTranslationRequestList.getArticleId());
+            log.error("STAGE 4 vs 4: translation for ID = {} has completed with failure :(", aiTranslationRequestList.getArticleId());
         }
     }
 }
