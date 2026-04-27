@@ -1,0 +1,35 @@
+name: Download Remote Logs
+on:
+  workflow_dispatch:
+
+jobs:
+  download-logs:
+    runs-on: self-hosted
+    steps:
+      - name: Download logs via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SSH_PRIVATE_KEY }}
+          # 第一步：在远程服务器把日志打包
+          script: |
+            cd /usr1/logs/ai_platform
+            tar -zcf logs.tar.gz *.log
+      
+      - name: Download file from remote server
+        run: |
+          echo 'start to download'
+          # 格式：scp -P 端口 用户名@主机:远程文件路径 本地保存路径
+          sshpass -p '${{ secrets.SSH_PRIVATE_KEY }}' scp -P 22 \
+          ${{ secrets.SERVER_USER }}@${{ vars.SERVER_HOST }}:/usr1/logs/ai_platform/logs.tar.gz \
+          ./logs.tar.gz
+
+      - name: Unzip logs
+        run: tar -zxf logs.tar.gz
+
+      - name: Upload logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: ./*.log
