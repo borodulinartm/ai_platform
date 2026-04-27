@@ -776,33 +776,6 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
         return sb.toString();
     }
 
-    private String extractArrayFromObject(String json) {
-        json = json.trim();
-        
-        if (json.startsWith("[{")) {
-            int arrayEnd = json.lastIndexOf(']');
-            if (arrayEnd > 0) {
-                String innerJson = json.substring(1, arrayEnd).trim();
-                if (innerJson.startsWith("{") && innerJson.endsWith("}")) {
-                    json = innerJson;
-                }
-            }
-        }
-        
-        if (json.startsWith("[")) {
-            return json;
-        }
-        if (json.startsWith("{")) {
-            int arrayStart = json.indexOf('[');
-            int arrayEnd = json.lastIndexOf(']');
-            if (arrayStart >= 0 && arrayEnd > arrayStart) {
-                return json.substring(arrayStart, arrayEnd + 1);
-            }
-            return "[" + json + "]";
-        }
-        return "[" + json + "]";
-    }
-
     private String extractReasoningFromResponse(String response) {
         String cleaned = response.trim();
         
