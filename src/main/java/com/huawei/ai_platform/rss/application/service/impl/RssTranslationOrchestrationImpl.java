@@ -8,13 +8,12 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRes
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.RelevanceCheckRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.CleaningCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCompletedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiRelevanceCheckRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.relevance.AiRelevanceCheckRepo;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning.AiCleaningArticlesRepo;
 import com.huawei.ai_platform.rss.infrastructure.ai.repo.translation.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.model.RssData;

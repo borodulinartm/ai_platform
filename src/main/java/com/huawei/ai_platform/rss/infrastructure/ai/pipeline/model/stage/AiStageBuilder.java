@@ -43,10 +43,10 @@ public class AiStageBuilder {
         );
     }
 
-    public static <A, B, O> AiStage add2Parameter(String stageName, AiTypedKey<A> input1,
-                                                  AiTypedKey<B> input2, AiTypedKey<O> resultKey,
-                                                  AiStageParameters aiStageParameters,
-                                                  AiFunction2Executor<A, B, O> function2Executor) {
+    public static <A, B, O> AiStage with2Parameter(String stageName, AiTypedKey<A> input1,
+                                                   AiTypedKey<B> input2, AiTypedKey<O> resultKey,
+                                                   AiStageParameters aiStageParameters,
+                                                   AiFunction2Executor<A, B, O> function2Executor) {
         Function<AiPipelineContext, AIStageResponse> decoratorFunction = aiPipelineContext -> {
             try {
                 A inputParam = aiPipelineContext.getStageResult(input1);

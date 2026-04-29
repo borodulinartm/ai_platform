@@ -1,4 +1,4 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.executor;
+package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
@@ -7,23 +7,21 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Exe
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Default AI executor
- *
- * @author Borodulin Artem
- * @since 2026.04.20
- */
-@Component("defaultAiExecutor")
+@Component
 @RequiredArgsConstructor
 @Slf4j
-public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
+public class RelevanceStageExecutor implements AiFunction1Executor<String, String> {
     private final AiExecutor aiExecutor;
+
+    @Value("${ai.relevance.relevance-threshold:4}")
+    private int threshold;
 
     @Override
     public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
@@ -46,17 +44,47 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
                     throw new AiNullResultException("Result from the AI is null");
                 }
 
-                return result.trim();
+                int score = parseScore(result.trim());
+
+                if (score == -1) {
+                    log.warn("Invalid score on attempt {}/{}: {}", countAttempts, aiStageParameters.getMaxAttempts(), result);
+
+                    countAttempts++;
+                    continue;
+                }
+
+                if (score <= threshold) {
+                    throw new AiInvalidStateException("score=" + score + ", threshold=" + threshold);
+                }
+
+                return result;
             } catch (Exception e) {
-                log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
-                        aiStageParameters.getStageName(),
-                        countAttempts++, aiStageParameters.getMaxAttempts(), aiStageParameters.getId(),
-                        e.getMessage()
+                log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, aiStageParameters.getMaxAttempts(),
+                        aiStageParameters.getId(), e.getMessage()
                 );
             }
         }
 
-        throw new AiInvalidStateException(String.format("AI %s: count attempts has exceeded; ID = %s",
-                aiStageParameters.getStageName(), aiStageParameters.getId()));
+        throw new AiInvalidStateException(
+                String.format("Relevance check failed after %s attempts for ID=%s, defaulting to pass", aiStageParameters.getMaxAttempts(), aiStageParameters.getId()));
+    }
+
+    private int parseScore(String response) {
+        String cleaned = response.trim();
+        String numberOnly = cleaned.replaceAll("[^0-9]", "");
+
+        if (numberOnly.isEmpty()) {
+            return -1;
+        }
+
+        try {
+            int score = Integer.parseInt(numberOnly);
+            if (score < 1 || score > 10) {
+                return -1;
+            }
+            return score;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 }

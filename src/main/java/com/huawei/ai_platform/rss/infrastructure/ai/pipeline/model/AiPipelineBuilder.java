@@ -29,7 +29,7 @@ public class AiPipelineBuilder<I, O> {
     }
 
     public AiPipeline<I, O> build() {
-        return new AiPipeline<I, O>(pipelineName, input, output, stages);
+        return new AiPipeline<>(pipelineName, input, output, stages);
     }
 
     /**
