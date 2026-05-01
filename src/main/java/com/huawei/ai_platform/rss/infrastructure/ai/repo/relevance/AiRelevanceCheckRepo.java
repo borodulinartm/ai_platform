@@ -8,8 +8,8 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipeline;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineBuilder;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiTypedKey;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageBuilder;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.factory.AiUnaryStageFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,14 +62,14 @@ public class AiRelevanceCheckRepo {
         }
     }
 
-    private AiStage addRelevanceCheckingPrompt(RelevanceCheckRequest relevanceCheckRequest) {
+    private AiStage<?> addRelevanceCheckingPrompt(RelevanceCheckRequest relevanceCheckRequest) {
         String stageName = "RELEVANCE_STAGE";
 
         AiStageParameters stageParameters = new AiStageParameters(stageName,
                 relevanceCheckRequest.getId(), RELEVANCE_PROMPT, USER_PROMPT, modelRelevance, temperatureRelevance, maxCountAttemptsRelevance
         );
 
-        return AiStageBuilder.with1Parameter(stageName, RELEVANCE_INPUT, RELEVANCE_OUTPUT, stageParameters,
+        return new AiUnaryStageFactory().createStage(stageName, RELEVANCE_INPUT, RELEVANCE_OUTPUT, stageParameters,
                 relevanceStageExecutor, null, null
         );
     }

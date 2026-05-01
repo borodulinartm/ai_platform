@@ -1,5 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning;
 
+import com.huawei.ai_platform.rss.enums.AiCleaningStagesEnum;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
@@ -9,16 +11,18 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineRes
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipeline;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineBuilder;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiTypedKey;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageBuilder;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.factory.AiUnaryStageFactory;
 import com.huawei.ai_platform.rss.infrastructure.persistence.entity.RssAttributeValue;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_JPEG;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_PNG;
@@ -34,8 +38,6 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAtt
 @Slf4j
 public class AiCleaningArticlesRepo {
     public static final String PIPELINE_NAME = "CLEANING";
-    public static final String USER_PROMPT = "prompt/user-prompt.txt";
-    public static final String VALIDATION_PROMPT = "prompt/user-prompt-validation.txt";
 
     // AiTypedKeys
     private static final AiTypedKey<String> CLEANING_STAGE_INPUT = AiTypedKey.of(String.class, "CLEANING_STAGE_INPUT");
@@ -47,38 +49,7 @@ public class AiCleaningArticlesRepo {
     private final AiPipelineExecutor aiPipelineExecutor;
     private final IAiStageValidation<String, String> aiDefaultValidator;
     private final IAiStageValidation<String, String> aiSizeValidator;
-
-    // AI cleaning parameters
-    @Value("${ai.cleaning.removingHtml.countAttempts}")
-    private int maxCountAttemptsCleaning;
-    @Value("${ai.cleaning.removingHtml.temperature}")
-    private Double temperatureCleaning;
-    @Value("${ai.cleaning.removingHtml.model}")
-    private String modelCleaning;
-
-    // AI removing noise parameters
-    @Value("${ai.cleaning.removingNoise.countAttempts}")
-    private int maxCountAttemptsNoiseRemoving;
-    @Value("${ai.cleaning.removingNoise.temperature}")
-    private Double temperatureNoiseRemoving;
-    @Value("${ai.cleaning.removingNoise.model}")
-    private String modelNoiseRemoving;
-
-    // AI normalization parameters
-    @Value("${ai.cleaning.normalization.countAttempts}")
-    private int maxCountAttemptsNormalization;
-    @Value("${ai.cleaning.normalization.temperature}")
-    private Double temperatureNormalization;
-    @Value("${ai.cleaning.normalization.model}")
-    private String modelNormalization;
-
-    // AI normalization parameters
-    @Value("${ai.cleaning.removingNoise.validation.countAttempts}")
-    private int maxCountAttemptsValidation;
-    @Value("${ai.cleaning.removingNoise.validation.temperature}")
-    private Double temperatureValidation;
-    @Value("${ai.cleaning.removingNoise.validation.model}")
-    private String modelValidation;
+    private final AiCleaningPipelineProperties cleaningPipelineProperties;
 
     /**
      * Performs cleaning data for the input side
@@ -116,53 +87,78 @@ public class AiCleaningArticlesRepo {
      * @return response from the pipeline
      */
     private AIPipelineResponse<String> exec(AiCleaningRequest request, String payload) {
-        AiPipeline<String, String> pipeline = AiPipelineBuilder.withName(PIPELINE_NAME, CLEANING_STAGE_INPUT,
-                        NORMALIZATION_STAGE_OUTPUT
-                ).addStage(addCleaningStage(request)).addStage(addNoiseRemovingStage(request)).addStage(addNormalizationStage(request))
-                .build();
+        // first, building map for input and output values for the data
 
-        return aiPipelineExecutor.executePipeline(pipeline, payload);
+        AiPipelineBuilder<String, String> aiPipelineBuilder = AiPipelineBuilder.withName(PIPELINE_NAME, CLEANING_STAGE_INPUT, NORMALIZATION_STAGE_OUTPUT);
+        List<AiCleaningPipelineProperties.StageParams> params = cleaningPipelineProperties.getStages();
+        for (AiCleaningPipelineProperties.StageParams param : params) {
+            AiStageParameters aiStageParameters = new AiStageParameters(param.getStageName().name(), request.getId(),
+                    param.getSystemPromptPath(), param.getUserPromptPath(), param.getModel(), param.getTemperature(),
+                    param.getCountAttempts()
+            );
+
+            if (param.getValidation() != null) {
+                AiStageParameters aiValidationData = new AiStageParameters(param.getValidation().getStageName().name(), request.getId(),
+                        param.getValidation().getSystemPromptPath(), param.getValidation().getUserPromptPath(), param.getValidation().getModel(),
+                        param.getValidation().getTemperature(),
+                        param.getValidation().getCountAttempts()
+                );
+
+                aiPipelineBuilder.addStage(
+                        new AiUnaryStageFactory().createStage(
+                                param.getStageName().name(), getInputTypeKeyByStageName(param.getStageName()),
+                                getOutputTypeKeyByStageName(param.getStageName()),
+                                aiStageParameters, defaultAiExecutor, aiDefaultValidator, aiValidationData
+                        )
+                );
+            } else {
+                aiPipelineBuilder.addStage(
+                        new AiUnaryStageFactory().createStage(
+                                param.getStageName().name(), getInputTypeKeyByStageName(param.getStageName()),
+                                getOutputTypeKeyByStageName(param.getStageName()),
+                                aiStageParameters, defaultAiExecutor, aiSizeValidator, null
+                        )
+                );
+            }
+        }
+        AiPipeline<String, String> aiPipeline = aiPipelineBuilder.build();
+
+        return aiPipelineExecutor.executePipeline(aiPipeline, payload);
     }
 
-    private AiStage<?> addCleaningStage(AiCleaningRequest cleaningRequest) {
-        String cleaningHtmlPrompt = "prompt/cleaning/cleaning-prompt.txt";
-        String cleaningStage = "CLEANING_STAGE";
-        AiStageParameters stageParameters = new AiStageParameters(cleaningStage,
-                cleaningRequest.getId(), cleaningHtmlPrompt, USER_PROMPT, modelCleaning, temperatureCleaning, maxCountAttemptsCleaning
-        );
+    private AiTypedKey<String> getInputTypeKeyByStageName(@Nonnull AiCleaningStagesEnum stagesEnum) {
+        switch (stagesEnum) {
+            case CLEANING_STAGE -> {
+                return CLEANING_STAGE_INPUT;
+            }
 
-        return AiStageBuilder.with1Parameter(cleaningStage, CLEANING_STAGE_INPUT, CLEANING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor, aiSizeValidator, null
-        );
+            case NOISE_REMOVING_STAGE -> {
+                return CLEANING_STAGE_OUTPUT;
+            }
+
+            case NORMALIZATION_STAGE -> {
+                return NOISE_REMOVING_STAGE_OUTPUT;
+            }
+        }
+
+        throw new IllegalArgumentException("Not valid input key");
     }
 
-    private AiStage<?> addNoiseRemovingStage(AiCleaningRequest cleaningRequest) {
-        String noisePrompt = "prompt/cleaning/noise-removing-prompt.txt";
-        String stageName = "NOISE_REMOVING_STAGE";
-        AiStageParameters stageParameters = new AiStageParameters(stageName,
-                cleaningRequest.getId(), noisePrompt, USER_PROMPT, modelNoiseRemoving, temperatureNoiseRemoving, maxCountAttemptsNoiseRemoving
-        );
+    private AiTypedKey<String> getOutputTypeKeyByStageName(@Nonnull AiCleaningStagesEnum stagesEnum) {
+        switch (stagesEnum) {
+            case CLEANING_STAGE -> {
+                return CLEANING_STAGE_OUTPUT;
+            }
 
-        String validationPrompt = "prompt/cleaning/cleaning-validation-prompt.txt";
-        AiStageParameters validationStageParameters = new AiStageParameters(stageName,
-                cleaningRequest.getId(), validationPrompt, VALIDATION_PROMPT, modelValidation, temperatureValidation, maxCountAttemptsValidation
-        );
+            case NOISE_REMOVING_STAGE -> {
+                return NOISE_REMOVING_STAGE_OUTPUT;
+            }
 
-        return AiStageBuilder.with1Parameter(stageName, CLEANING_STAGE_OUTPUT, NOISE_REMOVING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor, aiDefaultValidator, validationStageParameters
-        );
-    }
+            case NORMALIZATION_STAGE -> {
+                return NORMALIZATION_STAGE_OUTPUT;
+            }
+        }
 
-    private AiStage<?> addNormalizationStage(AiCleaningRequest cleaningRequest) {
-        String normalizingPrompt = "prompt/cleaning/normalization-prompt.txt";
-        String stageName = "NORMALIZATION_STAGE";
-
-        AiStageParameters stageParameters = new AiStageParameters(stageName,
-                cleaningRequest.getId(), normalizingPrompt, USER_PROMPT, modelNormalization, temperatureNormalization, maxCountAttemptsNormalization
-        );
-
-        return AiStageBuilder.with1Parameter(stageName, NOISE_REMOVING_STAGE_OUTPUT, NORMALIZATION_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor, aiSizeValidator, null
-        );
+        throw new IllegalArgumentException("Not valid input key");
     }
 }
