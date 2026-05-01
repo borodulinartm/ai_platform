@@ -4,6 +4,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningReq
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.IAiStageValidation;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipeline;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineBuilder;
@@ -34,6 +35,7 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAtt
 public class AiCleaningArticlesRepo {
     public static final String PIPELINE_NAME = "CLEANING";
     public static final String USER_PROMPT = "prompt/user-prompt.txt";
+    public static final String VALIDATION_PROMPT = "prompt/user-prompt-validation.txt";
 
     // AiTypedKeys
     private static final AiTypedKey<String> CLEANING_STAGE_INPUT = AiTypedKey.of(String.class, "CLEANING_STAGE_INPUT");
@@ -43,6 +45,8 @@ public class AiCleaningArticlesRepo {
 
     private final AiFunction1Executor<String, String> defaultAiExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
+    private final IAiStageValidation<String, String> aiDefaultValidator;
+    private final IAiStageValidation<String, String> aiSizeValidator;
 
     // AI cleaning parameters
     @Value("${ai.cleaning.removingHtml.countAttempts}")
@@ -67,6 +71,14 @@ public class AiCleaningArticlesRepo {
     private Double temperatureNormalization;
     @Value("${ai.cleaning.normalization.model}")
     private String modelNormalization;
+
+    // AI normalization parameters
+    @Value("${ai.cleaning.removingNoise.validation.countAttempts}")
+    private int maxCountAttemptsValidation;
+    @Value("${ai.cleaning.removingNoise.validation.temperature}")
+    private Double temperatureValidation;
+    @Value("${ai.cleaning.removingNoise.validation.model}")
+    private String modelValidation;
 
     /**
      * Performs cleaning data for the input side
@@ -96,44 +108,6 @@ public class AiCleaningArticlesRepo {
         );
     }
 
-    private AiStage addCleaningStage(AiCleaningRequest cleaningRequest) {
-        String cleaningHtmlPrompt = "prompt/cleaning/cleaning-prompt.txt";
-        String cleaningStage = "CLEANING_STAGE";
-        AiStageParameters stageParameters = new AiStageParameters(cleaningStage,
-                cleaningRequest.getId(), cleaningHtmlPrompt, USER_PROMPT, modelCleaning, temperatureCleaning, maxCountAttemptsCleaning
-        );
-
-        return AiStageBuilder.with1Parameter(cleaningStage, CLEANING_STAGE_INPUT, CLEANING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
-        );
-    }
-
-    private AiStage addNoiseRemovingStage(AiCleaningRequest cleaningRequest) {
-        String noisePrompt = "prompt/cleaning/noise-removing-prompt.txt";
-        String stageName = "NOISE_REMOVING_STAGE";
-
-        AiStageParameters stageParameters = new AiStageParameters(stageName,
-                cleaningRequest.getId(), noisePrompt, USER_PROMPT, modelNoiseRemoving, temperatureNoiseRemoving, maxCountAttemptsNoiseRemoving
-        );
-
-        return AiStageBuilder.with1Parameter(stageName, CLEANING_STAGE_OUTPUT, NOISE_REMOVING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
-        );
-    }
-
-    private AiStage addNormalizationStage(AiCleaningRequest cleaningRequest) {
-        String normalizingPrompt = "prompt/cleaning/normalization-prompt.txt";
-        String stageName = "NORMALIZATION_STAGE";
-
-        AiStageParameters stageParameters = new AiStageParameters(stageName,
-                cleaningRequest.getId(), normalizingPrompt, USER_PROMPT, modelNormalization, temperatureNormalization, maxCountAttemptsNormalization
-        );
-
-        return AiStageBuilder.with1Parameter(stageName, NOISE_REMOVING_STAGE_OUTPUT, NORMALIZATION_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
-        );
-    }
-
     /**
      * Performs executing data in the pipeline side
      *
@@ -143,10 +117,52 @@ public class AiCleaningArticlesRepo {
      */
     private AIPipelineResponse<String> exec(AiCleaningRequest request, String payload) {
         AiPipeline<String, String> pipeline = AiPipelineBuilder.withName(PIPELINE_NAME, CLEANING_STAGE_INPUT,
-                NORMALIZATION_STAGE_OUTPUT
-        ).addStage(addCleaningStage(request)).addStage(addNoiseRemovingStage(request)).addStage(addNormalizationStage(request))
+                        NORMALIZATION_STAGE_OUTPUT
+                ).addStage(addCleaningStage(request)).addStage(addNoiseRemovingStage(request)).addStage(addNormalizationStage(request))
                 .build();
 
         return aiPipelineExecutor.executePipeline(pipeline, payload);
+    }
+
+    private AiStage<?> addCleaningStage(AiCleaningRequest cleaningRequest) {
+        String cleaningHtmlPrompt = "prompt/cleaning/cleaning-prompt.txt";
+        String cleaningStage = "CLEANING_STAGE";
+        AiStageParameters stageParameters = new AiStageParameters(cleaningStage,
+                cleaningRequest.getId(), cleaningHtmlPrompt, USER_PROMPT, modelCleaning, temperatureCleaning, maxCountAttemptsCleaning
+        );
+
+        return AiStageBuilder.with1Parameter(cleaningStage, CLEANING_STAGE_INPUT, CLEANING_STAGE_OUTPUT, stageParameters,
+                defaultAiExecutor, aiSizeValidator, null
+        );
+    }
+
+    private AiStage<?> addNoiseRemovingStage(AiCleaningRequest cleaningRequest) {
+        String noisePrompt = "prompt/cleaning/noise-removing-prompt.txt";
+        String stageName = "NOISE_REMOVING_STAGE";
+        AiStageParameters stageParameters = new AiStageParameters(stageName,
+                cleaningRequest.getId(), noisePrompt, USER_PROMPT, modelNoiseRemoving, temperatureNoiseRemoving, maxCountAttemptsNoiseRemoving
+        );
+
+        String validationPrompt = "prompt/cleaning/cleaning-validation-prompt.txt";
+        AiStageParameters validationStageParameters = new AiStageParameters(stageName,
+                cleaningRequest.getId(), validationPrompt, VALIDATION_PROMPT, modelValidation, temperatureValidation, maxCountAttemptsValidation
+        );
+
+        return AiStageBuilder.with1Parameter(stageName, CLEANING_STAGE_OUTPUT, NOISE_REMOVING_STAGE_OUTPUT, stageParameters,
+                defaultAiExecutor, aiDefaultValidator, validationStageParameters
+        );
+    }
+
+    private AiStage<?> addNormalizationStage(AiCleaningRequest cleaningRequest) {
+        String normalizingPrompt = "prompt/cleaning/normalization-prompt.txt";
+        String stageName = "NORMALIZATION_STAGE";
+
+        AiStageParameters stageParameters = new AiStageParameters(stageName,
+                cleaningRequest.getId(), normalizingPrompt, USER_PROMPT, modelNormalization, temperatureNormalization, maxCountAttemptsNormalization
+        );
+
+        return AiStageBuilder.with1Parameter(stageName, NOISE_REMOVING_STAGE_OUTPUT, NORMALIZATION_STAGE_OUTPUT, stageParameters,
+                defaultAiExecutor, aiSizeValidator, null
+        );
     }
 }

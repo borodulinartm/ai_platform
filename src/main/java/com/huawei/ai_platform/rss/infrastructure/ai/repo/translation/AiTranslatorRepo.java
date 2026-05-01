@@ -5,6 +5,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslat
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction2Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.IAiStageValidation;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipeline;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineBuilder;
@@ -32,17 +33,17 @@ import java.util.Locale;
 public class AiTranslatorRepo {
     private static final String PIPELINE_NAME = "TRANSLATING";
     private static final String USER_PROMPT = "prompt/user-prompt.txt";
-    private static final String USER_PROMPT_VALIDATION = "prompt/user-prompt-validation.txt";
+    private static final String USER_PROMPT_VALIDATION = "prompt/translations/user-prompt-validation.txt";
 
     private static final AiTypedKey<String> TRANSLATING_STAGE_INPUT = AiTypedKey.of(String.class, "TRANSLATING_STAGE_INPUT");
     private static final AiTypedKey<String> TRANSLATING_STAGE_OUTPUT = AiTypedKey.of(String.class, "TRANSLATING_STAGE_OUTPUT");
     private static final AiTypedKey<String> NORMALIZATION_STAGE_OUTPUT = AiTypedKey.of(String.class, "NORMALIZATION_STAGE_OUTPUT");
     private static final AiTypedKey<String> FORMATTING_STAGE_OUTPUT = AiTypedKey.of(String.class, "FORMATTING_STAGE_OUTPUT");
-    private static final AiTypedKey<String> VALIDATION_OUTPUT = AiTypedKey.of(String.class, "VALIDATION_OUTPUT");
 
     private final AiFunction1Executor<String, String> defaultAiExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
-    private final AiFunction2Executor<String, String, String> aiValidationExecutor;
+    private final IAiStageValidation<String, String> aiDefaultValidator;
+    private final IAiStageValidation<String, String> aiSizeValidator;
 
     @Value("${ai.translating.translatingStage.countAttempts}")
     private int maxCountAttemptsTranslatingStage;
@@ -65,11 +66,11 @@ public class AiTranslatorRepo {
     @Value("${ai.translating.formattingStage.model}")
     private String modelFormattingStage;
 
-    @Value("${ai.translating.validation.countAttempts}")
+    @Value("${ai.translating.translatingStage.validation.countAttempts}")
     private int maxCountAttemptsValidatingStage;
-    @Value("${ai.translating.validation.temperature}")
+    @Value("${ai.translating.translatingStage.validation.temperature}")
     private Double temperatureValidatingStage;
-    @Value("${ai.translating.validation.model}")
+    @Value("${ai.translating.translatingStage.validation.model}")
     private String modelValidatingStage;
 
     /**
@@ -124,22 +125,28 @@ public class AiTranslatorRepo {
 
     // section of the methods which constructs stage for the pipeline
 
-    private AiStage addTranslatingStage(AiTranslationRequest translationRequest, Locale locale) {
+    private AiStage<?> addTranslatingStage(AiTranslationRequest translationRequest, Locale locale) {
         String translationPrompt = locale == Locale.ENGLISH ? "prompt/translations/translation-prompt-en.txt" :
                 "prompt/translations/translation-prompt-zh.txt";
         String stageName = "TRANSLATION_STAGE";
-
         AiStageParameters stageParameters = new AiStageParameters(stageName,
                 translationRequest.getArticleId(), translationPrompt, USER_PROMPT, modelTranslatingStage,
                 temperatureTranslatingStage, maxCountAttemptsTranslatingStage
         );
 
+        String validationPrompt = locale == Locale.ENGLISH ? "prompt/translations/translation-validation-prompt-en.txt" :
+                "prompt/translations/translation-validation-prompt-zh.txt";
+        AiStageParameters validationStageParameters = new AiStageParameters(stageName,
+                translationRequest.getArticleId(), validationPrompt, USER_PROMPT_VALIDATION, modelValidatingStage,
+                temperatureValidatingStage, maxCountAttemptsValidatingStage
+        );
+
         return AiStageBuilder.with1Parameter(stageName, TRANSLATING_STAGE_INPUT, TRANSLATING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
+                defaultAiExecutor, aiDefaultValidator, validationStageParameters
         );
     }
 
-    private AiStage addNormalizationStage(AiTranslationRequest translationRequest, Locale locale) {
+    private AiStage<?> addNormalizationStage(AiTranslationRequest translationRequest, Locale locale) {
         String normalizingPrompt = locale == Locale.ENGLISH ? "prompt/translations/normalization-prompt-en.txt" :
                 "prompt/translations/normalization-prompt-zh.txt";
         String stageName = "NORMALIZATION_STAGE";
@@ -150,11 +157,11 @@ public class AiTranslatorRepo {
         );
 
         return AiStageBuilder.with1Parameter(stageName, TRANSLATING_STAGE_OUTPUT, NORMALIZATION_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
+                defaultAiExecutor, aiSizeValidator, null
         );
     }
 
-    private AiStage addFormattingStage(AiTranslationRequest translationRequest) {
+    private AiStage<?> addFormattingStage(AiTranslationRequest translationRequest) {
         String formattingPrompt = "prompt/translations/formatting-prompt.txt";
         String stageName = "FORMATTING_STAGE";
 
@@ -164,7 +171,7 @@ public class AiTranslatorRepo {
         );
 
         return AiStageBuilder.with1Parameter(stageName, NORMALIZATION_STAGE_OUTPUT, FORMATTING_STAGE_OUTPUT, stageParameters,
-                defaultAiExecutor
+                defaultAiExecutor, aiSizeValidator, null
         );
     }
 }

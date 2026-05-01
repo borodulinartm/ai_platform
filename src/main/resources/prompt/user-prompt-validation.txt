@@ -1,7 +1,0 @@
-====== INPUT TEXT BEGIN ==============
-%s
-====== INPUT TEXT END ==============
-
-====== OUTPUT TEXT BEGIN ==============
-%s
-====== OUTPUT TEXT END ==============

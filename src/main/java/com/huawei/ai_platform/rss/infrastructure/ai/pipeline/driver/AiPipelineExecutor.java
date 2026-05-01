@@ -33,8 +33,8 @@ public class AiPipelineExecutor {
         // Add validation
 
         if (!CollectionUtils.isEmpty(pipeline.getStages())) {
-            for (AiStage aiStage : pipeline.getStages()) {
-                AIStageResponse response = aiStage.executorFunction().apply(context);
+            for (AiStage<?> aiStage : pipeline.getStages()) {
+                AIStageResponse<?> response = aiStage.executorFunction().apply(context);
                 if (!response.isSuccess()) {
                     AiPipelineResponseBuilder<O> responseBuilder = new AiPipelineResponseBuilder<>(pipeline.getPipelineName());
                     responseBuilder.failure(String.format(

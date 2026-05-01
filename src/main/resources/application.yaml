@@ -37,6 +37,10 @@ ai:
       temperature: 0.2
       countAttempts: 10
       model: deepseek/deepseek-v3.2
+      validation:
+        temperature: 0.1
+        countAttempts: 3
+        model: deepseek/deepseek-v3.2
     normalizationStage:
       temperature: 0.1
       countAttempts: 10
@@ -45,10 +49,6 @@ ai:
       model: deepseek/deepseek-v3.2
       temperature: 0.1
       countAttempts: 10
-    validation:
-      temperature: 0.1
-      countAttempts: 3
-      model: deepseek/deepseek-v3.2
   cleaning:
     removingHtml:
       temperature: 0.1
@@ -58,13 +58,13 @@ ai:
       temperature: 0.1
       countAttempts: 10
       model: deepseek/deepseek-v3.2
+      validation:
+        temperature: 0.1
+        countAttempts: 3
+        model: deepseek/deepseek-v3.2
     normalization:
       temperature: 0.2
       countAttempts: 10
-      model: deepseek/deepseek-v3.2
-    validation:
-      temperature: 0.1
-      countAttempts: 3
       model: deepseek/deepseek-v3.2
   digest:
     batch-size: 50

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -27,36 +28,25 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
 
     @Override
     public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
-        int countAttempts = 1;
-
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
         ClassPathResource userPromptResource = new ClassPathResource(aiStageParameters.getUserPrompt());
 
-        while (countAttempts <= aiStageParameters.getMaxAttempts()) {
-            try (InputStream systemInputStream = systemPromptResource.getInputStream();
-                 InputStream userInputStream = userPromptResource.getInputStream()) {
+        try (InputStream systemInputStream = systemPromptResource.getInputStream();
+             InputStream userInputStream = userPromptResource.getInputStream()) {
 
-                String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
-                String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        inputParam
-                );
+            String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
+                    inputParam
+            );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
-                if (result == null) {
-                    throw new AiNullResultException("Result from the AI is null");
-                }
-
-                return result.trim();
-            } catch (Exception e) {
-                log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
-                        aiStageParameters.getStageName(),
-                        countAttempts++, aiStageParameters.getMaxAttempts(), aiStageParameters.getId(),
-                        e.getMessage()
-                );
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
+            if (result == null) {
+                throw new AiNullResultException("Result from the AI is null");
             }
-        }
 
-        throw new AiInvalidStateException(String.format("AI %s: count attempts has exceeded; ID = %s",
-                aiStageParameters.getStageName(), aiStageParameters.getId()));
+            return result.trim();
+        } catch (IOException exception) {
+            throw new AiInvalidStateException(exception);
+        }
     }
 }

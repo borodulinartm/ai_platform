@@ -20,9 +20,9 @@ public class AiPipelineBuilder<I, O> {
     private AiTypedKey<I> input;
     private AiTypedKey<O> output;
 
-    private List<AiStage> stages;
+    private List<AiStage<?>> stages;
 
-    public AiPipelineBuilder<I, O> addStage(AiStage stage) {
+    public AiPipelineBuilder<I, O> addStage(AiStage<?> stage) {
         stages.add(stage);
 
         return this;

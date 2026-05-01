@@ -12,15 +12,16 @@ import org.apache.commons.lang3.StringUtils;
 @Getter
 @Setter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class AIStageResponse {
+public class AIStageResponse<T> {
     private boolean success;
+    private T content;
     private String failureReason;
 
-    public static AIStageResponse success() {
-        return new AIStageResponse(true, StringUtils.EMPTY);
+    public static <T> AIStageResponse<T> success(T content) {
+        return new AIStageResponse<T>(true, content, StringUtils.EMPTY);
     }
 
-    public static AIStageResponse failure(String reason) {
-        return new AIStageResponse(false, reason);
+    public static <T> AIStageResponse<T> failure(String reason) {
+        return new AIStageResponse<T>(false, null, reason);
     }
 }

@@ -70,7 +70,7 @@ public class AiRelevanceCheckRepo {
         );
 
         return AiStageBuilder.with1Parameter(stageName, RELEVANCE_INPUT, RELEVANCE_OUTPUT, stageParameters,
-                relevanceStageExecutor
+                relevanceStageExecutor, null, null
         );
     }
 
