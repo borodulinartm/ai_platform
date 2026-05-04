@@ -1,9 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipeline;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineResponseBuilder;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.*;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
 import jakarta.annotation.Nonnull;

@@ -20,9 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_JPEG;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.RssAttributeTypeEnum.IMAGE_PNG;

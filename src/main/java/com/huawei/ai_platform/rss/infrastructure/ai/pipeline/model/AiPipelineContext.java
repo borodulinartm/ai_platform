@@ -15,7 +15,7 @@ import java.util.Map;
  * @since 2026.04.21
  */
 public class AiPipelineContext {
-    private Map<AiTypedKey<?>, Object> mapData;
+    private final Map<AiTypedKey<?>, Object> mapData;
 
     public AiPipelineContext() {
         mapData = new HashMap<>();

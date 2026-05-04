@@ -31,15 +31,15 @@ public class AiSizeValidator implements IAiStageValidation<String, String> {
                 return AiStageValidationResult.failure(ERROR_TEXT);
             }
         } else if (lengthInput < 100) {
-            if (ratio < 0.2) {
+            if (ratio < 0.1) {
                 return AiStageValidationResult.failure(ERROR_TEXT);
             }
         } else if (lengthInput < 200) {
-            if (ratio < 0.15) {
+            if (ratio < 0.06) {
                 return AiStageValidationResult.failure(ERROR_TEXT);
             }
         } else {
-            if (ratio < 0.1) {
+            if (ratio < 0.03) {
                 return AiStageValidationResult.failure(ERROR_TEXT);
             }
         }

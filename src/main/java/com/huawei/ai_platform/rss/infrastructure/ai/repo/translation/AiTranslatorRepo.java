@@ -20,6 +20,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static com.huawei.ai_platform.rss.enums.AiTranslatingStagesEnum.FORMATTING_STAGE;
 
@@ -39,6 +43,7 @@ public class AiTranslatorRepo {
     private static final AiTypedKey<String> TRANSLATING_STAGE_OUTPUT = AiTypedKey.of(String.class, "TRANSLATING_STAGE_OUTPUT");
     private static final AiTypedKey<String> NORMALIZATION_STAGE_OUTPUT = AiTypedKey.of(String.class, "NORMALIZATION_STAGE_OUTPUT");
     private static final AiTypedKey<String> FORMATTING_STAGE_OUTPUT = AiTypedKey.of(String.class, "FORMATTING_STAGE_OUTPUT");
+    private static final Executor EXECUTOR = Executors.newFixedThreadPool(4);
 
     private final AiFunction1Executor<String, String> defaultAiExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
@@ -53,18 +58,37 @@ public class AiTranslatorRepo {
      * @return response data
      */
     public AiTranslationResponse translate(@Nonnull AiTranslationRequest request) {
-        AIPipelineResponse<String> titleEn = exec(request, request.getArticleTitle(), Locale.ENGLISH, false);
-        AIPipelineResponse<String> titleZh = exec(request, request.getArticleTitle(), Locale.SIMPLIFIED_CHINESE, false);
-        AIPipelineResponse<String> contentEn = exec(request, request.getArticleContent(), Locale.ENGLISH, true);
-        AIPipelineResponse<String> contentZh = exec(request, request.getArticleContent(), Locale.SIMPLIFIED_CHINESE, true);
+        CompletableFuture<AIPipelineResponse<String>> titleEnFuture =
+                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleTitle(), Locale.ENGLISH, false), EXECUTOR);
 
-        if (!(titleEn.isSuccess() && titleZh.isSuccess() && contentEn.isSuccess() && contentZh.isSuccess())) {
-            return AiTranslationResponse.failureResponse(request.getArticleId(), "Not translated :(");
+        CompletableFuture<AIPipelineResponse<String>> titleZhFuture =
+                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleTitle(), Locale.SIMPLIFIED_CHINESE, false), EXECUTOR);
+
+        CompletableFuture<AIPipelineResponse<String>> contentEnFuture =
+                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleContent(), Locale.ENGLISH, true), EXECUTOR);
+
+        CompletableFuture<AIPipelineResponse<String>> contentZhFuture =
+                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleContent(), Locale.SIMPLIFIED_CHINESE, true), EXECUTOR);
+
+        CompletableFuture.allOf(titleEnFuture, titleZhFuture, contentEnFuture, contentZhFuture).join();
+
+        try {
+            AIPipelineResponse<String> titleEn = titleEnFuture.get();
+            AIPipelineResponse<String> titleZh = titleZhFuture.get();
+            AIPipelineResponse<String> contentEn = contentEnFuture.get();
+            AIPipelineResponse<String> contentZh = contentZhFuture.get();
+
+            if (!(titleEn.isSuccess() && titleZh.isSuccess() && contentEn.isSuccess() && contentZh.isSuccess())) {
+                return AiTranslationResponse.failureResponse(request.getArticleId(), "Not translated :(");
+            }
+
+            return AiTranslationResponse.successResponse(request.getArticleId(),
+                    titleEn.getPayload(), titleZh.getPayload(), contentEn.getPayload(), contentZh.getPayload()
+            );
+        } catch (InterruptedException | ExecutionException exception) {
+            log.error("An error has occurred during translation side: {}", exception.getMessage());
+            return AiTranslationResponse.failureResponse(request.getArticleId(), exception.getMessage());
         }
-
-        return AiTranslationResponse.successResponse(request.getArticleId(),
-                titleEn.getPayload(), titleZh.getPayload(), contentEn.getPayload(), contentZh.getPayload()
-        );
     }
 
     /**
@@ -77,7 +101,11 @@ public class AiTranslatorRepo {
      */
     private AIPipelineResponse<String> exec(AiTranslationRequest request, String payload, Locale locale,
                                             boolean includeFormatting) {
-        AiPipelineBuilder<String, String> aiPipelineBuilder = AiPipelineBuilder.withName(PIPELINE_NAME, TRANSLATING_STAGE_INPUT, FORMATTING_STAGE_OUTPUT);
+        AiPipelineBuilder<String, String> aiPipelineBuilder = AiPipelineBuilder.withName(
+                PIPELINE_NAME,
+                TRANSLATING_STAGE_INPUT,
+                getPipelineOutputKey(includeFormatting)
+        );
         List<AiTranslatingPipelineProperties.StageParams> params = aiTranslatingPipelineProperties.getStages();
 
         for (AiTranslatingPipelineProperties.StageParams param : params) {
@@ -119,6 +147,10 @@ public class AiTranslatorRepo {
         AiPipeline<String, String> aiPipeline = aiPipelineBuilder.build();
 
         return aiPipelineExecutor.executePipeline(aiPipeline, payload);
+    }
+
+    private AiTypedKey<String> getPipelineOutputKey(boolean includeFormatting) {
+        return includeFormatting ? FORMATTING_STAGE_OUTPUT : NORMALIZATION_STAGE_OUTPUT;
     }
 
     private AiTypedKey<String> getInputTypeKeyByStageName(@Nonnull AiTranslatingStagesEnum stagesEnum) {
