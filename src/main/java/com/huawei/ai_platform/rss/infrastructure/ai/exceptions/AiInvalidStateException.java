@@ -11,6 +11,10 @@ public class AiInvalidStateException extends RuntimeException {
         super(message);
     }
 
+    public AiInvalidStateException(Throwable throwable) {
+        super(throwable);
+    }
+
     public AiInvalidStateException() {
         super();
     }

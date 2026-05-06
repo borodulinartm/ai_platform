@@ -26,6 +26,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -107,9 +108,10 @@ public class RssPersistenceRepo {
     public List<RssFetchData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
 
-        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
+//        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
+        List<RssFetchData> fetchDataList = new ArrayList<>();
 
-        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
+//        fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
         // For failed state try to retranslate news within window size
         // Don't worry, I perform automatic uploading to the cloud within that window size
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(

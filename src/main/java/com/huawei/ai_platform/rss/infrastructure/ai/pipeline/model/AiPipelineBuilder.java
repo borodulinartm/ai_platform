@@ -1,12 +1,8 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.IAiStageExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,37 +13,32 @@ import java.util.List;
  * @author Borodulin Artem
  * @since 2026.04.20
  */
-@Getter
-@NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class AiPipelineBuilder {
+public class AiPipelineBuilder<I, O> {
     private String pipelineName;
-    private List<AiStage> stages;
 
-    public static AiPipelineBuilder createBuilder(String pipelineName) {
-        List<AiStage> stages = new ArrayList<>();
-        return new AiPipelineBuilder(pipelineName, stages);
-    }
+    private AiTypedKey<I> input;
+    private AiTypedKey<O> output;
 
-    public AiPipelineBuilder addStage(long id, String stageName, IAiStageExecutor executor, String systemPrompt,
-                                      String userPrompt, String model, double temperature, int maxAttempts) {
-        AiStageParameters parameters = new AiStageParameters(id, stageName, systemPrompt, userPrompt, "", model, temperature,
-                maxAttempts);
-        stages.add(new AiStage(stageName, parameters, executor));
+    private List<AiStage<?>> stages;
+
+    public AiPipelineBuilder<I, O> addStage(AiStage<?> stage) {
+        stages.add(stage);
 
         return this;
     }
 
-    public AiPipelineBuilder addStage(long id, String stageName, IAiStageExecutor executor, String systemPrompt,
-                                      String userPrompt, String payload, String model, double temperature, int maxAttempts) {
-        AiStageParameters parameters = new AiStageParameters(id, stageName, systemPrompt, userPrompt, payload, model, temperature,
-                maxAttempts);
-        stages.add(new AiStage(stageName, parameters, executor));
-
-        return this;
+    public AiPipeline<I, O> build() {
+        return new AiPipeline<>(pipelineName, input, output, stages);
     }
 
-    public AiPipelineRequest build() {
-        return new AiPipelineRequest(pipelineName, stages);
+    /**
+     * Static factory method of creation
+     *
+     * @param pipelineName pipeline name
+     * @return builder instance
+     */
+    public static <I, O> AiPipelineBuilder<I, O> withName(String pipelineName, AiTypedKey<I> input, AiTypedKey<O> output) {
+        return new AiPipelineBuilder<>(pipelineName, input, output, new ArrayList<>());
     }
 }

@@ -1,12 +1,10 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AIPipelineResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.*;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -19,34 +17,43 @@ import org.springframework.util.CollectionUtils;
 @Component
 @RequiredArgsConstructor
 public class AiPipelineExecutor {
+
     /**
      * Central method for executing pipeline
      *
-     * @param request - AI parameter request
-     * @return AI parameter response
-     *
+     * @param pipeline pipeline config
      */
-    public @Nonnull AIPipelineResponse executePipeline(@Nonnull AiPipelineRequest request) {
-        if (!CollectionUtils.isEmpty(request.getStages())) {
-            String userPayload = null;
-            for (AiStage aiStage : request.getStages()) {
-                if (userPayload != null) {
-                    aiStage.getParameters().setUserPayload(userPayload);
+    public <I, O> AIPipelineResponse<O> executePipeline(@Nonnull AiPipeline<I, O> pipeline, I input) {
+        AiPipelineContext context = new AiPipelineContext();
+        context.addStageResult(pipeline.getInput(), input);
+
+        // Add validation
+
+        if (!CollectionUtils.isEmpty(pipeline.getStages())) {
+            for (AiStage<?> aiStage : pipeline.getStages()) {
+                AIStageResponse<?> response = aiStage.executorFunction().apply(context);
+                if (!response.isSuccess()) {
+                    AiPipelineResponseBuilder<O> responseBuilder = new AiPipelineResponseBuilder<>(pipeline.getPipelineName());
+                    responseBuilder.failure(String.format(
+                            "AI stage %s has finished wih failure. Reason = %s",
+                            aiStage.stageName(), response.getFailureReason()
+                    ));
+
+                    return responseBuilder.build();
                 }
-
-                IAiStageExecutor stageExecutor = aiStage.getExecutor();
-
-                AIStageResponse responseForStage = stageExecutor.runStage(aiStage.getParameters());
-                if (!responseForStage.isSuccess()) {
-                    return AIPipelineResponse.failure(request.getName(), responseForStage.getPayload(), responseForStage.getFailureReason());
-                }
-
-                userPayload = responseForStage.getPayload();
             }
-
-            return AIPipelineResponse.success(request.getName(), userPayload);
         } else {
-            return AIPipelineResponse.success(request.getName(), StringUtils.EMPTY);
+            return new AiPipelineResponseBuilder<O>(pipeline.getPipelineName())
+                    .failure("Pipeline is empty. Returning").build();
+        }
+
+        try {
+            O outputResult = context.getStageResult(pipeline.getOutput());
+            return new AiPipelineResponseBuilder<O>(pipeline.getPipelineName()).success(outputResult).build();
+        } catch (Exception exception) {
+            return new AiPipelineResponseBuilder<O>(pipeline.getPipelineName())
+                    .failure(String.format("An exception has occurred during returning output value: %s", exception.getMessage()))
+                    .build();
         }
     }
 }

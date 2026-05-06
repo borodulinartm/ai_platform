@@ -27,17 +27,67 @@ spring:
           temperature: 0.2
 
 ai:
-  translating:
-    temperature: 0.2
-    countAttempts: 10
-  cleaning:
-    temperature: 0.1
-    countAttempts: 10
   relevance:
     model: deepseek/deepseek-v3.2
     temperature: 0.1
     countAttempts: 10
     relevance-threshold: 4
+  translating:
+    stages:
+      - stageName: TRANSLATION_STAGE
+        temperature: 0.2
+        countAttempts: 10
+        model: deepseek/deepseek-v3.2
+        systemPromptPathEn: prompt/translations/translation-prompt-en.txt
+        systemPromptPathZh: prompt/translations/translation-prompt-zh.txt
+        userPromptPath: prompt/user-prompt.txt
+        validation:
+          temperature: 0.1
+          countAttempts: 3
+          model: deepseek/deepseek-v3.2
+          systemPromptPathEn: prompt/translations/translation-validation-prompt-en.txt
+          systemPromptPathZh: prompt/translations/translation-validation-prompt-zh.txt
+          userPromptPath: prompt/translations/user-prompt-validation.txt
+      - stageName: NORMALIZATION_STAGE
+        temperature: 0.1
+        countAttempts: 10
+        model: deepseek/deepseek-v3.2
+        systemPromptPathEn: prompt/translations/normalization-prompt-en.txt
+        systemPromptPathZh: prompt/translations/normalization-prompt-zh.txt
+        userPromptPath: prompt/user-prompt.txt
+      - stageName: FORMATTING_STAGE
+        model: deepseek/deepseek-v3.2
+        temperature: 0.1
+        countAttempts: 10
+        systemPromptPathEn: prompt/translations/formatting-prompt.txt
+        systemPromptPathZh: prompt/translations/formatting-prompt.txt
+        userPromptPath: prompt/user-prompt.txt
+  cleaning:
+    stages:
+      - stageName: CLEANING_STAGE
+        temperature: 0.1
+        countAttempts: 10
+        model: deepseek/deepseek-v3.2
+        systemPromptPath: prompt/cleaning/cleaning-prompt.txt
+        userPromptPath: prompt/user-prompt.txt
+      - stageName: NOISE_REMOVING_STAGE
+        temperature: 0.1
+        countAttempts: 10
+        model: deepseek/deepseek-v3.2
+        systemPromptPath: prompt/cleaning/noise-removing-prompt.txt
+        userPromptPath: prompt/user-prompt.txt
+        validation:
+          temperature: 0.1
+          countAttempts: 3
+          model: deepseek/deepseek-v3.2
+          systemPromptPath: prompt/cleaning/cleaning-validation-prompt.txt
+          userPromptPath: prompt/cleaning/user-prompt-validation.txt
+      - stageName: NORMALIZATION_STAGE
+        temperature: 0.2
+        countAttempts: 10
+        model: deepseek/deepseek-v3.2
+        systemPromptPath: prompt/cleaning/normalization-prompt.txt
+        userPromptPath: prompt/user-prompt.txt
   digest:
     batch-size: 50
     log-dir: /usr1/logs/llm

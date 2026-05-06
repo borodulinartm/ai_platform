@@ -14,22 +14,10 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class AIPipelineResponse {
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
+public class AIPipelineResponse<T> {
     private boolean success;
     private String pipelineName;
-    private String payload;
+    private T payload;
     private String failureReason;
-
-    public static AIPipelineResponse success(String pipelineName, String payload) {
-        return new AIPipelineResponse(true, pipelineName, payload, "");
-    }
-
-    public static AIPipelineResponse failure(String pipelineName, String reason) {
-        return new AIPipelineResponse(false, pipelineName, "", reason);
-    }
-
-    public static AIPipelineResponse failure(String pipelineName, String payload, String reason) {
-        return new AIPipelineResponse(false, pipelineName, payload, reason);
-    }
 }

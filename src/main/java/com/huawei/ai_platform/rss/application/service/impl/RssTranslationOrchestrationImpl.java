@@ -8,15 +8,14 @@ import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRes
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.RelevanceCheckRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.CleaningCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCompletedEvent;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.event.RelevanceCheckCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCompletedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationCreatedEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.event.TranslationProcessingEvent;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiCleaningArticlesRepo;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiRelevanceCheckRepo;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTranslatorRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.relevance.AiRelevanceCheckRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning.AiCleaningArticlesRepo;
+import com.huawei.ai_platform.rss.infrastructure.ai.repo.translation.AiTranslatorRepo;
 import com.huawei.ai_platform.rss.model.RssData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +61,6 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
         AiRelevanceCheckRepo.RelevanceCheckResult result = aiRelevanceCheckRepo.checkRelevance(request);
 
         applicationEventPublisher.publishEvent(new RelevanceCheckCompletedEvent(cleaningRequests, result.passed(), result.reason()));
-        log.info("STAGE 2 vs 4: relevance check completed with passed={}, score={} for ID = {}", result.passed(), result.score(), cleaningRequests.getId());
     }
 
     @Override
@@ -95,7 +93,7 @@ public class RssTranslationOrchestrationImpl implements RssTranslationOrchestrat
             log.info("STAGE 4 vs 4: translation for ID = {} has completed successfully", aiTranslationRequestList.getArticleId());
         } else {
             AiTranslationResponse translationResponse = AiTranslationResponse.failureResponse(response.getArticleId(), response.getReason());
-            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, "Some reason"));
+            applicationEventPublisher.publishEvent(new TranslationCompletedEvent(translationResponse, FAILURE, translationResponse.getReason()));
 
             log.error("STAGE 4 vs 4: translation for ID = {} has completed with failure :(", aiTranslationRequestList.getArticleId());
         }

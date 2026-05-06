@@ -1,11 +1,10 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.executor;
+package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.IAiStageExecutor;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AIStageResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
-import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,29 +17,31 @@ import java.nio.charset.StandardCharsets;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RelevanceStageExecutor implements IAiStageExecutor {
+public class RelevanceStageExecutor implements AiFunction1Executor<String, String> {
     private final AiExecutor aiExecutor;
 
     @Value("${ai.relevance.relevance-threshold:4}")
     private int threshold;
 
     @Override
-    public AIStageResponse runStage(@Nonnull AiStageParameters parameters) {
+    public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
         int countAttempts = 1;
 
-        ClassPathResource systemPromptResource = new ClassPathResource(parameters.getSystemPrompt());
-        ClassPathResource userPromptResource = new ClassPathResource(parameters.getUserPrompt());
+        ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
+        ClassPathResource userPromptResource = new ClassPathResource(aiStageParameters.getUserPrompt());
 
-        while (countAttempts <= parameters.getMaxAttempts()) {
+        while (countAttempts <= aiStageParameters.getMaxAttempts()) {
             try (InputStream systemInputStream = systemPromptResource.getInputStream();
                  InputStream userInputStream = userPromptResource.getInputStream()) {
 
                 String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
                 String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        parameters.getUserPayload()
+                        inputParam
                 );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, parameters.getTemperature());
+                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+                        aiStageParameters.getModel()
+                );
                 if (result == null) {
                     throw new AiNullResultException("Result from the AI is null");
                 }
@@ -48,23 +49,26 @@ public class RelevanceStageExecutor implements IAiStageExecutor {
                 int score = parseScore(result.trim());
 
                 if (score == -1) {
-                    log.warn("Invalid score on attempt {}/{}: {}", countAttempts, parameters.getMaxAttempts(), result);
+                    log.warn("Invalid score on attempt {}/{}: {}", countAttempts, aiStageParameters.getMaxAttempts(), result);
+
                     countAttempts++;
                     continue;
                 }
 
                 if (score <= threshold) {
-                    return AIStageResponse.failure(String.valueOf(score), "score=" + score + ", threshold=" + threshold);
+                    throw new AiInvalidStateException("score=" + score + ", threshold=" + threshold);
                 }
 
-                return AIStageResponse.success(String.valueOf(score));
+                return result;
             } catch (Exception e) {
-                log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, parameters.getMaxAttempts(), parameters.getId(), e.getMessage());
+                log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, aiStageParameters.getMaxAttempts(),
+                        aiStageParameters.getId(), e.getMessage()
+                );
             }
         }
 
-        log.warn("Relevance check failed after {} attempts for ID={}, defaulting to score=5", parameters.getMaxAttempts(), parameters.getId());
-        return AIStageResponse.success("5");
+        throw new AiInvalidStateException(
+                String.format("Relevance check failed after %s attempts for ID=%s, defaulting to pass", aiStageParameters.getMaxAttempts(), aiStageParameters.getId()));
     }
 
     private int parseScore(String response) {

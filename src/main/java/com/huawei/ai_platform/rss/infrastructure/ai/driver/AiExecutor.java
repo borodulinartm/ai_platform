@@ -36,7 +36,7 @@ public class AiExecutor {
      * @param temp         temperature
      * @return Response from AI
      */
-    public String performOperation(String systemPrompt, String userPrompt, Double temp) {
+    public String performOperation(String systemPrompt, String userPrompt, Double temp, String model) {
         Double temperatureToPass = temp == null ? defaultTemperature : temp;
 
         Message systemMessage = new SystemMessage(systemPrompt);
@@ -44,7 +44,7 @@ public class AiExecutor {
 
         String res = chatClient.prompt(
                 new Prompt.Builder().messages(List.of(systemMessage, userMessage))
-                        .chatOptions(ChatOptions.builder().temperature(temperatureToPass).build())
+                        .chatOptions(ChatOptions.builder().model(model).temperature(temperatureToPass).build())
                         .build()
         ).call().content();
 
