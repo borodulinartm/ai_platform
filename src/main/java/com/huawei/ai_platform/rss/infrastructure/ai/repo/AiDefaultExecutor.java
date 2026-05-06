@@ -39,7 +39,9 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
                     inputParam
             );
 
-            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+                    aiStageParameters.getModel()
+            );
             if (result == null) {
                 throw new AiNullResultException("Result from the AI is null");
             }

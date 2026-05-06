@@ -42,7 +42,9 @@ public class AiValidationExecutor implements AiFunction2Executor<String, String,
                         inputParam_1, inputParam_2
                 );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature());
+                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+                        aiStageParameters.getModel()
+                );
                 if (result == null) {
                     throw new AiNullResultException("Result from the AI is null");
                 }

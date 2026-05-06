@@ -45,7 +45,9 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
                         inputData, outputData
                 );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, parameters.getTemperature());
+                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, parameters.getTemperature(),
+                        parameters.getModel()
+                );
                 if (result == null) {
                     throw new AiNullResultException("Result from the AI is null");
                 }
