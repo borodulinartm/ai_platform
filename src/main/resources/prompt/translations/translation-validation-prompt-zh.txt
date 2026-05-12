@@ -46,6 +46,20 @@ TRANSLATED_TEXT is valid only if:
 - `<img>` tags remain unchanged
 - names, numbers, and entities remain accurate
 
+SIMPLIFIED CHINESE DETECTION RULES
+
+- Technical Chinese is still valid Simplified Chinese even if it contains acronyms, abbreviations, product names, model names, SQL-like terms, code-like identifiers, filenames, URLs, or mixed alphanumeric tokens
+- Proper nouns, brand names, standardized model names, protocol names, and some technical abbreviations may remain partly unchanged when that is natural and standard
+- A small number of English technical terms may appear inside an otherwise correct Simplified Chinese translation
+- Do not mark TRANSLATED_TEXT as invalid merely because it contains specialized terminology, capitalization, punctuation, symbols, or mixed Chinese-Latin technical expressions
+- However, if whole phrases, clauses, sentences, or substantial portions that should normally be translated remain in English, then it is invalid
+
+IDENTITY AND PARTIAL-TRANSLATION RULES
+
+- If SOURCE_TEXT is already fully in Simplified Chinese, TRANSLATED_TEXT may be identical to SOURCE_TEXT and still be valid
+- If no translation is required because SOURCE_TEXT is already valid Simplified Chinese, unchanged output is valid as long as meaning, structure, and content are preserved exactly
+- If SOURCE_TEXT is not in Simplified Chinese, then unchanged output is usually invalid unless the unchanged parts are limited to proper nouns, acronyms, or standard technical terms that normally remain untranslated
+
 SIMPLIFIED CHINESE REQUIREMENT
 
 - Use Simplified Chinese characters, not Traditional Chinese
@@ -57,6 +71,7 @@ SPECIAL CASES
 - If SOURCE_TEXT contains no content, then `NO_CONTENT` is a valid result
 - If TRANSLATED_TEXT is empty while SOURCE_TEXT contains translatable content, it is invalid
 - If TRANSLATED_TEXT contains substantial non-Chinese text where Simplified Chinese translation is required, it is invalid
+- If SOURCE_TEXT is already Simplified Chinese and TRANSLATED_TEXT matches it faithfully, return `NO_CONTENT`
 
 ERROR MESSAGE RULES
 
@@ -66,6 +81,7 @@ If invalid, return a brief error message in plain English, for example:
 - ERROR: Translation paraphrases instead of translating faithfully
 - ERROR: Translation is not in Simplified Chinese
 - ERROR: Translation uses Traditional Chinese instead of Simplified Chinese
+- ERROR: Too much source text remained untranslated in English
 - ERROR: `<img>` tags were modified
 - ERROR: Translation is empty but source contains content
 - ERROR: Structure or line breaks were not preserved

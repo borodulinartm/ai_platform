@@ -2,6 +2,7 @@ package com.huawei.ai_platform.rss.infrastructure.ai.repo.translation;
 
 import com.huawei.ai_platform.rss.enums.AiTranslatingStagesEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslatingPipelineProperties;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslatingStageParams;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
@@ -106,9 +107,9 @@ public class AiTranslatorRepo {
                 TRANSLATING_STAGE_INPUT,
                 getPipelineOutputKey(includeFormatting)
         );
-        List<AiTranslatingPipelineProperties.StageParams> params = aiTranslatingPipelineProperties.getStages();
+        List<AiTranslatingStageParams> params = aiTranslatingPipelineProperties.getStages();
 
-        for (AiTranslatingPipelineProperties.StageParams param : params) {
+        for (AiTranslatingStageParams param : params) {
             // Skip formatting if not required
             if (param.getStageName() == FORMATTING_STAGE) {
                 if (!includeFormatting) {

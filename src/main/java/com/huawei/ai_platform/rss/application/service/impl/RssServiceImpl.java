@@ -9,7 +9,9 @@ import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningStageParams;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -51,6 +53,8 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
     private final RssTranslationOrchestration rssTranslationOrchestration;
     private final AiTranslationMapper aiTranslationMapper;
+
+    private final AiCleaningPipelineProperties aiCleaningStageParams;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {

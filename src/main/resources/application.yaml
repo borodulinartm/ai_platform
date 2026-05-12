@@ -48,6 +48,7 @@ ai:
           systemPromptPathEn: prompt/translations/translation-validation-prompt-en.txt
           systemPromptPathZh: prompt/translations/translation-validation-prompt-zh.txt
           userPromptPath: prompt/translations/user-prompt-validation.txt
+          stageName: VALIDATION_STAGE
       - stageName: NORMALIZATION_STAGE
         temperature: 0.1
         countAttempts: 10
@@ -82,6 +83,7 @@ ai:
           model: deepseek/deepseek-v3.2
           systemPromptPath: prompt/cleaning/cleaning-validation-prompt.txt
           userPromptPath: prompt/cleaning/user-prompt-validation.txt
+          stageName: VALIDATION_STAGE
       - stageName: NORMALIZATION_STAGE
         temperature: 0.2
         countAttempts: 10

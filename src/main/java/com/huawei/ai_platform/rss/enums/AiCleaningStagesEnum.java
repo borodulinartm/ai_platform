@@ -7,5 +7,5 @@ package com.huawei.ai_platform.rss.enums;
  * @since 2026.05.01
  */
 public enum AiCleaningStagesEnum {
-    CLEANING_STAGE, NOISE_REMOVING_STAGE, NORMALIZATION_STAGE
+    CLEANING_STAGE, NOISE_REMOVING_STAGE, NORMALIZATION_STAGE, VALIDATION_STAGE
 }

@@ -7,5 +7,5 @@ package com.huawei.ai_platform.rss.enums;
  * @since 2026.05.01
  */
 public enum AiTranslatingStagesEnum {
-    TRANSLATION_STAGE, NORMALIZATION_STAGE, FORMATTING_STAGE
+    TRANSLATION_STAGE, NORMALIZATION_STAGE, FORMATTING_STAGE, VALIDATION_STAGE
 }

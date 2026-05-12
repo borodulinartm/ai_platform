@@ -46,11 +46,26 @@ TRANSLATED_TEXT is valid only if:
 - `<img>` tags remain unchanged
 - names, numbers, and entities remain accurate
 
+ENGLISH DETECTION RULES
+
+- Technical English is still English
+- Acronyms, abbreviations, product names, model names, SQL-like terms, code-like identifiers, filenames, URLs, and hyphenated technical compounds do not make the text non-English
+- Proper nouns and named entities may remain unchanged if they are already correct
+- Short titles, paper names, and headline-style fragments with technical vocabulary can still be valid English
+- Do not mark TRANSLATED_TEXT as non-English merely because it contains specialized terminology, capitalization, punctuation, symbols, or mixed alphanumeric tokens
+
+IDENTITY CASES
+
+- If SOURCE_TEXT is already fully in English, TRANSLATED_TEXT may be identical to SOURCE_TEXT and still be valid
+- If no translation is required because SOURCE_TEXT is already valid English, unchanged output is valid as long as meaning, structure, and content are preserved exactly
+- Do not require wording changes when SOURCE_TEXT is already in correct English
+
 SPECIAL CASES
 
 - If SOURCE_TEXT contains no content, then `NO_CONTENT` is a valid result
 - If TRANSLATED_TEXT is empty while SOURCE_TEXT contains translatable content, it is invalid
 - If TRANSLATED_TEXT contains substantial non-English text where English translation is required, it is invalid
+- If SOURCE_TEXT is already English and TRANSLATED_TEXT matches it faithfully, return `NO_CONTENT`
 
 ERROR MESSAGE RULES
 
@@ -59,6 +74,7 @@ If invalid, return a brief error message in plain English, for example:
 - ERROR: Translation adds content not present in the source
 - ERROR: Translation paraphrases instead of translating faithfully
 - ERROR: Translation is not in English
+- ERROR: Source is already English but output does not preserve it faithfully
 - ERROR: `<img>` tags were modified
 - ERROR: Translation is empty but source contains content
 - ERROR: Structure or line breaks were not preserved

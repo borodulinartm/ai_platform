@@ -55,8 +55,13 @@ public class AiRelevanceCheckRepo {
         AIPipelineResponse<String> pipelineResponse = aiPipelineExecutor.executePipeline(pipelineRequest, payload);
 
         if (pipelineResponse.isSuccess()) {
-            int score = Integer.parseInt(pipelineResponse.getPayload().trim());
-            return new RelevanceCheckResult(true, score, pipelineResponse.getPayload());
+            try {
+                int score = Integer.parseInt(pipelineResponse.getPayload().trim());
+                return new RelevanceCheckResult(true, score, pipelineResponse.getPayload());
+            } catch (Exception exception) {
+                log.error("Relevance checking: Error for ID = {}. Message = {}", request.getId(), exception.getMessage());
+                return new RelevanceCheckResult(false, -1, pipelineResponse.getFailureReason());
+            }
         } else {
             return new RelevanceCheckResult(false, -1, pipelineResponse.getFailureReason());
         }

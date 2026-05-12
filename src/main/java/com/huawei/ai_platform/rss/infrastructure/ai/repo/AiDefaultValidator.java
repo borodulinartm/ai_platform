@@ -58,8 +58,8 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
 
                 return AiStageValidationResult.failure(result);
             } catch (IOException exception) {
-                log.warn("AiDefaultValidator: exception for ID = {}. Attempt {}/{}", parameters.getId(),
-                        countAttempts++, parameters.getMaxAttempts()
+                log.warn("AiDefaultValidator: exception for ID = {}. Attempt {}/{}. File = {}, Input text = {}, Output text = {}", parameters.getId(),
+                        countAttempts++, parameters.getMaxAttempts(), parameters.getSystemPrompt(), inputData, outputData
                 );
             }
         }

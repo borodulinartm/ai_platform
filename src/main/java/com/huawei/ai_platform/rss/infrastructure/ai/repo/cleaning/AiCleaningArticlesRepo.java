@@ -4,6 +4,7 @@ import com.huawei.ai_platform.rss.enums.AiCleaningStagesEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningStageParams;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiPipelineExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.IAiStageValidation;
@@ -88,8 +89,8 @@ public class AiCleaningArticlesRepo {
         // first, building map for input and output values for the data
 
         AiPipelineBuilder<String, String> aiPipelineBuilder = AiPipelineBuilder.withName(PIPELINE_NAME, CLEANING_STAGE_INPUT, NORMALIZATION_STAGE_OUTPUT);
-        List<AiCleaningPipelineProperties.StageParams> params = cleaningPipelineProperties.getStages();
-        for (AiCleaningPipelineProperties.StageParams param : params) {
+        List<AiCleaningStageParams> params = cleaningPipelineProperties.getStages();
+        for (AiCleaningStageParams param : params) {
             AiStageParameters aiStageParameters = new AiStageParameters(param.getStageName().name(), request.getId(),
                     param.getSystemPromptPath(), param.getUserPromptPath(), param.getModel(), param.getTemperature(),
                     param.getCountAttempts()
