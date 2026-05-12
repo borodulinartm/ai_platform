@@ -35,31 +35,15 @@ FORBIDDEN in output:
 - prefixes or suffixes
 - raw text without HTML tags
 - HEADING TAGS (<h1>, <h2>, <h3>, <h4>, <h5>, <h6>)
+- <mark> (forbidden — never use)
+- <hr> (forbidden — never use)
 
 INLINE FORMATTING ONLY (STRICT)
 
 Use ONLY these inline tags for text beautification:
 
-- <p> paragraphs (wrap each logical paragraph)
-- <strong> important terms, key information
-- <em> emphasis, subtle stress
-- <mark> highlighted text, search-relevant content
-- <small> secondary information, fine print, disclaimers
-- <abbr> abbreviations (use title attribute for full form)
-- <sub> subscript (chemical formulas, footnotes)
-- <sup> superscript (powers, ordinal indicators)
-- <code> inline code snippets, technical terms
-- <kbd> keyboard input
-- <s> or <del> strikethrough (deleted text)
-- <u> underlined text (rare, for proper nouns or emphasis)
-
-BLOCK SEPARATION
-
-Use these tags for content structure:
-
-- <p> paragraph (REQUIRED for each logical block of text)
+- <p> paragraphs (wrap each source paragraph — do NOT create extra paragraphs)
 - <br> line break within paragraph (rare, for poetry or addresses)
-- <hr> thematic break between distinct content sections
 - <blockquote> quotations, notable statements
 - <pre> preformatted text (code blocks, preserved whitespace)
 - <ul> unordered lists (bullet points)
@@ -68,10 +52,9 @@ Use these tags for content structure:
 
 CONTENT RULES
 
-- Split text into logical paragraphs with <p> tags
+- Split text into paragraphs matching the source structure — one <p> per source paragraph, no extra paragraphs
 - Use <strong> for key terms (sparingly, once per concept)
 - Use <em> for subtle emphasis
-- Use <mark> for important highlights (very sparingly)
 - Use <small> for disclaimers, dates, secondary info
 - Wrap code snippets in <code>
 - Use <blockquote> for quotes over 2 lines
@@ -84,7 +67,7 @@ CONSISTENCY RULES
 - Use semantic HTML5 inline tags only
 - No inline styles or class attributes
 - No heading tags (h1-h6) - use <strong> for emphasis instead
-- All paragraphs wrapped in <p>
+- All paragraphs wrapped in <p>, matching source paragraph structure
 - Proper nesting (ul/ol > li, blockquote > p)
 - Abbreviations need title attribute
 - Blockquotes can contain <p> for multi-paragraph quotes
@@ -97,12 +80,13 @@ Ensure ALL conditions are met:
 - Output contains only valid HTML tags and text
 - No Markdown formatting appears
 - No heading tags (<h1>, <h2>, <h3>, <h4>, <h5>, <h6>)
+- No <mark> or <hr> tags
 - No newline characters in output (must be single line)
 - All tags are properly closed
-- Each logical paragraph wrapped in <p>
+- Each source paragraph wrapped in <p> — no extra paragraphs
 - Inline tags properly nested within <p>
 
 FINAL INSTRUCTION
 
 Format article → output ONLY single-line HTML with inline formatting.
-No newlines. No headings. No reasoning. No explanations. No deviations.
+No newlines. No headings. No <mark>. No <hr>. No reasoning. No explanations. No deviations.

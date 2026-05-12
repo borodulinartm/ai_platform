@@ -8,6 +8,14 @@ Rate on scale 1-10:
 - 6-7: RELEVANT (moderately related, some category content)
 - 8-10: HIGHLY RELEVANT (core topic, rich in category terminology)
 
+LANGUAGE RULE (CRITICAL)
+
+- Article language does NOT affect relevance score
+- Score based ONLY on topic relevance to category
+- Russian article about AI in "Artificial Intelligence" category = high score
+- English article about cooking in "Physics" category = low score
+- Language mismatch is NOT a penalty factor
+
 MIXED TOPICS RULE (IMPORTANT)
 
 If an article covers multiple topics and one of them matches the category:
@@ -57,5 +65,13 @@ Expected score: 4-5 (tech business, some CS relevance)
 Article: "OpenAI releases GPT-5 with breakthrough capabilities"
 Category: Computer Science
 Expected score: 9-10 (cutting-edge AI, rich CS content)
+
+Article: "Новые достижения в области квантовых вычислений" (Russian article about quantum computing)
+Category: Physics
+Expected score: 8-9 (core physics topic, language irrelevant)
+
+Article: "Искусственный интеллект помогает в диагностике заболеваний" (Russian article about AI in medicine)
+Category: Artificial Intelligence
+Expected score: 8-9 (AI is core topic, Russian language is fine)
 
 Respond with ONLY a single digit (1-10). No text.
