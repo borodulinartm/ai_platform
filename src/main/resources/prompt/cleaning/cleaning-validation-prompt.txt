@@ -52,6 +52,29 @@ CLEANED_TEXT is valid only if it removes noise such as:
 - empty or meaningless lines
 - container markers
 
+VALIDATION PRIORITIES
+
+- Preserving meaningful article content is more important than removing every minor residual metadata fragment
+- Do not fail CLEANED_TEXT for tiny harmless leftovers if the main article body is clearly preserved and most meaningful noise was removed
+- Return `ERROR: Noise content remains in cleaned text` only when residual noise is substantial, repeated, clearly non-article, or materially degrades the cleaned output
+- If the remaining questionable text could plausibly be part of the article body, prefer treating it as valid
+
+DOCUMENT-TYPE AWARENESS
+
+- SOURCE_TEXT is not always a news article; it may also be a coherent document, prompt template, announcement, product copy, landing-page body text, or instructional content
+- Do not classify text as noise merely because it is promotional, persuasive, instructional, or marketing-style if that material is the main substantive content of SOURCE_TEXT
+- Treat promotional or call-to-action text as noise only when it is clearly peripheral boilerplate around the main content, such as banner copy, footer CTA, subscription nags, follow/share prompts, or unrelated upsell blocks
+- If CLEANED_TEXT preserves a coherent self-contained document whose main body is promotional or instructional by nature, that can still be valid cleaned output
+- If the allegedly noisy text is actually the primary content rather than surrounding clutter, do not return `ERROR: Noise content remains in cleaned text`
+
+METADATA VS ARTICLE BODY
+
+- Treat standalone bylines, breadcrumb navigation, share/follow prompts, subscription prompts, footer boilerplate, category labels, and standalone publication timestamps as noise
+- Do not treat article sentences as noise merely because they mention dates, authors, sources, related work, PDFs, citations, or external resources in context
+- Technical headings, paper-style prose, domain-specific terminology, and short factual lines may still be meaningful article content
+- If a residual fragment is short and ambiguous, do not fail unless it is clearly non-article text
+- A CTA or product mention that is integrated into the main document may be meaningful content rather than noise
+
 Additional rules:
 - meaningful article text must be preserved exactly
 - embedded URLs should be removed without changing the surrounding text
@@ -65,6 +88,7 @@ ERROR MESSAGE RULES
 If invalid, return a brief error message in plain English, for example:
 - ERROR: Meaningful article text was removed
 - ERROR: Noise content remains in cleaned text
+- ERROR: Too much article content was removed as noise
 - ERROR: Cleaned text contains rewritten or added content
 - ERROR: Cleaned text is empty but source contains article content
 

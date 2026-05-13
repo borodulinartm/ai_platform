@@ -57,6 +57,13 @@ CORE TASK
 - DO NOT rewrite
 - DO NOT paraphrase
 
+PRIORITY RULE
+
+- Prefer keeping borderline text rather than deleting meaningful article content
+- Remove text only when it is clearly metadata, navigation, boilerplate, or promotional noise
+- If a line could plausibly be part of the article body, keep it
+- Short metadata fragments at the very beginning or end should be removed when clearly separable from the article body
+
 NOISE REMOVAL RULES (STRICT)
 
 REMOVE completely:
@@ -83,6 +90,20 @@ REMOVE completely:
   ----BEGIN TEXT-------
   ----END TEXT---------
 
+KEEP as meaningful content:
+
+- Article title-like sentences when they are part of the extracted article text
+- Technical terminology, formulas, citations in prose, paper section text, and domain-specific wording
+- References to dates, people, organizations, or publications when they are part of the article narrative rather than page metadata
+- Source quotations and factual statements even if short
+
+METADATA VS ARTICLE BODY
+
+- Remove standalone metadata lines such as author bylines, publication dates, category labels, share/follow prompts, breadcrumb navigation, and boilerplate footer text
+- Remove labels like `Published:`, `Updated:`, `By`, `Author:`, `Source:`, `Filed under:` when they are standalone metadata lines
+- Do not remove sentences from the article body merely because they mention an author, date, source, PDF, or related work in context
+- Do not treat technical paper titles, section text, or abstract-like prose as noise unless they are clearly just wrapper labels or metadata
+
 LINK HANDLING
 
 - Remove all standalone URLs
@@ -101,6 +122,7 @@ Ensure ALL conditions are satisfied:
 - Output is NOT empty (else return "NO_CONTENT")
 - No noise elements remain
 - No system or reasoning text appears
+- Minor harmless residual formatting is preferable to deleting meaningful article text
 
 FINAL INSTRUCTION
 
