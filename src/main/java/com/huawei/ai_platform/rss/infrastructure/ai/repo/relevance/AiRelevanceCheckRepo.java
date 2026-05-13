@@ -63,6 +63,8 @@ public class AiRelevanceCheckRepo {
                 return new RelevanceCheckResult(false, -1, pipelineResponse.getFailureReason());
             }
         } else {
+            log.error("Relevance checking: Error for ID = {}. Message = {}", request.getId(), pipelineResponse.getFailureReason());
+
             return new RelevanceCheckResult(false, -1, pipelineResponse.getFailureReason());
         }
     }

@@ -25,50 +25,38 @@ public class RelevanceStageExecutor implements AiFunction1Executor<String, Strin
 
     @Override
     public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
-        int countAttempts = 1;
-
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
         ClassPathResource userPromptResource = new ClassPathResource(aiStageParameters.getUserPrompt());
 
-        while (countAttempts <= aiStageParameters.getMaxAttempts()) {
-            try (InputStream systemInputStream = systemPromptResource.getInputStream();
-                 InputStream userInputStream = userPromptResource.getInputStream()) {
+        try (InputStream systemInputStream = systemPromptResource.getInputStream();
+             InputStream userInputStream = userPromptResource.getInputStream()) {
 
-                String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
-                String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        inputParam
-                );
+            String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
+                    inputParam
+            );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
-                        aiStageParameters.getModel()
-                );
-                if (result == null) {
-                    throw new AiNullResultException("Result from the AI is null");
-                }
-
-                int score = parseScore(result.trim());
-
-                if (score == -1) {
-                    log.warn("Invalid score on attempt {}/{}: {}", countAttempts, aiStageParameters.getMaxAttempts(), result);
-
-                    countAttempts++;
-                    continue;
-                }
-
-                if (score <= threshold) {
-                    throw new AiInvalidStateException("score=" + score + ", threshold=" + threshold);
-                }
-
-                return result;
-            } catch (Exception e) {
-                log.warn("Relevance check attempt {}/{} failed for ID={}: {}", countAttempts++, aiStageParameters.getMaxAttempts(),
-                        aiStageParameters.getId(), e.getMessage()
-                );
+            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+                    aiStageParameters.getModel()
+            );
+            if (result == null) {
+                throw new AiNullResultException("Result from the AI is null");
             }
-        }
 
-        throw new AiInvalidStateException(
-                String.format("Relevance check failed after %s attempts for ID=%s, defaulting to pass", aiStageParameters.getMaxAttempts(), aiStageParameters.getId()));
+            int score = parseScore(result.trim());
+
+            if (score == -1) {
+                throw new AiInvalidStateException("Invalid score. ID = " + aiStageParameters.getId());
+            }
+
+            if (score <= threshold) {
+                throw new AiInvalidStateException("score=" + score + ", threshold=" + threshold);
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new AiInvalidStateException(e);
+        }
     }
 
     private int parseScore(String response) {

@@ -30,7 +30,7 @@ ai:
   relevance:
     model: deepseek/deepseek-v3.2
     temperature: 0.1
-    countAttempts: 10
+    countAttempts: 3
     relevance-threshold: 4
   translating:
     stages:
