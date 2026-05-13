@@ -108,8 +108,8 @@ public class RssPersistenceRepo {
     public List<RssFetchData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
 
-//        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
-        List<RssFetchData> fetchDataList = new ArrayList<>();
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
+//        List<RssFetchData> fetchDataList = new ArrayList<>();
 
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
         // For failed state try to retranslate news within window size
