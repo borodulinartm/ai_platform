@@ -1,10 +1,11 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
-import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction2Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiDriverResponse;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,14 +43,19 @@ public class AiValidationExecutor implements AiFunction2Executor<String, String,
                         inputParam_1, inputParam_2
                 );
 
-                String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+                AiDriverResponse result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
                         aiStageParameters.getModel()
                 );
+
                 if (result == null) {
                     throw new AiNullResultException("Result from the AI is null");
                 }
 
-                return result.trim();
+                if (result.getResultEnum() == AiResultEnum.FAILURE) {
+                    throw new AiInvalidStateException("Result from AI is FAILURE");
+                }
+
+                return result.getText();
             } catch (Exception e) {
                 log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                         aiStageParameters.getStageName(),

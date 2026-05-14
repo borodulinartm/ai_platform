@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo.cleaning;
 
 import com.huawei.ai_platform.rss.enums.AiCleaningStagesEnum;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.AiScoreValidator;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningResponse;
@@ -49,6 +50,7 @@ public class AiCleaningArticlesRepo {
     private final IAiStageValidation<String, String> aiDefaultValidator;
     private final IAiStageValidation<String, String> aiSizeValidator;
     private final AiCleaningPipelineProperties cleaningPipelineProperties;
+    private final AiScoreValidator aiScoringValidator;
 
     /**
      * Performs cleaning data for the input side
@@ -107,7 +109,9 @@ public class AiCleaningArticlesRepo {
                         new AiUnaryStageFactory().createStage(
                                 param.getStageName().name(), getInputTypeKeyByStageName(param.getStageName()),
                                 getOutputTypeKeyByStageName(param.getStageName()),
-                                aiStageParameters, defaultAiExecutor, aiDefaultValidator, aiValidationData
+                                aiStageParameters, defaultAiExecutor,
+                                param.getStageName() == AiCleaningStagesEnum.CLEANING_STAGE ? aiDefaultValidator : aiScoringValidator,
+                                aiValidationData
                         )
                 );
             } else {

@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageValidationResult;
 import jakarta.annotation.Nonnull;
@@ -19,5 +20,6 @@ public interface IAiStageValidation<I, O> {
      * @param parameters AI parameters fpr the validation side
      * @return AI stage validation. Can be true/false
      */
-    @Nonnull AiStageValidationResult validateStage(@Nonnull I inputData, @Nonnull O resultData, AiStageParameters parameters);
+    @Nonnull AiStageValidationResult validateStage(@Nonnull AiResultText<I> inputData, @Nonnull AiResultText<O> resultData,
+                                                   AiStageParameters parameters);
 }

@@ -1,6 +1,8 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.IAiStageValidation;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageValidationResult;
 import jakarta.annotation.Nonnull;
@@ -19,11 +21,20 @@ public class AiSizeValidator implements IAiStageValidation<String, String> {
     private static final String ERROR_TEXT = "Text too short. Not valid";
 
     @Override
-    public @Nonnull AiStageValidationResult validateStage(@Nonnull String inputData, @Nonnull String resultData,
-                                                 AiStageParameters parameters) {
-        int lengthInput = inputData.length();
-        int lengthOutput = resultData.length();
+    public @Nonnull AiStageValidationResult validateStage(@Nonnull AiResultText<String> inputData, @Nonnull AiResultText<String> resultData,
+                                                          AiStageParameters parameters) {
+        int lengthInput = inputData.getText().length();
+        int lengthOutput = resultData.getText().length();
         double ratio = (double) lengthOutput / lengthInput;
+
+        if (inputData.getResultEnum() == AiResultEnum.FAILURE || resultData.getResultEnum() == AiResultEnum.FAILURE) {
+            return AiStageValidationResult.failure("Not all parameters are successfully");
+        }
+
+        // No content - no need check
+        if (resultData.getResultEnum() == AiResultEnum.NO_CONTENT) {
+            return AiStageValidationResult.success();
+        }
 
         // Idea: if the text is too short, then we consider as a failure (because of the not good situation)
         if (lengthInput < 25) {

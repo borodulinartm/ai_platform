@@ -1,9 +1,11 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.factory;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiValidationException;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.IAiStageValidation;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiPipelineContext;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiTypedKey;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.*;
 import jakarta.annotation.Nonnull;
@@ -21,6 +23,19 @@ import java.util.function.Function;
 @Slf4j
 public class AiUnaryStageFactory {
 
+    /**
+     * Creates stage for the pipeline
+     * @param stageName stage name
+     * @param input typed key (argument from previous stages)
+     * @param outputs typed key (result value)
+     * @param parameters wrapper of the different parameters
+     * @param extractor executor function which performs different operations
+     * @param validation AI stage validation
+     * @param validationParameters validation parameters
+     * @return AI stage contract
+     * @param <A> Argument (input type)
+     * @param <O> Argument (Output type)
+     */
     public <A, O> AiStage<O> createStage(@Nonnull String stageName, @Nonnull AiTypedKey<A> input,
                                          @Nonnull AiTypedKey<O> outputs,
                                          @Nonnull AiStageParameters parameters,
@@ -34,22 +49,22 @@ public class AiUnaryStageFactory {
             while (countAttempts <= maxAttemptsCount) {
                 try {
                     A inputParam = aiPipelineContext.getStageResult(input);
-                    O resultExecution = extractor.runFunction(inputParam, parameters);
+                    AiResultText<O> resultExecution = extractor.runFunction(inputParam, parameters);
 
                     // Here, perform some after business logic side. In that case, validation
                     // If data is not valid, then throw an exception and try again. Otherwise, return with success status
                     if (validation != null) {
-                        AiStageValidationResult validationResult = validation.validateStage(inputParam, resultExecution,
-                                validationParameters
+                        AiStageValidationResult validationResult = validation.validateStage(
+                                AiResultText.of(AiResultEnum.OK, inputParam), resultExecution, validationParameters
                         );
                         if (!validationResult.isSuccess()) {
                             throw new AiValidationException(validationResult.getFailureReason());
                         }
                     }
 
-                    aiPipelineContext.addStageResult(outputs, resultExecution);
+                    aiPipelineContext.addStageResult(outputs, resultExecution.getText());
 
-                    return AIStageResponse.success(resultExecution);
+                    return AIStageResponse.success(resultExecution.getText());
                 } catch (Exception exception) {
                     log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                             parameters.getStageName(),

@@ -1,5 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 
 /**
@@ -18,5 +19,5 @@ public interface AiFunction1Executor<A, R> {
      * @param aiStageParameters stage parameters (model, temperature, etc.)
      * @return some response different type
      */
-    R runFunction(A inputParam, AiStageParameters aiStageParameters);
+    AiResultText<R> runFunction(A inputParam, AiStageParameters aiStageParameters);
 }

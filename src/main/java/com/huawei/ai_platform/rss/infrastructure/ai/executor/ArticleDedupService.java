@@ -1,6 +1,6 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTopArticlesOrchestrator.ArticleData;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.AiTopArticlesOrchestrator.ArticleData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

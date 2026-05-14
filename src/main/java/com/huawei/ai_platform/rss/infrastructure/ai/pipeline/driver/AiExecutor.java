@@ -1,5 +1,7 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.driver;
+package com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver;
 
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiDriverResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
@@ -36,7 +38,7 @@ public class AiExecutor {
      * @param temp         temperature
      * @return Response from AI
      */
-    public String performOperation(String systemPrompt, String userPrompt, Double temp, String model) {
+    public AiDriverResponse performOperation(String systemPrompt, String userPrompt, Double temp, String model) {
         Double temperatureToPass = temp == null ? defaultTemperature : temp;
 
         Message systemMessage = new SystemMessage(systemPrompt);
@@ -49,13 +51,13 @@ public class AiExecutor {
         ).call().content();
 
         if (res == null) {
-            return null;
+            return AiDriverResponse.of(AiResultEnum.FAILURE, StringUtils.EMPTY);
         }
 
         if (res.toLowerCase(Locale.ENGLISH).contains("no_content")) {
-            return StringUtils.EMPTY;
+            return AiDriverResponse.of(AiResultEnum.NO_CONTENT, StringUtils.EMPTY);
         }
 
-        return res.trim();
+        return AiDriverResponse.of(AiResultEnum.OK, res.trim());
     }
 }

@@ -1,9 +1,12 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiDriverResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +27,7 @@ public class RelevanceStageExecutor implements AiFunction1Executor<String, Strin
     private int threshold;
 
     @Override
-    public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
+    public AiResultText<String> runFunction(String inputParam, AiStageParameters aiStageParameters) {
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
         ClassPathResource userPromptResource = new ClassPathResource(aiStageParameters.getUserPrompt());
 
@@ -36,14 +39,18 @@ public class RelevanceStageExecutor implements AiFunction1Executor<String, Strin
                     inputParam
             );
 
-            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+            AiDriverResponse result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
                     aiStageParameters.getModel()
             );
             if (result == null) {
                 throw new AiNullResultException("Result from the AI is null");
             }
 
-            int score = parseScore(result.trim());
+            if (result.getResultEnum() == AiResultEnum.FAILURE) {
+                throw new AiInvalidStateException("Result from AI is failure");
+            }
+
+            int score = parseScore(result.getText());
 
             if (score == -1) {
                 throw new AiInvalidStateException("Invalid score. ID = " + aiStageParameters.getId());
@@ -53,7 +60,7 @@ public class RelevanceStageExecutor implements AiFunction1Executor<String, Strin
                 throw new AiInvalidStateException("score=" + score + ", threshold=" + threshold);
             }
 
-            return result;
+            return AiResultText.of(result.getResultEnum(), result.getText());
         } catch (Exception e) {
             throw new AiInvalidStateException(e);
         }

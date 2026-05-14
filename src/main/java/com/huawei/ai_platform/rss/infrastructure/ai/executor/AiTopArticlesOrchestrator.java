@@ -1,4 +1,4 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.ai_platform.rss.infrastructure.ai.dto.ArticleSummary;

@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.repo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.AiTopArticlesOrchestrator;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

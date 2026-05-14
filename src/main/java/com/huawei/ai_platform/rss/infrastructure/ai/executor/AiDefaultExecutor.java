@@ -1,9 +1,12 @@
-package com.huawei.ai_platform.rss.infrastructure.ai.repo;
+package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
-import com.huawei.ai_platform.rss.infrastructure.ai.driver.AiExecutor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.driver.AiExecutor;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiInvalidStateException;
 import com.huawei.ai_platform.rss.infrastructure.ai.exceptions.AiNullResultException;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.enums.AiResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.exec.AiFunction1Executor;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiDriverResponse;
+import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.AiResultText;
 import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStageParameters;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +30,7 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
     private final AiExecutor aiExecutor;
 
     @Override
-    public String runFunction(String inputParam, AiStageParameters aiStageParameters) {
+    public AiResultText<String> runFunction(String inputParam, AiStageParameters aiStageParameters) {
         ClassPathResource systemPromptResource = new ClassPathResource(aiStageParameters.getSystemPrompt());
         ClassPathResource userPromptResource = new ClassPathResource(aiStageParameters.getUserPrompt());
 
@@ -39,14 +42,19 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
                     inputParam
             );
 
-            String result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
+            AiDriverResponse result = aiExecutor.performOperation(systemPromptContent, userPromptContent, aiStageParameters.getTemperature(),
                     aiStageParameters.getModel()
             );
+
             if (result == null) {
                 throw new AiNullResultException("Result from the AI is null");
             }
 
-            return result.trim();
+            if (result.getResultEnum() == AiResultEnum.FAILURE) {
+                throw new AiInvalidStateException("Result is failure from the AI");
+            }
+
+            return AiResultText.of(result.getResultEnum(), result.getText());
         } catch (IOException exception) {
             throw new AiInvalidStateException(exception);
         }
