@@ -12,6 +12,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -46,7 +47,7 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
 
                 String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
                 String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
-                        inputData.getText(), outputData.getText()
+                        inputData.getText(), StringUtils.isBlank(outputData.getText()) ? "NO_CONTENT" : outputData.getText()
                 );
 
                 AiDriverResponse result = aiExecutor.performOperation(systemPromptContent, userPromptContent, parameters.getTemperature(),
