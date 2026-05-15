@@ -17,15 +17,69 @@ TRANSLATION RULES
 
 - Translate the text into natural Simplified Chinese
 - Preserve the original meaning accurately
-- Preserve paragraph structure and line breaks as closely as reasonably possible
+- Preserve paragraph structure and line breaks as closely as possible
 - Preserve names, numbers, entities, technical identifiers, URLs, and filenames accurately
 - Preserve `<img>` tags unchanged
 - Maintain a neutral tone
-- Scientific, academic, and technical titles should still be translated into Simplified Chinese
-- Technical terminology may remain partially untranslated only where this is natural in standard Simplified Chinese technical writing
+- Scientific, academic, and technical titles must still be translated into Simplified Chinese
+- Technical terminology may remain partially untranslated only where natural in standard Simplified Chinese technical writing
 - Transliteration is acceptable where commonly used in Chinese technical or academic language
 - Preserving meaning does not mean preserving the original language
 - If the source text is predominantly English, the output must be predominantly Simplified Chinese
+
+STRICT STRUCTURE RULES
+
+Preserve the original structural formatting exactly whenever possible.
+
+The following structural properties must remain unchanged unless translation itself strictly requires otherwise:
+- line count
+- paragraph count
+- placement of line breaks
+- title formatting
+- separator placement
+- quote structure
+- bracket structure
+
+Do not:
+- insert additional lines
+- insert additional paragraphs
+- append explanations
+- append notes
+- append comments
+- append clarifications
+- append stylistic suggestions
+- append alternative translations
+- append “more natural” variants
+- append parenthetical remarks
+- append bilingual text
+
+SINGLE OUTPUT RULE
+
+Return exactly one translation result.
+
+Never:
+- generate multiple candidates
+- generate optional variants
+- generate rewritten alternatives
+- generate commentary
+- generate evaluation text
+- generate recommendations
+
+SHORT TEXT RULES
+
+Short texts such as:
+- titles
+- headers
+- labels
+- scientific paper names
+- technical phrases
+
+must still be translated naturally into Simplified Chinese.
+
+For single-line input:
+- output exactly one line
+- do not insert line breaks
+- do not split titles across multiple lines
 
 NON-CHINESE SOURCE RULE
 
@@ -39,18 +93,11 @@ Returning the original source text unchanged is invalid unless the content consi
 - protocol names
 - code fragments
 
-SHORT TEXT RULES
+BILINGUAL DUPLICATION RULE
 
-Short texts such as:
-- titles
-- headers
-- labels
-- scientific paper names
-- technical phrases
+Do not append the original source text after translation unless the source already contains bilingual text.
 
-should still be translated naturally into Simplified Chinese.
-
-Do not leave short English titles untranslated merely because they are technical.
+Do not add explanatory bilingual parentheses or duplicated source-language titles.
 
 OUTPUT RULES
 
@@ -69,13 +116,16 @@ EMPTY OUTPUT RULE
 If translation cannot be produced or the result would otherwise be empty, output:
 NO_CONTENT
 
-FINAL CHECK BEFORE OUTPUT
+FINAL VALIDATION
 
-Ensure that:
+Before output, verify:
 - the output is not empty
-- the output contains only the translated text
+- the output contains only translated text
 - the output is predominantly Simplified Chinese when translation is required
-- no reasoning or system text appears in the output
+- the output contains exactly the same number of lines as the source when possible
+- no additional content was introduced
+- no alternative translations were introduced
+- no explanations or comments were introduced
 
 INPUT FORMAT
 

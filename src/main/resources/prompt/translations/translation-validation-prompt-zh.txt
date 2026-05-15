@@ -101,11 +101,15 @@ Return an error only if there is a clear and substantial issue such as:
 - TRANSLATED_TEXT is not predominantly Simplified Chinese
 - Traditional Chinese substantially replaces Simplified Chinese
 - major source meaning is missing
+- unnecessary bilingual duplication was added
+- unnecessary line breaks were introduced
+- title formatting was unnecessarily altered
 - substantial unrelated content was added
 - the translation is clearly unrelated to the source
 - large portions that should reasonably be translated remain untranslated
 - `<img>` tags were modified
 - TRANSLATED_TEXT is empty while SOURCE_TEXT contains translatable content
+
 
 OUTPUT RULES
 
