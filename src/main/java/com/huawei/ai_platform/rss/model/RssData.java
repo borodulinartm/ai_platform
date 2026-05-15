@@ -23,6 +23,8 @@ import java.util.List;
 public class RssData implements Serializable {
     private long articleId;
 
+    private String hash;
+
     private String articleTitleEn;
     private String articleTitleZh;
 

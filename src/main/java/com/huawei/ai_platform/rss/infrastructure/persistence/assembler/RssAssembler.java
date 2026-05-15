@@ -64,7 +64,9 @@ public class RssAssembler {
                     .build();
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId()).translationStatusEnum(inputItem.getTranslationStatusEnum())
+                    .articleId(inputItem.getId())
+                    .hash(inputItem.getHash())
+                    .translationStatusEnum(inputItem.getTranslationStatusEnum())
                     .articleTitleEn(StringUtils.isNoneBlank(inputItem.getTranslationTitleEn()) ? inputItem.getTranslationTitleEn() : inputItem.getTitle())
                     .articleTitleZh(inputItem.getTitleZh())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)

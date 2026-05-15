@@ -118,4 +118,24 @@ public class ArticleDedupService {
 
         return (double) intersection.size() / union.size();
     }
+
+    /**
+     * Checks if two articles are duplicates.
+     * First checks title similarity > 0.8 (hash-like exact match on tokens),
+     * then falls back to combined title+content Jaccard.
+     */
+    public boolean isSimilar(String titleA, String contentA, String titleB, String contentB) {
+        Set<String> t1 = tokenize(titleA);
+        Set<String> t2 = tokenize(titleB);
+        double titleSim = jaccardSimilarity(t1, t2);
+
+        if (titleSim > 0.8) {
+            return true;
+        }
+        if (titleSim > 0.3) {
+            double contentSim = jaccardSimilarity(tokenize(contentA), tokenize(contentB));
+            return contentSim > 0.5;
+        }
+        return false;
+    }
 }

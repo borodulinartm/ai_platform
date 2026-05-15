@@ -19,6 +19,8 @@ import java.util.List;
 public class RssFetchData {
     private long id;
 
+    private String hash;
+
     private ArticleTranslationStatusEnum translationStatusEnum;
 
     private String title;

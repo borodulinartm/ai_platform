@@ -40,7 +40,7 @@
     </update>
 
     <select id="getAfter" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, entry.attributes from admin_entry entry
+        SELECT entry.id, entry.hash, entry.title, entry.content, entry.attributes from admin_entry entry
 
         <where>
             <if test="timestamp != null">

@@ -9,9 +9,9 @@ import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.ArticleDedupService;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningStageParams;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -29,13 +29,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.SKIPPED;
 
 /**
  * Business logic layer
@@ -53,6 +56,7 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
     private final RssTranslationOrchestration rssTranslationOrchestration;
     private final AiTranslationMapper aiTranslationMapper;
+    private final ArticleDedupService articleDedupService;
 
     private final AiCleaningPipelineProperties aiCleaningStageParams;
 
@@ -153,9 +157,11 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
 
         log.info("Need translate {} articles", rssTranslationList.size());
 
+        List<RssData> articlesToProcess = deduplicateWithinCategories(rssTranslationList);
+
         try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
             List<Future<OperationResult>> listFutures = new ArrayList<>();
-            for (RssData item : rssTranslationList) {
+            for (RssData item : articlesToProcess) {
                 listFutures.add(
                         executorService.submit(() -> {
                             if (item.getTranslationStatusEnum() == null) {
@@ -179,11 +185,81 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
             }
 
             return OperationResult.builder().state(OperationResultEnum.SUCCESS)
-                    .reason(String.format("Translation has completed successfully. Count records = %s", rssTranslationList.size()))
+                    .reason(String.format(
+                            "Translation has completed successfully. Count records = %s (duplicates skipped: %s)",
+                            articlesToProcess.size(), rssTranslationList.size() - articlesToProcess.size()))
                     .build();
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Deduplicates articles within each category.
+     * Duplicates are immediately marked as SKIPPED in the database.
+     *
+     * @return list of unique articles that should proceed to translation
+     */
+    private List<RssData> deduplicateWithinCategories(List<RssData> articles) {
+        Map<String, List<RssData>> byCategory = articles.stream()
+                .filter(a -> a.getRssCategory() != null)
+                .collect(Collectors.groupingBy(a -> a.getRssCategory().getCategoryNameEn()));
+
+        List<RssData> result = new ArrayList<>();
+        List<Long> duplicateIds = new ArrayList<>();
+
+        for (List<RssData> categoryArticles : byCategory.values()) {
+            if (categoryArticles.size() <= 1) {
+                result.addAll(categoryArticles);
+                continue;
+            }
+
+            List<String> seenHashes = new ArrayList<>();
+            List<String> seenTitles = new ArrayList<>();
+            List<String> seenContents = new ArrayList<>();
+
+            for (RssData article : categoryArticles) {
+                String hash = article.getHash() != null ? article.getHash() : "";
+                String title = article.getArticleTitleEn() != null ? article.getArticleTitleEn() : "";
+                String content = article.getArticleContent() != null ? article.getArticleContent() : "";
+
+                // Exact match by pre-computed hash
+                if (!hash.isEmpty() && seenHashes.contains(hash)) {
+                    duplicateIds.add(article.getArticleId());
+                    continue;
+                }
+
+                boolean isDup = false;
+                for (int i = 0; i < seenTitles.size(); i++) {
+                    if (articleDedupService.isSimilar(title, content, seenTitles.get(i), seenContents.get(i))) {
+                        isDup = true;
+                        break;
+                    }
+                }
+
+                if (isDup) {
+                    duplicateIds.add(article.getArticleId());
+                    continue;
+                }
+
+                if (!hash.isEmpty()) seenHashes.add(hash);
+                seenTitles.add(title);
+                seenContents.add(content);
+                result.add(article);
+            }
+        }
+
+        // Articles without category bypass dedup
+        result.addAll(articles.stream()
+                .filter(a -> a.getRssCategory() == null)
+                .toList());
+
+        if (!duplicateIds.isEmpty()) {
+            rssArticleTranslatorRepository.queryUpdateStatusByListData(duplicateIds, SKIPPED, "Duplicate within category");
+            log.info("Dedup: marked {} articles as SKIPPED", duplicateIds.size());
+        }
+
+        return result;
     }
 
     @Override
