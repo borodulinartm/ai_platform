@@ -35,7 +35,7 @@ public class AiPipelineExecutor {
                 if (!response.isSuccess()) {
                     AiPipelineResponseBuilder<O> responseBuilder = new AiPipelineResponseBuilder<>(pipeline.getPipelineName());
                     responseBuilder.failure(String.format(
-                            "AI stage %s has finished wih failure. Reason = %s",
+                            "AI stage %s has finished with failure. Reason = %s",
                             aiStage.stageName(), response.getFailureReason()
                     ));
 

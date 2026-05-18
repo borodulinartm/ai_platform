@@ -67,7 +67,7 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
                 }
 
                 return AiStageValidationResult.failure(
-                        String.format("Result form AI is not correct! Message = '%s'\nInput = %s\nOutput = %s\n", result.getText(),
+                        String.format("Result from AI is not correct! Message = '%s'\nInput = %s\nOutput = %s\n", result.getText(),
                                 inputData.getText(), outputData.getText())
                 );
             } catch (IOException exception) {

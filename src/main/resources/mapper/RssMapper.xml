@@ -40,7 +40,11 @@
     </update>
 
     <select id="getAfter" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.hash, entry.title, entry.content, entry.attributes from admin_entry entry
+        SELECT entry.id, entry.hash, entry.title, entry.content, entry.attributes, category.id as categoryId,
+               category.name as categoryName
+        FROM admin_entry entry
+        LEFT JOIN admin_feed feed ON entry.id_feed = feed.id
+        LEFT JOIN admin_category category ON feed.category = category.id
 
         <where>
             <if test="timestamp != null">
@@ -56,8 +60,12 @@
     </select>
 
     <select id="getNewsWithTranslationByStatus" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
-            INNER JOIN public.article_translations a on entry.id = a.article_create_date
+        SELECT entry.id, entry.hash, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes,
+               category.id as categoryId, category.name as categoryName
+        FROM admin_entry entry
+        INNER JOIN public.article_translations a on entry.id = a.article_create_date
+        LEFT JOIN admin_feed feed ON entry.id_feed = feed.id
+        LEFT JOIN admin_category category ON feed.category = category.id
 
         <where>
             a.status = #{statusName}
