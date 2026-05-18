@@ -17,6 +17,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.factory
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -44,7 +45,6 @@ public class AiTranslatorRepo {
     private static final AiTypedKey<String> TRANSLATING_STAGE_OUTPUT = AiTypedKey.of(String.class, "TRANSLATING_STAGE_OUTPUT");
     private static final AiTypedKey<String> NORMALIZATION_STAGE_OUTPUT = AiTypedKey.of(String.class, "NORMALIZATION_STAGE_OUTPUT");
     private static final AiTypedKey<String> FORMATTING_STAGE_OUTPUT = AiTypedKey.of(String.class, "FORMATTING_STAGE_OUTPUT");
-    private static final Executor EXECUTOR = Executors.newFixedThreadPool(4);
 
     private final AiFunction1Executor<String, String> defaultAiExecutor;
     private final AiPipelineExecutor aiPipelineExecutor;
@@ -59,34 +59,24 @@ public class AiTranslatorRepo {
      * @return response data
      */
     public AiTranslationResponse translate(@Nonnull AiTranslationRequest request) {
-        CompletableFuture<AIPipelineResponse<String>> titleEnFuture =
-                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleTitle(), Locale.ENGLISH, false), EXECUTOR);
-
-        CompletableFuture<AIPipelineResponse<String>> titleZhFuture =
-                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleTitle(), Locale.SIMPLIFIED_CHINESE, false), EXECUTOR);
-
-        CompletableFuture<AIPipelineResponse<String>> contentEnFuture =
-                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleContent(), Locale.ENGLISH, true), EXECUTOR);
-
-        CompletableFuture<AIPipelineResponse<String>> contentZhFuture =
-                CompletableFuture.supplyAsync(() -> exec(request, request.getArticleContent(), Locale.SIMPLIFIED_CHINESE, true), EXECUTOR);
-
-        CompletableFuture.allOf(titleEnFuture, titleZhFuture, contentEnFuture, contentZhFuture).join();
-
         try {
-            AIPipelineResponse<String> titleEn = titleEnFuture.get();
-            AIPipelineResponse<String> titleZh = titleZhFuture.get();
-            AIPipelineResponse<String> contentEn = contentEnFuture.get();
-            AIPipelineResponse<String> contentZh = contentZhFuture.get();
+            AIPipelineResponse<String> titleEn = exec(request, request.getArticleTitle(), Locale.ENGLISH, false);
+            AIPipelineResponse<String> titleZh = exec(request, request.getArticleTitle(), Locale.SIMPLIFIED_CHINESE, false);
+            AIPipelineResponse<String> contentEn = exec(request, request.getArticleContent(), Locale.ENGLISH, true);
+            AIPipelineResponse<String> contentZh = exec(request, request.getArticleContent(), Locale.SIMPLIFIED_CHINESE, true);
 
             if (!(titleEn.isSuccess() && titleZh.isSuccess() && contentEn.isSuccess() && contentZh.isSuccess())) {
-                return AiTranslationResponse.failureResponse(request.getArticleId(), "Not translated :(");
+                String errorMessage = (!titleEn.isSuccess() ? titleEn.getFailureReason() : StringUtils.EMPTY) +
+                        (!titleZh.isSuccess() ? titleZh.getFailureReason() : StringUtils.EMPTY) +
+                        (!contentEn.isSuccess() ? contentEn.getFailureReason() : StringUtils.EMPTY) +
+                        (!contentZh.isSuccess() ? contentZh.getFailureReason() : StringUtils.EMPTY);
+                return AiTranslationResponse.failureResponse(request.getArticleId(), errorMessage);
             }
 
             return AiTranslationResponse.successResponse(request.getArticleId(),
                     titleEn.getPayload(), titleZh.getPayload(), contentEn.getPayload(), contentZh.getPayload()
             );
-        } catch (InterruptedException | ExecutionException exception) {
+        } catch (Exception exception) {
             log.error("An error has occurred during translation side: {}", exception.getMessage());
             return AiTranslationResponse.failureResponse(request.getArticleId(), exception.getMessage());
         }

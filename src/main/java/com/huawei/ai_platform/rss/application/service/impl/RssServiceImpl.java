@@ -9,9 +9,7 @@ import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningPipelineProperties;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
-import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningStageParams;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
 import com.huawei.ai_platform.rss.model.RssCategory;
@@ -21,6 +19,7 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -29,10 +28,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
@@ -47,14 +43,14 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 @RequiredArgsConstructor
 @Slf4j
 public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
-    public static final int COUNT_THREADS = 50;
+
+    @Value("${ai.settings.countConcurrentConnections}")
+    private int semaphoreMax;
 
     private final RssRepository rssRepository;
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
     private final RssTranslationOrchestration rssTranslationOrchestration;
     private final AiTranslationMapper aiTranslationMapper;
-
-    private final AiCleaningPipelineProperties aiCleaningStageParams;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
@@ -153,23 +149,31 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
 
         log.info("Need translate {} articles", rssTranslationList.size());
 
-        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            Semaphore semaphore = new Semaphore(semaphoreMax);
+
             List<Future<OperationResult>> listFutures = new ArrayList<>();
             for (RssData item : rssTranslationList) {
                 listFutures.add(
                         executorService.submit(() -> {
-                            if (item.getTranslationStatusEnum() == null) {
-                                return rssTranslationOrchestration.initTranslation(item);
-                            } else {
-                                if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
-                                    AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
-                                    rssTranslationOrchestration.checkRelevance(relevanceRequest);
+                            semaphore.acquire();
 
-                                    return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
+                            try {
+                                if (item.getTranslationStatusEnum() == null) {
+                                    return rssTranslationOrchestration.initTranslation(item);
+                                } else {
+                                    if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
+                                        AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
+                                        rssTranslationOrchestration.checkRelevance(relevanceRequest);
+
+                                        return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
+                                    }
+
+                                    log.warn("No handling for the ID = {}. Status is not an INIT or null", item.getArticleId());
+                                    return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Ignore").build();
                                 }
-
-                                log.warn("No handling for the ID = {}. Status is not an INIT or null", item.getArticleId());
-                                return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Ignore").build();
+                            } finally {
+                                semaphore.release();
                             }
                         }));
             }

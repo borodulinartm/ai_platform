@@ -11,6 +11,8 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.*;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -46,6 +48,8 @@ public class AiUnaryStageFactory {
             int countAttempts = 1;
             int maxAttemptsCount = parameters.getMaxAttempts();
 
+            List<String> errorCollector = new ArrayList<>();
+
             while (countAttempts <= maxAttemptsCount) {
                 try {
                     A inputParam = aiPipelineContext.getStageResult(input);
@@ -66,6 +70,8 @@ public class AiUnaryStageFactory {
 
                     return AIStageResponse.success(resultExecution.getText());
                 } catch (Exception exception) {
+                    errorCollector.add(exception.getMessage());
+
                     log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                             parameters.getStageName(),
                             countAttempts++, parameters.getMaxAttempts(), parameters.getId(),
@@ -74,8 +80,8 @@ public class AiUnaryStageFactory {
                 }
             }
 
-            return AIStageResponse.failure(String.format("AI %s side: Exceeded limit attempts. ID = %s", parameters.getStageName(),
-                    parameters.getId())
+            return AIStageResponse.failure(String.format("Stage - %s. ID = %s. Errors = %s. Limit attempts", parameters.getStageName(),
+                    parameters.getId(), String.join(System.lineSeparator(), errorCollector))
             );
         };
 
