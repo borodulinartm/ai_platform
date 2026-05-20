@@ -28,7 +28,7 @@ spring:
 
 ai:
   settings:
-    countConcurrentConnections: 50
+    countConcurrentConnections: 15
   relevance:
     model: deepseek/deepseek-v3.2
     temperature: 0.1
@@ -39,7 +39,7 @@ ai:
       - stageName: TRANSLATION_STAGE
         temperature: 0.2
         countAttempts: 10
-        model: x-ai/grok-4.20
+        model: deepseek/deepseek-v3.2
         systemPromptPathEn: prompt/translations/translation-prompt-en.txt
         systemPromptPathZh: prompt/translations/translation-prompt-zh.txt
         userPromptPath: prompt/user-prompt.txt
@@ -54,12 +54,12 @@ ai:
       - stageName: NORMALIZATION_STAGE
         temperature: 0.1
         countAttempts: 10
-        model: x-ai/grok-4.20
+        model: deepseek/deepseek-v3.2
         systemPromptPathEn: prompt/translations/normalization-prompt-en.txt
         systemPromptPathZh: prompt/translations/normalization-prompt-zh.txt
         userPromptPath: prompt/user-prompt.txt
       - stageName: FORMATTING_STAGE
-        model: x-ai/grok-4.20
+        model: deepseek/deepseek-v3.2
         temperature: 0.1
         countAttempts: 10
         systemPromptPathEn: prompt/translations/formatting-prompt.txt
@@ -70,7 +70,7 @@ ai:
       - stageName: CLEANING_STAGE
         temperature: 0
         countAttempts: 10
-        model: x-ai/grok-4.3
+        model: deepseek/deepseek-v3.2
         systemPromptPath: prompt/cleaning/cleaning-prompt.txt
         userPromptPath: prompt/user-prompt.txt
         validation:
@@ -83,7 +83,7 @@ ai:
       - stageName: NOISE_REMOVING_STAGE
         temperature: 0
         countAttempts: 10
-        model: x-ai/grok-4.3
+        model: deepseek/deepseek-v3.2
         systemPromptPath: prompt/cleaning/noise-removing-prompt.txt
         userPromptPath: prompt/user-prompt.txt
         validation:
@@ -96,7 +96,7 @@ ai:
       - stageName: NORMALIZATION_STAGE
         temperature: 0.2
         countAttempts: 10
-        model: x-ai/grok-4.3
+        model: deepseek/deepseek-v3.2
         systemPromptPath: prompt/cleaning/normalization-prompt.txt
         userPromptPath: prompt/user-prompt.txt
   digest:
