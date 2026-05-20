@@ -38,6 +38,7 @@ TRANSLATED_TEXT is valid if:
 SIMPLIFIED CHINESE REQUIREMENTS
 
 - Simplified Chinese must be the dominant language
+- Translation must contain only translated content, not explanatory or meta-text.
 - Technical Chinese is still valid Simplified Chinese even if it contains:
   - acronyms
   - abbreviations
@@ -110,6 +111,7 @@ Return an error only if there is a clear and substantial issue such as:
 - `<img>` tags were modified
 - TRANSLATED_TEXT is empty while SOURCE_TEXT contains translatable content
 
+Any translator-added commentary, explanations, or annotations (e.g. parentheses, “note:”, “注：”, “译者说明”) that are not explicitly present in SOURCE_TEXT must be treated as INVALID TRANSLATION (ERROR: Translation contains added commentary or metadata).
 
 OUTPUT RULES
 

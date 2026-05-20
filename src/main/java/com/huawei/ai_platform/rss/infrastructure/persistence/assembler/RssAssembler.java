@@ -44,43 +44,84 @@ public class RssAssembler {
         List<RssData> resultList = new ArrayList<>();
 
         for (RssFetchData inputItem : inputData) {
-            List<String> authorList = StringUtils.isNoneBlank(inputItem.getAuthor())
-                    ? Stream.of(inputItem.getAuthor().split(AUTHOR_SEPARATOR)).filter(StringUtils::isNoneBlank)
-                        .map(String::trim).toList()
-                    : List.of();
-            List<String> tagsList = StringUtils.isNoneBlank(inputItem.getTags())
-                    ? Stream.of(inputItem.getTags().split(TAG_SEPARATOR))
-                    .filter(StringUtils::isNoneBlank).map(String::trim).map(String::trim).distinct().toList()
-                    : List.of();
-
-            RssFeed feed = RssFeed.builder()
-                    .feedId(inputItem.getFeedId())
-                    .description(inputItem.getFeedDescription())
-                    .feedNameEn(inputItem.getFeedName()).url(inputItem.getFeedUrl())
-                    .website(inputItem.getFeedWebsite()).priority(inputItem.getFeedPriority())
-                    .build();
-            RssCategory category = RssCategory.builder()
-                    .categoryId(inputItem.getCategoryId()).categoryNameEn(inputItem.getCategoryName())
-                    .build();
+            ArticlesProperties articleProperties = getArticlesProperties(inputItem);
 
             RssData data = RssData.builder()
-                    .articleId(inputItem.getId())
-                    .hash(inputItem.getHash())
-                    .translationStatusEnum(inputItem.getTranslationStatusEnum())
-                    .articleTitleEn(StringUtils.isNoneBlank(inputItem.getTranslationTitleEn()) ? inputItem.getTranslationTitleEn() : inputItem.getTitle())
+                    .articleId(inputItem.getId()).translationStatusEnum(inputItem.getTranslationStatusEnum())
+                    .articleTitleEn(inputItem.getTranslationTitleEn())
                     .articleTitleZh(inputItem.getTitleZh())
-                    .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
-                    .articleContent(StringUtils.isNoneBlank(inputItem.getCleanedContentEn()) ? inputItem.getCleanedContentEn() : inputItem.getContent())
+                    .hash(inputItem.getHash()).typeInfoEnum(RssTypeInfoEnum.ARTICLES)
+                    .articleContent(inputItem.getCleanedContentEn())
                     .articleContentZh(inputItem.getContentZh())
                     .articleLink(inputItem.getLink())
                     .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
-                    .articleAuthors(authorList).articleTags(tagsList).feed(feed).rssCategory(category)
+                    .articleAuthors(articleProperties.authorList()).articleTags(articleProperties.tagsList())
+                    .feed(articleProperties.feed()).rssCategory(articleProperties.category())
                     .attributes(inputItem.getAttributes())
                     .build();
             resultList.add(data);
         }
 
         return resultList;
+    }
+
+    /**
+     * Performs converting from input side to aggregate (rss data side)
+     *
+     * @param inputData list of fetch data
+     * @return list of rss data
+     */
+    public List<RssData> convertToRssDataWithoutTranslations(@Nonnull List<RssFetchData> inputData) {
+        List<RssData> resultList = new ArrayList<>();
+
+        for (RssFetchData inputItem : inputData) {
+            ArticlesProperties articleProperties = getArticlesProperties(inputItem);
+
+            RssData data = RssData.builder()
+                    .articleId(inputItem.getId()).translationStatusEnum(inputItem.getTranslationStatusEnum())
+                    .articleTitleEn(inputItem.getTitle())
+                    .articleTitleZh(inputItem.getTitleZh())
+                    .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
+                    .articleContent(inputItem.getContent())
+                    .articleContentZh(inputItem.getContentZh())
+                    .articleLink(inputItem.getLink())
+                    .createDate(Instant.ofEpochSecond(inputItem.getDate()).atZone(ZONE).toLocalDateTime())
+                    .articleAuthors(articleProperties.authorList()).articleTags(articleProperties.tagsList())
+                    .feed(articleProperties.feed()).rssCategory(articleProperties.category())
+                    .attributes(inputItem.getAttributes())
+                    .build();
+            resultList.add(data);
+        }
+
+        return resultList;
+    }
+
+    /**
+     * Generates properties foe the article converting
+     *
+     * @param inputItem fetch data item
+     * @return article properties
+     */
+    private ArticlesProperties getArticlesProperties(RssFetchData inputItem) {
+        List<String> authorList = StringUtils.isNoneBlank(inputItem.getAuthor())
+                ? Stream.of(inputItem.getAuthor().split(AUTHOR_SEPARATOR)).filter(StringUtils::isNoneBlank)
+                .map(String::trim).toList()
+                : List.of();
+        List<String> tagsList = StringUtils.isNoneBlank(inputItem.getTags())
+                ? Stream.of(inputItem.getTags().split(TAG_SEPARATOR))
+                .filter(StringUtils::isNoneBlank).map(String::trim).map(String::trim).distinct().toList()
+                : List.of();
+
+        RssFeed feed = RssFeed.builder()
+                .feedId(inputItem.getFeedId())
+                .description(inputItem.getFeedDescription())
+                .feedNameEn(inputItem.getFeedName()).url(inputItem.getFeedUrl())
+                .website(inputItem.getFeedWebsite()).priority(inputItem.getFeedPriority())
+                .build();
+        RssCategory category = RssCategory.builder()
+                .categoryId(inputItem.getCategoryId()).categoryNameEn(inputItem.getCategoryName())
+                .build();
+        return new ArticlesProperties(authorList, tagsList, feed, category);
     }
 
     /**
@@ -134,5 +175,9 @@ public class RssAssembler {
         }
 
         return result;
+    }
+
+    private record ArticlesProperties(List<String> authorList, List<String> tagsList, RssFeed feed,
+                                      RssCategory category) {
     }
 }

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component("aiSizeValidator")
 @RequiredArgsConstructor
 public class AiSizeValidator implements IAiStageValidation<String, String> {
-    private static final String ERROR_TEXT = "Text too short. Not valid";
+    private static final String ERROR_TEXT = "Text too short. Not valid (%d/%d)";
 
     @Override
     public @Nonnull AiStageValidationResult validateStage(@Nonnull AiResultText<String> inputData, @Nonnull AiResultText<String> resultData,
@@ -39,19 +39,19 @@ public class AiSizeValidator implements IAiStageValidation<String, String> {
         // Idea: if the text is too short, then we consider as a failure (because of the not good situation)
         if (lengthInput < 25) {
             if (ratio < 0.25) {
-                return AiStageValidationResult.failure(ERROR_TEXT);
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
             }
         } else if (lengthInput < 100) {
             if (ratio < 0.1) {
-                return AiStageValidationResult.failure(ERROR_TEXT);
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
             }
         } else if (lengthInput < 200) {
             if (ratio < 0.06) {
-                return AiStageValidationResult.failure(ERROR_TEXT);
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
             }
         } else {
             if (ratio < 0.03) {
-                return AiStageValidationResult.failure(ERROR_TEXT);
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
             }
         }
 

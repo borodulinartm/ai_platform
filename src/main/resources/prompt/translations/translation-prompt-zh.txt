@@ -26,6 +26,7 @@ TRANSLATION RULES
 - Transliteration is acceptable where commonly used in Chinese technical or academic language
 - Preserving meaning does not mean preserving the original language
 - If the source text is predominantly English, the output must be predominantly Simplified Chinese
+- The output must not contain any translator-added annotations, commentary, or editorial markers, including but not limited to: parentheses containing explanations, “注”, “译者注”, “原文”, or any meta-linguistic commentary. Any such content is strictly invalid.
 
 STRICT STRUCTURE RULES
 
@@ -110,6 +111,7 @@ OUTPUT RULES
 - Do not output JSON
 - Do not output prefixes or suffixes
 - Never return an empty response
+- Output must be a pure translation layer. Any meta-text layer is prohibited, regardless of language or formatting.
 
 EMPTY OUTPUT RULE
 

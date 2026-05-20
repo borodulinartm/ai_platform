@@ -2,7 +2,7 @@ spring:
   http:
     client:
       connect-timeout: 20s
-      read-timeout: 10m
+      read-timeout: 1m
   profiles:
     active: local
   aop:
@@ -27,6 +27,8 @@ spring:
           temperature: 0.2
 
 ai:
+  settings:
+    countConcurrentConnections: 50
   relevance:
     model: deepseek/deepseek-v3.2
     temperature: 0.1
