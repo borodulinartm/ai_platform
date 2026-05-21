@@ -2,7 +2,7 @@ spring:
   http:
     client:
       connect-timeout: 20s
-      read-timeout: 1m
+      read-timeout: 5m
   profiles:
     active: local
   aop:
