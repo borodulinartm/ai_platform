@@ -127,6 +127,7 @@ Before output, verify:
 - the output contains exactly the same number of lines as the source when possible
 - no additional content was introduced
 - no alternative translations were introduced
+- names, numbers, entities, technical identifiers, URLs, and filenames preserved (very important)
 - no explanations or comments were introduced
 
 INPUT FORMAT
