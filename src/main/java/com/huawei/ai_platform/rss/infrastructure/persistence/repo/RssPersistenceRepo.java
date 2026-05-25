@@ -105,7 +105,7 @@ public class RssPersistenceRepo {
      * @return List of the news that is not translated
      */
     public List<RssFetchData> getNotTranslatedNews() {
-        Long latestRegisteredArticle = 1779321600000000L;
+        Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
         LocalDateTime startDate = DateUtils.getFromMicro(latestRegisteredArticle, ZONE).with(LocalTime.MIN);
         Long startSeconds = DateUtils.getAsSeconds(startDate, ZONE);
 

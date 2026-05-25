@@ -248,13 +248,6 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
             }
 
             // Second pass: Jaccard similarity via inverted index
-       /*     List<ArticleDedupService.DedupArticle> dedupArticles = noHashMatch.stream()
-                    .map(a -> new ArticleDedupService.DedupArticle(
-                            a.getArticleId(),
-                            a.getArticleTitleEn() != null ? a.getArticleTitleEn() : "",
-                            a.getArticleContent() != null ? a.getArticleContent() : ""))
-                    .toList();*/
-
             Map<Long, Long> jaccardDuplicates = articleDedupService.findDuplicates(noHashMatch);
             duplicateToOriginal.putAll(jaccardDuplicates);
 
