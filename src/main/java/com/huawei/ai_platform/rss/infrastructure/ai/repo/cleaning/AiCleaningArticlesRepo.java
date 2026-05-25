@@ -95,14 +95,14 @@ public class AiCleaningArticlesRepo {
         for (AiCleaningStageParams param : params) {
             AiStageParameters aiStageParameters = new AiStageParameters(param.getStageName().name(), request.getId(),
                     param.getSystemPromptPath(), param.getUserPromptPath(), param.getModel(), param.getTemperature(),
-                    param.getCountAttempts()
+                    param.getCountAttempts(), ""
             );
 
             if (param.getValidation() != null) {
                 AiStageParameters aiValidationData = new AiStageParameters(param.getValidation().getStageName().name(), request.getId(),
                         param.getValidation().getSystemPromptPath(), param.getValidation().getUserPromptPath(), param.getValidation().getModel(),
                         param.getValidation().getTemperature(),
-                        param.getValidation().getCountAttempts()
+                        param.getValidation().getCountAttempts(), ""
                 );
 
                 aiPipelineBuilder.addStage(

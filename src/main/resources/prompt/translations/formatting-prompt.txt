@@ -73,6 +73,8 @@ CONSISTENCY RULES
 - Blockquotes can contain <p> for multi-paragraph quotes
 - Lists: each item on separate line with <li>
 
+%s
+
 VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are met:

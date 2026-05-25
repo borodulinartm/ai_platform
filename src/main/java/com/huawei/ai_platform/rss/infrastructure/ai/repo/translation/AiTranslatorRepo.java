@@ -109,14 +109,14 @@ public class AiTranslatorRepo {
 
             AiStageParameters aiStageParameters = new AiStageParameters(param.getStageName().name(), request.getArticleId(),
                     param.getSystemPrompt(locale), param.getUserPromptPath(), param.getModel(), param.getTemperature(),
-                    param.getCountAttempts()
+                    param.getCountAttempts(), ""
             );
 
             if (param.getValidation() != null) {
                 AiStageParameters aiValidationData = new AiStageParameters(param.getValidation().getStageName().name(), request.getArticleId(),
                         param.getValidation().getSystemPrompt(locale), param.getValidation().getUserPromptPath(), param.getValidation().getModel(),
                         param.getValidation().getTemperature(),
-                        param.getValidation().getCountAttempts()
+                        param.getValidation().getCountAttempts(), ""
                 );
 
                 aiPipelineBuilder.addStage(

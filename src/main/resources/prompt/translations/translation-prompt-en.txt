@@ -139,6 +139,8 @@ If translation cannot be produced:
 output exactly:
 NO_CONTENT
 
+%s
+
 FINAL VALIDATION
 
 Before output, verify:

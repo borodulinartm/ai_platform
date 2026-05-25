@@ -12,6 +12,7 @@ import com.huawei.ai_platform.rss.infrastructure.ai.pipeline.model.stage.AiStage
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -63,9 +64,8 @@ public class AiScoreValidator implements IAiStageValidation<String, String> {
 
                 if (result.getResultEnum() == AiResultEnum.NO_CONTENT) {
                     return AiStageValidationResult.failure(
-                            String.format("Result from AI is empty string (no content). Not valid.\nInput=%s\nOutput=%s\n",
-                                    inputData.getText(), outputData.getText()
-                            )
+                            "Result from AI is empty string (no content). Not valid.",
+                            inputData.getText(), outputData.getText()
                     );
                 }
 
@@ -76,7 +76,7 @@ public class AiScoreValidator implements IAiStageValidation<String, String> {
                     return AiStageValidationResult.success();
                 }
 
-                return AiStageValidationResult.failure(String.format("Score is invalid. Min - 5, current - %d", numericResult));
+                return AiStageValidationResult.failure(String.format("Score is invalid. Min - 5, current - %d", numericResult), StringUtils.EMPTY, StringUtils.EMPTY);
             } catch (IOException exception) {
                 log.warn("AiDefaultValidator: exception for ID = {}. Attempt {}/{}. File = {}, Input text = {}, Output text = {}", parameters.getId(),
                         countAttempts++, parameters.getMaxAttempts(), parameters.getSystemPrompt(), inputData, outputData
@@ -84,6 +84,6 @@ public class AiScoreValidator implements IAiStageValidation<String, String> {
             }
         }
 
-        return AiStageValidationResult.failure("Count attempts has exceeded");
+        return AiStageValidationResult.failure("Count validation attempts has exceeded", StringUtils.EMPTY, StringUtils.EMPTY);
     }
 }

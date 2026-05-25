@@ -27,16 +27,17 @@ public class AiUnaryStageFactory {
 
     /**
      * Creates stage for the pipeline
-     * @param stageName stage name
-     * @param input typed key (argument from previous stages)
-     * @param outputs typed key (result value)
-     * @param parameters wrapper of the different parameters
-     * @param extractor executor function which performs different operations
-     * @param validation AI stage validation
+     *
+     * @param stageName            stage name
+     * @param input                typed key (argument from previous stages)
+     * @param outputs              typed key (result value)
+     * @param parameters           wrapper of the different parameters
+     * @param extractor            executor function which performs different operations
+     * @param validation           AI stage validation
      * @param validationParameters validation parameters
+     * @param <A>                  Argument (input type)
+     * @param <O>                  Argument (Output type)
      * @return AI stage contract
-     * @param <A> Argument (input type)
-     * @param <O> Argument (Output type)
      */
     public <A, O> AiStage<O> createStage(@Nonnull String stageName, @Nonnull AiTypedKey<A> input,
                                          @Nonnull AiTypedKey<O> outputs,
@@ -62,15 +63,30 @@ public class AiUnaryStageFactory {
                                 AiResultText.of(AiResultEnum.OK, inputParam), resultExecution, validationParameters
                         );
                         if (!validationResult.isSuccess()) {
-                            throw new AiValidationException(validationResult.getFailureReason());
+                            throw new AiValidationException(validationResult.getFailureReason(), validationResult.getInput(), validationResult.getOutput());
                         }
                     }
 
                     aiPipelineContext.addStageResult(outputs, resultExecution.getText());
 
                     return AIStageResponse.success(resultExecution.getText());
+                } catch (AiValidationException validationException) {
+                    errorCollector.add(validationException.getMessage());
+                    parameters.setPreviousFailureMessage(buildPreviousFailureMessage(validationException.getMessage()));
+
+                    log.warn("""
+                                    AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {},\
+                                    Input = {}
+                                    Output = {}
+                                    """,
+                            parameters.getStageName(),
+                            countAttempts++, parameters.getMaxAttempts(), parameters.getId(),
+                            validationException.getMessage(), validationException.getInput(),
+                            validationException.getOutput()
+                    );
                 } catch (Exception exception) {
                     errorCollector.add(exception.getMessage());
+                    parameters.setPreviousFailureMessage(buildPreviousFailureMessage(exception.getMessage()));
 
                     log.warn("AI {} side: Attempt {} vs {}: For ID = {} an error has occurred. Text = {}",
                             parameters.getStageName(),
@@ -88,5 +104,22 @@ public class AiUnaryStageFactory {
         return new AiStageImpl<>(
                 stageName, Set.of(input), Set.of(outputs), decoratorFunction, parameters, validation
         );
+    }
+
+    private String buildPreviousFailureMessage(String message) {
+        return String.format("""
+                RETRY VALIDATION CONTEXT (CRITICAL)
+                
+                A previous translation attempt failed validation.
+                
+                You MUST correct the issues listed below.
+                
+                Do NOT repeat the same mistakes.
+                
+                VALIDATION ERRORS:
+                %s
+                
+                Your task remains SAME (WITH INCREASED STRICTNESS).
+                """, message);
     }
 }

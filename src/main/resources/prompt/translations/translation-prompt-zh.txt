@@ -118,6 +118,8 @@ EMPTY OUTPUT RULE
 If translation cannot be produced or the result would otherwise be empty, output:
 NO_CONTENT
 
+%s
+
 FINAL VALIDATION
 
 Before output, verify:
