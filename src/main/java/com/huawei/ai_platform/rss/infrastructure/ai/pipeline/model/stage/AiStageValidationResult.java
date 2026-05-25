@@ -20,11 +20,17 @@ public class AiStageValidationResult {
     private boolean success;
     private String failureReason;
 
+    private String input;
+    private String output;
+
     public static @Nonnull AiStageValidationResult success() {
-        return new AiStageValidationResult(true, StringUtils.EMPTY);
+        return new AiStageValidationResult(true, StringUtils.EMPTY, StringUtils.EMPTY,
+                StringUtils.EMPTY
+        );
     }
 
-    public static @Nonnull AiStageValidationResult failure(@Nonnull String reason) {
-        return new AiStageValidationResult(false, reason);
+    public static @Nonnull AiStageValidationResult failure(@Nonnull String reason, @Nonnull String input,
+                                                           @Nonnull String output) {
+        return new AiStageValidationResult(false, reason, input, output);
     }
 }

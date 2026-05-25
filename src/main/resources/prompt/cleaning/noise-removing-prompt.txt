@@ -161,6 +161,8 @@ EMPTY OUTPUT RULE
 If the result would otherwise be empty, output:
 NO_CONTENT
 
+%s
+
 FINAL CHECK BEFORE OUTPUT
 
 Ensure that:

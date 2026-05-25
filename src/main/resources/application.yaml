@@ -109,7 +109,7 @@ ai:
   digest:
     batch-size: 50
     log-dir: /usr1/logs/llm
-    ranking-model: glm-5.1
+    ranking-model: deepseek-v3.1-terminus
     ranking-temperature: 0.1
     ranking-thread-pool-size: 20
     ranking-timeout: 60000
@@ -117,7 +117,7 @@ ai:
     summary-temperature: 0.4
     summary-thread-pool-size: 5
     summary-timeout: 120000
-    translation-model: deepseek-v3.1-terminus
+    translation-model: glm-5.1
     translation-temperature: 0.2
     translation-thread-pool-size: 15
     translation-timeout: 30000

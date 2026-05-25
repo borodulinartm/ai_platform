@@ -118,6 +118,7 @@ TRANSLATION RULES
 - Preserve identifiers exactly
 - Preserve `<img>` tags unchanged
 - Preserve numbers accurately
+- Preserve names, numbers, entities, technical identifiers, URLs, and filenames accurately
 - Maintain neutral tone
 
 Do NOT:
@@ -138,6 +139,8 @@ If translation cannot be produced:
 output exactly:
 NO_CONTENT
 
+%s
+
 FINAL VALIDATION
 
 Before output, verify:
@@ -146,6 +149,7 @@ Before output, verify:
 - output contains no explanations
 - output contains no assistant-style response
 - output contains only translated text or unchanged English text
+- names, numbers, entities, technical identifiers, URLs, and filenames preserved (very important)
 - English input was NOT answered
 
 INPUT FORMAT

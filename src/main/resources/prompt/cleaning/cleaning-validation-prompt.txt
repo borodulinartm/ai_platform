@@ -161,20 +161,6 @@ Do NOT validate network accessibility.
 Do NOT invent broken-image failures.
 
 --------------------------------------------------
-V004_RAW_URL_PRESENT
---------------------------------------------------
-
-FAIL if standalone raw URLs exist outside <img> tags.
-
-Examples:
-https://example.com
-http://abc.org
-www.test.com
-
-IMPORTANT:
-URLs inside img src are allowed.
-
---------------------------------------------------
 V005_MARKDOWN_PRESENT
 --------------------------------------------------
 

@@ -37,7 +37,9 @@ public class AiDefaultExecutor implements AiFunction1Executor<String, String> {
         try (InputStream systemInputStream = systemPromptResource.getInputStream();
              InputStream userInputStream = userPromptResource.getInputStream()) {
 
-            String systemPromptContent = new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            String systemPromptContent = String.format(new String(systemInputStream.readAllBytes(), StandardCharsets.UTF_8),
+                    aiStageParameters.getPreviousFailureMessage()
+            );
             String userPromptContent = String.format(new String(userInputStream.readAllBytes(), StandardCharsets.UTF_8),
                     inputParam
             );

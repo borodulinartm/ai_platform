@@ -22,4 +22,6 @@ public class AiStageParameters {
     private String model;
     private double temperature;
     private int maxAttempts;
+
+    private String previousFailureMessage;
 }

@@ -127,6 +127,8 @@ LINK HANDLING
 - NEVER output URLs unless inside <img>
 - NEVER convert anything into <img>
 
+%s
+
 HARD VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are satisfied:

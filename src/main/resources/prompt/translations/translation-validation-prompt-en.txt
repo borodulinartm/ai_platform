@@ -35,6 +35,7 @@ TRANSLATED_TEXT is valid if:
 - it is recognizably a translation of SOURCE_TEXT
 - names, numbers, entities, and technical identifiers remain reasonably accurate
 - `<img>` tags remain unchanged if present
+- both SOURCE_TEXT and TRANSLATED_TEXT are empty
 
 ENGLISH REQUIREMENTS
 

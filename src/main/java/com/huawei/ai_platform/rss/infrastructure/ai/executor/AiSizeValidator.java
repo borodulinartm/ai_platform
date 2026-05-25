@@ -28,7 +28,7 @@ public class AiSizeValidator implements IAiStageValidation<String, String> {
         double ratio = (double) lengthOutput / lengthInput;
 
         if (inputData.getResultEnum() == AiResultEnum.FAILURE || resultData.getResultEnum() == AiResultEnum.FAILURE) {
-            return AiStageValidationResult.failure("Not all parameters are successfully");
+            return AiStageValidationResult.failure("Not all parameters are successfully", inputData.getText(), resultData.getText());
         }
 
         // No content - no need check
@@ -39,19 +39,19 @@ public class AiSizeValidator implements IAiStageValidation<String, String> {
         // Idea: if the text is too short, then we consider as a failure (because of the not good situation)
         if (lengthInput < 25) {
             if (ratio < 0.25) {
-                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput), inputData.getText(), resultData.getText());
             }
         } else if (lengthInput < 100) {
             if (ratio < 0.1) {
-                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput), inputData.getText(), resultData.getText());
             }
         } else if (lengthInput < 200) {
             if (ratio < 0.06) {
-                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput), inputData.getText(), resultData.getText());
             }
         } else {
             if (ratio < 0.03) {
-                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput));
+                return AiStageValidationResult.failure(String.format(ERROR_TEXT, lengthOutput, lengthInput), inputData.getText(), resultData.getText());
             }
         }
 

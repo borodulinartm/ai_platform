@@ -73,7 +73,7 @@ public class AiRelevanceCheckRepo {
         String stageName = "RELEVANCE_STAGE";
 
         AiStageParameters stageParameters = new AiStageParameters(stageName,
-                relevanceCheckRequest.getId(), RELEVANCE_PROMPT, USER_PROMPT, modelRelevance, temperatureRelevance, maxCountAttemptsRelevance
+                relevanceCheckRequest.getId(), RELEVANCE_PROMPT, USER_PROMPT, modelRelevance, temperatureRelevance, maxCountAttemptsRelevance, ""
         );
 
         return new AiUnaryStageFactory().createStage(stageName, RELEVANCE_INPUT, RELEVANCE_OUTPUT, stageParameters,

@@ -41,6 +41,11 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
         ClassPathResource systemPromptResource = new ClassPathResource(parameters.getSystemPrompt());
         ClassPathResource userPromptResource = new ClassPathResource(parameters.getUserPrompt());
 
+        // Empty text - ok result, we can go away
+        if (StringUtils.isAllBlank(inputData.getText(), outputData.getText())) {
+            return AiStageValidationResult.success();
+        }
+
         while (countAttempts <= maxAttemptsCount) {
             try (InputStream systemInputStream = systemPromptResource.getInputStream();
                  InputStream userInputStream = userPromptResource.getInputStream()) {
@@ -67,8 +72,8 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
                 }
 
                 return AiStageValidationResult.failure(
-                        String.format("Result from AI is not correct! Message = '%s'\nInput = %s\nOutput = %s\n", result.getText(),
-                                inputData.getText(), outputData.getText())
+                        String.format("Message = '%s'", result.getText()),
+                        inputData.getText(), outputData.getText()
                 );
             } catch (IOException exception) {
                 log.warn("AiDefaultValidator: exception for ID = {}. Attempt {}/{}. File = {}, Input text = {}, Output text = {}", parameters.getId(),
@@ -77,6 +82,6 @@ public class AiDefaultValidator implements IAiStageValidation<String, String> {
             }
         }
 
-        return AiStageValidationResult.failure("Count attempts has exceeded");
+        return AiStageValidationResult.failure("Count validation attempts has exceeded", StringUtils.EMPTY, StringUtils.EMPTY);
     }
 }
