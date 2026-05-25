@@ -28,14 +28,14 @@ spring:
 
 
 ## Huawei Cloud
-# GLM 5.1       (glm-5.1)                 - 100 000 tkns/minute
-# DeepSeek v3.2 (deepseek-v3.2)           - 500 000 tkns/minute
-# DeepSeek v3.1 (deepseek-v3.1-terminus)  - 500 000 tkns/minute
-# DeepSeek v3   (deepseek-v3)             - 500 000 tkns/minute
-# Kimi-K2.6     (kimi-k2.6)               - 100 000 tkns/minute
+# GLM 5.1       (glm-5.1)                 - 1 000 000 tkns/minute
+# DeepSeek v3.2 (deepseek-v3.2)           -   500 000 tkns/minute
+# DeepSeek v3.1 (deepseek-v3.1-terminus)  -   500 000 tkns/minute
+# DeepSeek v3   (deepseek-v3)             -   500 000 tkns/minute
+# Kimi-K2.6     (kimi-k2.6)               -   100 000 tkns/minute
 ai:
   settings:
-    countConcurrentConnections: 50
+    countConcurrentConnections: 10
   relevance:
     model: glm-5.1
     temperature: 0.1
