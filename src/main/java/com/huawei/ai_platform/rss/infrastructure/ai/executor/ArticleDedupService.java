@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.executor;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.executor.AiTopArticlesOrchestrator.ArticleData;
+import com.huawei.ai_platform.rss.model.RssData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -53,12 +54,12 @@ public class ArticleDedupService {
                     continue;
                 }
 
-                if (titleSim > 0.3) {
+                if (titleSim > 0.5) {
                     double contentSim = jaccardSimilarity(
                         tokenize(articles.get(i).content()),
                         tokenize(articles.get(j).content())
                     );
-                    if (contentSim > 0.5) {
+                    if (contentSim > 0.75) {
                         int toRemove = pickDuplicateToRemove(articles.get(i), articles.get(j), i, j);
                         removed.add(toRemove);
                         log.info("Dedup: content similarity {} between '{}' and '{}' - removing #{}",
@@ -92,7 +93,7 @@ public class ArticleDedupService {
     private Set<String> tokenize(String text) {
         if (text == null || text.isBlank()) return Set.of();
         String[] words = text.toLowerCase()
-            .replaceAll("[^a-z0-9\\s]", " ")
+            .replaceAll("[^\\p{L}\\p{N}\\s]", " ")
             .split("\\s+");
         Set<String> tokens = new HashSet<>();
         for (String w : words) {
@@ -120,22 +121,62 @@ public class ArticleDedupService {
     }
 
     /**
-     * Checks if two articles are duplicates.
-     * First checks title similarity > 0.8 (hash-like exact match on tokens),
-     * then falls back to combined title+content Jaccard.
+     * Finds duplicate article IDs using inverted index for O(N×C) instead of O(N²).
+     * Returns map of duplicateArticleId → originalArticleId it duplicates.
      */
-    public boolean isSimilar(String titleA, String contentA, String titleB, String contentB) {
-        Set<String> t1 = tokenize(titleA);
-        Set<String> t2 = tokenize(titleB);
-        double titleSim = jaccardSimilarity(t1, t2);
+    public Map<Long, Long> findDuplicates(List<RssData> articles) {
+        if (articles.size() <= 1) return Map.of();
 
-        if (titleSim > 0.8) {
-            return true;
+        Map<Long, Long> duplicateToOriginal = new HashMap<>();
+        Map<String, List<RssData>> tokenIndex = new HashMap<>();
+
+        for (RssData article : articles) {
+            if (duplicateToOriginal.containsKey(article.getArticleId())) continue;
+
+            Set<String> titleTokens = tokenize(article.getArticleTitleEn());
+            Set<String> contentTokens = tokenize(article.getArticleContent());
+
+            RssData matchedOriginal = null;
+
+            // Find candidates via title token overlap
+            Map<RssData, Integer> candidateOverlap = new HashMap<>();
+            for (String token : titleTokens) {
+                for (RssData candidate : tokenIndex.getOrDefault(token, List.of())) {
+                    if (candidate.getArticleId() == article.getArticleId()) continue;
+                    candidateOverlap.merge(candidate, 1, Integer::sum);
+                }
+            }
+
+            // Only compute full Jaccard for candidates with shared title tokens
+            for (RssData candidate : candidateOverlap.keySet()) {
+                if (candidate.getArticleId() == article.getArticleId()) continue;
+                if (duplicateToOriginal.containsKey(candidate.getArticleId())) continue;
+
+                double titleSim = jaccardSimilarity(titleTokens, tokenize(candidate.getArticleTitleEn()));
+
+                if (titleSim > 0.85) {
+                    matchedOriginal = candidate;
+                    break;
+                }
+
+                if (titleSim > 0.6) {
+                    double contentSim = jaccardSimilarity(contentTokens, tokenize(candidate.getArticleContent()));
+                    if (contentSim > 0.85) {
+                        matchedOriginal = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedOriginal != null) {
+                duplicateToOriginal.put(article.getArticleId(), matchedOriginal.getArticleId());
+            } else {
+                for (String token : titleTokens) {
+                    tokenIndex.computeIfAbsent(token, k -> new ArrayList<>()).add(article);
+                }
+            }
         }
-        if (titleSim > 0.3) {
-            double contentSim = jaccardSimilarity(tokenize(contentA), tokenize(contentB));
-            return contentSim > 0.5;
-        }
-        return false;
+
+        return duplicateToOriginal;
     }
 }

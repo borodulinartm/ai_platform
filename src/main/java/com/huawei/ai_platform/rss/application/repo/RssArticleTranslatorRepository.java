@@ -54,4 +54,9 @@ public interface RssArticleTranslatorRepository {
      * @param statusEnum  status
      */
     void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum);
+
+    /**
+     * Inserts or updates article translation
+     */
+    void insertOrUpdateArticleTranslation(RssData rssData, ArticleTranslationStatusEnum statusEnum, String reason);
 }

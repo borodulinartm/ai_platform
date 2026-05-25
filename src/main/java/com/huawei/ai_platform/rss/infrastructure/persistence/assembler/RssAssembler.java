@@ -81,6 +81,7 @@ public class RssAssembler {
                     .articleId(inputItem.getId()).translationStatusEnum(inputItem.getTranslationStatusEnum())
                     .articleTitleEn(inputItem.getTitle())
                     .articleTitleZh(inputItem.getTitleZh())
+                    .hash(inputItem.getHash())
                     .typeInfoEnum(RssTypeInfoEnum.ARTICLES)
                     .articleContent(inputItem.getContent())
                     .articleContentZh(inputItem.getContentZh())

@@ -28,8 +28,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -209,12 +213,19 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
      * @return list of unique articles that should proceed to translation
      */
     private List<RssData> deduplicateWithinCategories(List<RssData> articles) {
+        // Deduplicate by article ID first (same article may appear from different query paths)
+        articles = articles.stream()
+                .collect(Collectors.groupingBy(RssData::getArticleId, LinkedHashMap::new, Collectors.toList()))
+                .values().stream()
+                .map(List::getFirst)
+                .toList();
+
         Map<String, List<RssData>> byCategory = articles.stream()
                 .filter(a -> a.getRssCategory() != null)
                 .collect(Collectors.groupingBy(a -> a.getRssCategory().getCategoryNameEn()));
 
         List<RssData> result = new ArrayList<>();
-        List<Long> duplicateIds = new ArrayList<>();
+        Map<Long, Long> duplicateToOriginal = new HashMap<>();
 
         for (List<RssData> categoryArticles : byCategory.values()) {
             if (categoryArticles.size() <= 1) {
@@ -222,39 +233,35 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                 continue;
             }
 
-            List<String> seenHashes = new ArrayList<>();
-            List<String> seenTitles = new ArrayList<>();
-            List<String> seenContents = new ArrayList<>();
+            Map<String, RssData> byHash = new HashMap<>();
+            List<RssData> noHashMatch = new ArrayList<>();
 
+            // First pass: exact dedup by hash
             for (RssData article : categoryArticles) {
-                String hash = article.getHash() != null ? article.getHash() : "";
-                String title = article.getArticleTitleEn() != null ? article.getArticleTitleEn() : "";
-                String content = article.getArticleContent() != null ? article.getArticleContent() : "";
-
-                // Exact match by pre-computed hash
-                if (!hash.isEmpty() && seenHashes.contains(hash)) {
-                    duplicateIds.add(article.getArticleId());
-                    continue;
+                String hash = article.getHash();
+                if (byHash.containsKey(hash)) {
+                    duplicateToOriginal.put(article.getArticleId(), byHash.get(hash).getArticleId());
+                } else {
+                    if (!hash.isEmpty()) byHash.put(hash, article);
+                    noHashMatch.add(article);
                 }
-
-                boolean isDup = false;
-                for (int i = 0; i < seenTitles.size(); i++) {
-                    if (articleDedupService.isSimilar(title, content, seenTitles.get(i), seenContents.get(i))) {
-                        isDup = true;
-                        break;
-                    }
-                }
-
-                if (isDup) {
-                    duplicateIds.add(article.getArticleId());
-                    continue;
-                }
-
-                if (!hash.isEmpty()) seenHashes.add(hash);
-                seenTitles.add(title);
-                seenContents.add(content);
-                result.add(article);
             }
+
+            // Second pass: Jaccard similarity via inverted index
+       /*     List<ArticleDedupService.DedupArticle> dedupArticles = noHashMatch.stream()
+                    .map(a -> new ArticleDedupService.DedupArticle(
+                            a.getArticleId(),
+                            a.getArticleTitleEn() != null ? a.getArticleTitleEn() : "",
+                            a.getArticleContent() != null ? a.getArticleContent() : ""))
+                    .toList();*/
+
+            Map<Long, Long> jaccardDuplicates = articleDedupService.findDuplicates(noHashMatch);
+            duplicateToOriginal.putAll(jaccardDuplicates);
+
+            Set<Long> allDuplicateIds = new HashSet<>(duplicateToOriginal.keySet());
+            result.addAll(categoryArticles.stream()
+                    .filter(a -> !allDuplicateIds.contains(a.getArticleId()))
+                    .toList());
         }
 
         // Articles without category bypass dedup
@@ -262,9 +269,15 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
                 .filter(a -> a.getRssCategory() == null)
                 .toList());
 
-        if (!duplicateIds.isEmpty()) {
-            rssArticleTranslatorRepository.queryUpdateStatusByListData(duplicateIds, SKIPPED, "Duplicate within category");
-            log.info("Dedup: marked {} articles as SKIPPED", duplicateIds.size());
+        if (!duplicateToOriginal.isEmpty()) {
+            for (Map.Entry<Long, Long> entry : duplicateToOriginal.entrySet()) {
+                String reason = "Duplicate of article " + entry.getValue();
+                articles.stream()
+                    .filter(a -> a.getArticleId() == entry.getKey())
+                    .findFirst()
+                    .ifPresent(dup -> rssArticleTranslatorRepository.insertOrUpdateArticleTranslation(dup, SKIPPED, reason));
+            }
+            log.info("Dedup: marked {} articles as SKIPPED", duplicateToOriginal.size());
         }
 
         return result;
