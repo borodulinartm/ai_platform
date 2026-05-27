@@ -23,37 +23,30 @@ spring:
       api-key: ${LLM_KEY}
       chat:
         options:
-          model: glm-5.1
+          model: deepseek/deepseek-v3.2:floor
           temperature: 0.2
 
-
-## Huawei Cloud
-# GLM 5.1       (glm-5.1)                 - 1 000 000 tkns/minute
-# DeepSeek v3.2 (deepseek-v3.2)           -   500 000 tkns/minute
-# DeepSeek v3.1 (deepseek-v3.1-terminus)  -   500 000 tkns/minute
-# DeepSeek v3   (deepseek-v3)             -   500 000 tkns/minute
-# Kimi-K2.6     (kimi-k2.6)               -   100 000 tkns/minute
 ai:
   settings:
-    countConcurrentConnections: 10
+    countConcurrentConnections: 50
   relevance:
-    model: glm-5.1
+    model: deepseek/deepseek-v3.2:floor
     temperature: 0.1
-    countAttempts: 10
+    countAttempts: 3
     relevance-threshold: 4
   translating:
     stages:
       - stageName: TRANSLATION_STAGE
         temperature: 0.2
         countAttempts: 10
-        model: deepseek-v3.2
+        model: deepseek/deepseek-v3.2:floor
         systemPromptPathEn: prompt/translations/translation-prompt-en.txt
         systemPromptPathZh: prompt/translations/translation-prompt-zh.txt
         userPromptPath: prompt/user-prompt.txt
         validation:
           temperature: 0
           countAttempts: 3
-          model: deepseek-v3
+          model: deepseek/deepseek-v4-flash:floor
           systemPromptPathEn: prompt/translations/translation-validation-prompt-en.txt
           systemPromptPathZh: prompt/translations/translation-validation-prompt-zh.txt
           userPromptPath: prompt/translations/user-prompt-validation.txt
@@ -61,12 +54,12 @@ ai:
       - stageName: NORMALIZATION_STAGE
         temperature: 0.1
         countAttempts: 10
-        model: deepseek-v3.1-terminus
+        model: deepseek/deepseek-v3.2:floor
         systemPromptPathEn: prompt/translations/normalization-prompt-en.txt
         systemPromptPathZh: prompt/translations/normalization-prompt-zh.txt
         userPromptPath: prompt/user-prompt.txt
       - stageName: FORMATTING_STAGE
-        model: glm-5.1
+        model: deepseek/deepseek-v3.2:floor
         temperature: 0.1
         countAttempts: 10
         systemPromptPathEn: prompt/translations/formatting-prompt.txt
@@ -77,47 +70,47 @@ ai:
       - stageName: CLEANING_STAGE
         temperature: 0
         countAttempts: 10
-        model: glm-5.1
+        model: deepseek/deepseek-v3.2:floor
         systemPromptPath: prompt/cleaning/cleaning-prompt.txt
         userPromptPath: prompt/user-prompt.txt
         validation:
           temperature: 0.1
           countAttempts: 3
-          model: deepseek-v3
+          model: deepseek/deepseek-v4-flash:floor
           systemPromptPath: prompt/cleaning/cleaning-validation-prompt.txt
           userPromptPath: prompt/cleaning/user-prompt-validation.txt
           stageName: VALIDATION_STAGE
       - stageName: NOISE_REMOVING_STAGE
         temperature: 0
         countAttempts: 10
-        model: glm-5.1
+        model: deepseek/deepseek-v3.2:floor
         systemPromptPath: prompt/cleaning/noise-removing-prompt.txt
         userPromptPath: prompt/user-prompt.txt
         validation:
           temperature: 0
           countAttempts: 3
-          model: deepseek-v3
+          model: deepseek/deepseek-v4-flash:floor
           systemPromptPath: prompt/cleaning/noise-removing-validation.txt
           userPromptPath: prompt/cleaning/user-prompt-validation.txt
           stageName: VALIDATION_STAGE
       - stageName: NORMALIZATION_STAGE
         temperature: 0.2
         countAttempts: 10
-        model: deepseek-v3.1-terminus
+        model: deepseek/deepseek-v3.2:floor
         systemPromptPath: prompt/cleaning/normalization-prompt.txt
         userPromptPath: prompt/user-prompt.txt
   digest:
     batch-size: 50
     log-dir: /usr1/logs/llm
-    ranking-model: deepseek-v3.1-terminus
+    ranking-model: deepseek/deepseek-v3.2:floor
     ranking-temperature: 0.1
     ranking-thread-pool-size: 20
     ranking-timeout: 60000
-    summary-model: deepseek-v3.2
+    summary-model: deepseek/deepseek-v3.2:floor
     summary-temperature: 0.4
     summary-thread-pool-size: 5
     summary-timeout: 120000
-    translation-model: glm-5.1
+    translation-model: deepseek/deepseek-v3.2:floor
     translation-temperature: 0.2
     translation-thread-pool-size: 15
     translation-timeout: 30000
