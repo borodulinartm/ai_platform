@@ -12,8 +12,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 /**
  * Rss different job
@@ -31,6 +35,21 @@ import java.time.LocalDateTime;
 public class RssJob {
     @Value("${cloud.windowSize:1}")
     private long windowSize;
+
+    @Value("${ai.crawl.script-path:src/main/resources/ai-crawl/vibe-main.py}")
+    private String crawlScriptPath;
+
+    @Value("${ai.crawl.python-path:python}")
+    private String pythonPath;
+
+    @Value("${ai.crawl.enabled:false}")
+    private boolean crawlEnabled;
+
+    @Value("${ai.crawl.llm-url:https://openrouter.ai/api/v1}")
+    private String llmUrl;
+
+    @Value("${ai.crawl.llm-key:}")
+    private String llmKey;
 
     private final RssSyncService rssService;
     private final RssTranslationService rssTranslationService;
@@ -81,5 +100,50 @@ public class RssJob {
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish TOP-10 Articles Processing Job");
+    }
+
+    /**
+     * Job for crawling scraped:: sources via Python script
+     * Runs every hour at :05
+     */
+    @Scheduled(cron = "0 5 * * * ?", zone = "GMT")
+    @DbLock(category = "ai_crawl_lock")
+    public void runAiCrawl() {
+        if (!crawlEnabled) {
+            log.debug("AI crawl job disabled");
+            return;
+        }
+
+        log.info("Run AI Crawl Job");
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder(pythonPath, crawlScriptPath);
+            pb.redirectErrorStream(true);
+            pb.directory(Path.of(crawlScriptPath).getParent().toFile());
+            pb.environment().put("LLM_URL", llmUrl);
+            pb.environment().put("LLM_KEY", llmKey);
+
+            Process process = pb.start();
+
+            String output;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                output = reader.lines().collect(Collectors.joining("\n"));
+            }
+
+            int exitCode = process.waitFor();
+
+            if (exitCode == 0) {
+                log.info("AI Crawl completed successfully");
+                if (!output.isEmpty()) {
+                    log.debug("AI Crawl output:\n{}", output);
+                }
+            } else {
+                log.error("AI Crawl failed with exit code {}: {}", exitCode, output);
+            }
+        } catch (Exception e) {
+            log.error("AI Crawl job error", e);
+        }
+
+        log.info("Finish AI Crawl Job");
     }
 }
