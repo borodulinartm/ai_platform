@@ -64,8 +64,12 @@ function Invoke-ToolAction {
 function Open-HermesUI {
     $desktopExe = "$env:LOCALAPPDATA\Programs\hermes-desktop\hermes-agent.exe"
     if (Test-Path $desktopExe) {
-        Write-Host "  Launching Hermes Desktop..." -ForegroundColor Green
-        Start-Process $desktopExe
+        if (Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue) {
+            Write-Host "  Hermes Desktop already running" -ForegroundColor Gray
+        } else {
+            Start-Process $desktopExe
+            Write-Host "  Hermes Desktop launched" -ForegroundColor Green
+        }
     } else {
         Write-Host "  Hermes Desktop not installed. Use [H1] to install." -ForegroundColor Yellow
     }
@@ -138,24 +142,25 @@ function Show-ManagerMenu {
     Write-Host '  [H1] Install'    -ForegroundColor White
     Write-Host '  [H2] Uninstall'  -ForegroundColor White
     Write-Host '  [H3] Status'     -ForegroundColor White
-    Write-Host '  [HW] Open'        -ForegroundColor White
-    Write-Host '  [HS] Stop'        -ForegroundColor White
+    Write-Host '  [H4] Update'     -ForegroundColor White
+    Write-Host '  [HW] Open'       -ForegroundColor White
+    Write-Host '  [HS] Stop'       -ForegroundColor White
     Write-Host ''
     Write-Host '  JiuwenSwarm' -ForegroundColor Yellow
     Write-Host '  [J1] Install'   -ForegroundColor White
     Write-Host '  [J2] Uninstall' -ForegroundColor White
     Write-Host '  [J3] Status'    -ForegroundColor White
     Write-Host '  [J4] Update'    -ForegroundColor White
-    Write-Host '  [JW] Open WebUI' -ForegroundColor White
-    Write-Host '  [JS] Stop Services' -ForegroundColor White
+    Write-Host '  [JW] Open'      -ForegroundColor White
+    Write-Host '  [JS] Stop'      -ForegroundColor White
     Write-Host ''
     Write-Host '  OpenClaw' -ForegroundColor Yellow
     Write-Host '  [O1] Install'   -ForegroundColor White
     Write-Host '  [O2] Uninstall' -ForegroundColor White
     Write-Host '  [O3] Status'    -ForegroundColor White
     Write-Host '  [O4] Update'    -ForegroundColor White
-    Write-Host '  [OW] Open WebUI' -ForegroundColor White
-    Write-Host '  [OS] Stop'       -ForegroundColor White
+    Write-Host '  [OW] Open'      -ForegroundColor White
+    Write-Host '  [OS] Stop'      -ForegroundColor White
     Write-Host ''
     Write-Host '  [A] Show all statuses' -ForegroundColor White
     Write-Host '  [Q] Quit'              -ForegroundColor DarkGray
@@ -166,6 +171,7 @@ function Show-ManagerMenu {
         'H1' { Invoke-ToolAction $HermesScript 'install' 'Hermes' }
         'H2' { Invoke-ToolAction $HermesScript 'uninstall' 'Hermes' }
         'H3' { Invoke-ToolAction $HermesScript 'status' 'Hermes' }
+        'H4' { Invoke-ToolAction $HermesScript 'update' 'Hermes' }
         'HW' { Open-HermesUI }
         'HS' { Stop-Hermes }
         'J1' { Invoke-ToolAction $JiuwenSwarmScript 'install' 'JiuwenSwarm' }

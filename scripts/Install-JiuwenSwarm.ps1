@@ -165,11 +165,20 @@ function Do-Install {
     $alreadyInstalled = Find-JiuwenSwarm
 
     if ($alreadyInstalled) {
-        Write-Host "`n========== Reinstalling JiuwenSwarm ==========" -ForegroundColor Yellow
-        # Force reinstall for clean slate
-        & uv tool uninstall jiuwenswarm 2>&1 | Out-Null
-    } else {
-        Write-Host "`n========== Installing JiuwenSwarm ==========" -ForegroundColor Yellow
+        Write-Host "`n========== JiuwenSwarm already installed ==========" -ForegroundColor Yellow
+        Write-Host '  Starting services in background...' -ForegroundColor Cyan
+        $appOk = netstat -ano 2>$null | Select-String "19000.*LISTENING"
+        $webOk = netstat -ano 2>$null | Select-String "5173.*LISTENING"
+        if (-not $appOk) {
+            Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -Command `$env:PYTHONIOENCODING='utf-8'; jiuwenswarm-app 2>&1 | Out-File `"$env:USERPROFILE\.jiuwenswarm\agent\.logs\app-service.log`""
+        }
+        if (-not $webOk) {
+            Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -Command `$env:PYTHONIOENCODING='utf-8'; jiuwenswarm-web 2>&1 | Out-File `"$env:USERPROFILE\.jiuwenswarm\agent\.logs\web-service.log`""
+        }
+        if (-not $webOk) { Write-Host '  Waiting 15s for services...' -ForegroundColor Gray; Start-Sleep 15 }
+        Write-Host '  Opening WebUI...' -ForegroundColor Green
+        Start-Process "http://localhost:5173"
+        return
     }
 
     Write-Host "Installing uv..." -ForegroundColor Cyan

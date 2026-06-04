@@ -5,9 +5,10 @@
     Install, uninstall, or check status of Hermes AI Agent (CLI or Desktop).
 .EXAMPLE
     .\Install-HermesAgent.ps1                 # interactive menu
-    .\Install-HermesAgent.ps1 install         # install Desktop app (with CLI + venv)
-    .\Install-HermesAgent.ps1 uninstall       # uninstall all (CLI + Desktop)
-    .\Install-HermesAgent.ps1 status          # check installed versions & updates
+    .\Install-HermesAgent.ps1 install         # install CLI
+    .\Install-HermesAgent.ps1 install-desktop # install Desktop app
+    .\Install-HermesAgent.ps1 uninstall       # uninstall
+    .\Install-HermesAgent.ps1 status          # check if installed
 #>
 
 param(
@@ -259,7 +260,19 @@ function Do-InstallAll {
 }
 
 function Do-InstallDesktop {
-    Write-Host "`n========== Installing Hermes Desktop ==========" -ForegroundColor Yellow
+    Write-Host "`n========== Hermes Desktop ==========" -ForegroundColor Yellow
+
+    # If already installed, just open it
+    $pythonw = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\pythonw.exe"
+    $hermesExe = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\hermes.exe"
+    if ((Test-Path $pythonw) -and (Test-Path $hermesExe) -and (Test-Path $DesktopAppExe)) {
+        Write-Host '  Already installed — opening Desktop...' -ForegroundColor Gray
+        if (-not (Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue)) {
+            Start-Process $DesktopAppExe
+        }
+        Write-Host '[OK] Hermes Desktop running' -ForegroundColor Green
+        return
+    }
 
     # Kill running Desktop (it locks files in venv)
     Write-Host '  Stopping existing processes...' -ForegroundColor Gray
@@ -397,9 +410,8 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
     }
     if (-not $appeared) {
         Write-Host '  NSIS launch may have failed - starting manually' -ForegroundColor Yellow
-        Start-Process -FilePath $DesktopAppExe
+        Start-Process $DesktopAppExe
     }
-    Write-Host '  Click Continue if setup wizard appears' -ForegroundColor Gray
 }
 
 function Do-Update {
@@ -565,6 +577,7 @@ function Show-Menu {
     Write-Host '  [1] Install'   -ForegroundColor White
     Write-Host '  [2] Uninstall' -ForegroundColor White
     Write-Host '  [3] Status'    -ForegroundColor White
+    Write-Host '  [4] Update'    -ForegroundColor White
     Write-Host '  [Q] Quit'      -ForegroundColor DarkGray
     Write-Host ''
 
@@ -573,6 +586,7 @@ function Show-Menu {
         '1' { Do-InstallDesktop }
         '2' { Do-UninstallAll }
         '3' { Get-Status | Out-Null }
+        '4' { Do-Update }
         default { return }
     }
 }
@@ -581,6 +595,7 @@ switch ($Action) {
     'install'    { Do-InstallDesktop }
     'uninstall'  { Do-UninstallAll }
     'status'     { Get-Status | Out-Null }
+    'update'     { Do-Update }
     default      { Show-Menu }
 }
 

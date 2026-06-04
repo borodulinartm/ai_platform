@@ -405,11 +405,23 @@ function Start-OpenClaw {
 # ======================== Install (Full Setup Flow) ========================
 function Do-Install {
     if (Find-OpenClaw) {
-        Write-Host "`n========== OpenClaw is already installed ==========" -ForegroundColor Yellow
+        Write-Host "`n========== OpenClaw already installed ==========" -ForegroundColor Yellow
         Get-Status | Out-Null
         if ($Action -eq '') {
             $answer = Read-Host 'Reinstall? [y/N]'
             if ($answer -notmatch '^[Yy]') { return }
+        } else {
+            # Called from manager - just open WebUI
+            $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
+            if (-not $port) {
+                Write-Host '  Starting gateway in background...' -ForegroundColor Cyan
+                Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -Command openclaw gateway --force 2>`$null"
+                Write-Host '  Waiting 10s...' -ForegroundColor Gray
+                Start-Sleep 10
+            }
+            Write-Host '  Opening WebUI...' -ForegroundColor Green
+            Start-Process "http://127.0.0.1:18789"
+            return
         }
     }
 
