@@ -2,6 +2,7 @@ package com.huawei.ai_platform.rss.infrastructure.job;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.annotation.DbLock;
+import com.huawei.ai_platform.rss.application.service.RssCrawlService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
@@ -12,12 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 
 /**
  * Rss different job
@@ -36,24 +33,13 @@ public class RssJob {
     @Value("${cloud.windowSize:1}")
     private long windowSize;
 
-    @Value("${ai.crawl.script-path:src/main/resources/ai-crawl/vibe-main.py}")
-    private String crawlScriptPath;
-
-    @Value("${ai.crawl.python-path:python}")
-    private String pythonPath;
-
     @Value("${ai.crawl.enabled:false}")
     private boolean crawlEnabled;
-
-    @Value("${ai.crawl.llm-url:https://openrouter.ai/api/v1}")
-    private String llmUrl;
-
-    @Value("${ai.crawl.llm-key:}")
-    private String llmKey;
 
     private final RssSyncService rssService;
     private final RssTranslationService rssTranslationService;
     private final RssTopArticlesService rssTopArticlesService;
+    private final RssCrawlService rssCrawlService;
 
     /**
      * Job for uploading into data storage components of our RSS
@@ -115,35 +101,8 @@ public class RssJob {
         }
 
         log.info("Run AI Crawl Job");
-
-        try {
-            ProcessBuilder pb = new ProcessBuilder(pythonPath, crawlScriptPath);
-            pb.redirectErrorStream(true);
-            pb.directory(Path.of(crawlScriptPath).getParent().toFile());
-            pb.environment().put("LLM_URL", llmUrl);
-            pb.environment().put("LLM_KEY", llmKey);
-
-            Process process = pb.start();
-
-            String output;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                output = reader.lines().collect(Collectors.joining("\n"));
-            }
-
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0) {
-                log.info("AI Crawl completed successfully");
-                if (!output.isEmpty()) {
-                    log.debug("AI Crawl output:\n{}", output);
-                }
-            } else {
-                log.error("AI Crawl failed with exit code {}: {}", exitCode, output);
-            }
-        } catch (Exception e) {
-            log.error("AI Crawl job error", e);
-        }
-
+        OperationResult result = rssCrawlService.runCrawl();
+        log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
         log.info("Finish AI Crawl Job");
     }
 }

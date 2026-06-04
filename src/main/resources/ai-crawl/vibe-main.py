@@ -82,6 +82,7 @@ async def main(log_only=False):
     print(f"[*] {mode_str} DB records: {len(rows)}. Unique URLs to check: {len(url_groups)}")     
 
     yesterday = date.today() - timedelta(days=1)
+    source_counts = defaultdict(int)
 
     try:
         browser_config = BrowserConfig(
@@ -114,8 +115,10 @@ async def main(log_only=False):
                 5. If ALL categories are FALSE, you can leave title and content empty.
                 6. You MUST extract ALL articles on the page, ordered from newest to oldest.
                 """
+                llm_provider = os.environ.get("LLM_PROVIDER", "deepseek")
+                llm_model = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
                 llm_config = LLMConfig(
-                    provider="openrouter/deepseek/deepseek-v4-flash",
+                    provider=f"openrouter/{llm_provider}/{llm_model}",
                     api_token=os.environ.get("LLM_KEY", ""),
                     base_url=os.environ.get("LLM_URL", "https://openrouter.ai/api/v1")
                 )
@@ -308,6 +311,7 @@ async def main(log_only=False):
                                         target_feeds[0]['feed_id'],
                                         unix_date
                                     )
+                                    source_counts[original_url] += 1
                                 except Exception as e:
                                     print(f"    -> DB Error: {e}")
                                     continue
@@ -317,10 +321,20 @@ async def main(log_only=False):
         print(f"[-] Browser error: {e}")
     finally:
         await conn.close()
+        if source_counts:
+            print("\n" + "=" * 60)
+            print("[SUMMARY] Articles saved per source:")
+            for url, count in sorted(source_counts.items(), key=lambda x: -x[1]):
+                print(f"  {count:>3}  {url}")
+            print(f"  {'─' * 40}")
+            print(f"  {sum(source_counts.values()):>3}  total")
+            print("=" * 60)
         if log_only:
             print("\n[*] Done. Log-only mode — no data saved.")
+        elif source_counts:
+            print(f"\n[*] Done. {sum(source_counts.values())} articles saved to DB.")
         else:
-            print("\n[*] Done. Data saved to DB.")
+            print("\n[*] Done. No articles saved to DB.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Crawl and filter articles by category")
