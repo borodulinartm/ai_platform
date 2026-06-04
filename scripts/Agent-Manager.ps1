@@ -47,6 +47,19 @@ function Invoke-ToolAction {
     $embedModel = $Config.$Label.EmbedModel
     $version = $Config.$Label.Version
     $baseUrl = $Config.$Label.BaseUrl
+
+    # Validate required config for install/update actions
+    if ($Action -in @('install', 'update')) {
+        $missing = @()
+        if (-not $apiKey)  { $missing += 'ApiKey' }
+        if (-not $baseUrl) { $missing += 'BaseUrl' }
+        if (-not $model)   { $missing += 'Model' }
+        if ($missing) {
+            Write-Host "[WARN] Config missing for $Label`: $($missing -join ', ')" -ForegroundColor Yellow
+            Write-Host "  Edit config.json and add the missing fields." -ForegroundColor Gray
+            return
+        }
+    }
     
     $args = @(
         '-Action', $Action,
