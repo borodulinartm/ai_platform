@@ -1,0 +1,21 @@
+{
+    "Hermes": {
+        "Provider": "huawei",
+        "ApiKey": "",
+        "Model": "glm-5.1",
+        "BaseUrl": ""
+    },
+    "JiuwenSwarm": {
+        "Provider": "huawei",
+        "ApiKey": "",
+        "Model": "glm-5.1",
+        "EmbedModel": "bge-m3",
+        "BaseUrl": ""
+    },
+    "OpenClaw": {
+        "Provider": "huawei",
+        "ApiKey": "",
+        "Model": "glm-5.1",
+        "BaseUrl": ""
+    }
+}
