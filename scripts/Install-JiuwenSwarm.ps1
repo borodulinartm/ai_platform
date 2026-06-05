@@ -19,6 +19,13 @@ param(
     [string]$BaseUrl = ""
 )
 
+$LogDir = Join-Path $env:USERPROFILE 'agent-logs'
+New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyContinue | Out-Null
+function Log-Operation { param([string]$Op, [string]$Agent); $ts = Get-Date -Format 'yyyyMMdd-HHmmss'; $f = Join-Path $LogDir "$Agent-$Op-$ts.log"; "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $Op start" | Out-File $f -Encoding UTF8 }
+
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+function Set-ContentNoBom { param([string]$Path, [string]$Value); [System.IO.File]::WriteAllText($Path, $Value, $Utf8NoBom) }
+
 $InstallDir = Join-Path $env:LOCALAPPDATA "jiuwenswarm"
 $InstallBin = Join-Path $InstallDir "jiuwenswarm.exe"
 
@@ -92,81 +99,38 @@ function Get-LatestVersion {
 
 function Get-Status {
     $path = Find-JiuwenSwarm
+    Write-Host ''
     if ($path) {
-        $isInPath = Test-JiuwenSwarmInPath
-        
         $currentVersion = $null
         try {
             $raw = uv tool list 2>&1 | Out-String
-            if ($raw -match 'jiuwenswarm\s+v?([^\s]+)') {
-                $currentVersion = $matches[1]
-            }
+            if ($raw -match 'jiuwenswarm\s+v?([^\s]+)') { $currentVersion = $matches[1] }
         } catch { }
 
         $latestVersion = Get-LatestVersion
-
-        if ($isInPath) {
-            Write-Host "INSTALLED" -ForegroundColor Green -NoNewline
-            if ($currentVersion) { Write-Host " v$currentVersion" -NoNewline -ForegroundColor Cyan }
-            Write-Host " - $path"
-
-            if ($currentVersion -and $latestVersion) {
-                if ($latestVersion -eq $currentVersion) {
-                    Write-Host "  Latest version (v$latestVersion), up to date" -ForegroundColor Green
-                } else {
-                    $curBase = $currentVersion -replace '[a-z].*', ''
-                    $latBase = $latestVersion -replace '[a-z].*', ''
-                    if ($curBase -eq $latBase) {
-                        # Same base: stable > beta, or newer beta > older beta
-                        if ($latestVersion -notmatch '[a-z]' -and $currentVersion -match '[a-z]') {
-                            Write-Host "  Update available: v$currentVersion -> v$latestVersion (stable)" -ForegroundColor Yellow
-                        } elseif ($currentVersion -gt $latestVersion) {
-                            Write-Host "  Latest stable: v$latestVersion (you have v$currentVersion)" -ForegroundColor Gray
-                        } else {
-                            Write-Host "  Update available: v$currentVersion -> v$latestVersion" -ForegroundColor Yellow
-                        }
-                    } elseif ($curBase -gt $latBase) {
-                        Write-Host "  Latest stable: v$latestVersion (you have v$currentVersion)" -ForegroundColor Gray
-                    } else {
-                        Write-Host "  Update available: v$currentVersion -> v$latestVersion" -ForegroundColor Yellow
-                    }
-                }
-            } elseif ($currentVersion -and -not $latestVersion) {
-                Write-Host "  Could not check for updates (offline?)" -ForegroundColor Gray
-            }
-            return $true
-        } else {
-            Write-Host "FOUND" -ForegroundColor Yellow -NoNewline
-            Write-Host " - $path (not in PATH)"
-            
-            if (Add-JiuwenSwarmToPath $path) {
-                $dir = Split-Path $path -Parent
-                $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-                if ($currentPath -notlike "*$dir*") {
-                    [System.Environment]::SetEnvironmentVariable("Path", "$dir;$currentPath", "User")
-                    Write-Host "PATH fixed and saved to registry" -ForegroundColor Green
-                }
-                
-                Write-Host "INSTALLED" -ForegroundColor Green -NoNewline
-                if ($currentVersion) { Write-Host " v$currentVersion" -NoNewline -ForegroundColor Cyan }
-                Write-Host " - $path"
-                return $true
-            } else {
-                Write-Host "[!] Could not add to PATH automatically" -ForegroundColor Yellow
-                return $false
-            }
+        Write-Host "JiuwenSwarm: $path" -ForegroundColor Green
+        if ($currentVersion) {
+            $status = ""
+            if ($currentVersion -eq $latestVersion) { $status = " (latest)" }
+            Write-Host "Version    : v$currentVersion$status" -ForegroundColor Cyan
         }
+        if ($currentVersion -and $latestVersion -and $currentVersion -ne $latestVersion) {
+            Write-Host "Latest     : v$latestVersion" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host 'JiuwenSwarm: not installed' -ForegroundColor Red
     }
-    Write-Host "NOT INSTALLED" -ForegroundColor Red
-    return $false
+    Write-Host ''
 }
 
 function Do-Install {
+    Log-Operation 'install' 'jiuwenswarm'
+
     $alreadyInstalled = Find-JiuwenSwarm
 
     if ($alreadyInstalled) {
         Write-Host "`n========== JiuwenSwarm already installed ==========" -ForegroundColor Yellow
-        Write-Host '  Starting services in background...' -ForegroundColor Cyan
+        Write-Host 'Starting services in background...' -ForegroundColor Cyan
         $appOk = netstat -ano 2>$null | Select-String "19000.*LISTENING"
         $webOk = netstat -ano 2>$null | Select-String "5173.*LISTENING"
         if (-not $appOk) {
@@ -175,11 +139,13 @@ function Do-Install {
         if (-not $webOk) {
             Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -Command `$env:PYTHONIOENCODING='utf-8'; jiuwenswarm-web 2>&1 | Out-File `"$env:USERPROFILE\.jiuwenswarm\agent\.logs\web-service.log`""
         }
-        if (-not $webOk) { Write-Host '  Waiting 15s for services...' -ForegroundColor Gray; Start-Sleep 15 }
-        Write-Host '  Opening WebUI...' -ForegroundColor Green
+        if (-not $webOk) { Write-Host 'Waiting 15s for services...' -ForegroundColor Gray; Start-Sleep 15 }
+        Write-Host 'Opening WebUI...' -ForegroundColor Green
         Start-Process "http://localhost:5173"
         return
     }
+
+    Write-Host "`n========== Installing JiuwenSwarm ==========" -ForegroundColor Yellow
 
     Write-Host "Installing uv..." -ForegroundColor Cyan
     if (Get-Command uv -ErrorAction SilentlyContinue) {
@@ -189,9 +155,9 @@ function Do-Install {
             $installScript = Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1"
             Invoke-Expression $installScript
             $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
-            Write-Host "[√] uv installed" -ForegroundColor Green
+            Write-Host "[OK] uv installed" -ForegroundColor Green
         } catch {
-            Write-Host "[×] Failed to install uv" -ForegroundColor Red
+            Write-Host "[FAIL] Failed to install uv" -ForegroundColor Red
             return
         }
     }
@@ -207,12 +173,12 @@ function Do-Install {
                 Write-Host "Python $major.$minor already installed" -ForegroundColor Gray
             } else {
                 Write-Host "Python $major.$minor found, but 3.11+ required. Installing..." -ForegroundColor Cyan
-                try { & uv python install 3.11 2>&1 | Out-Null } catch { Write-Host "[×] Failed" -ForegroundColor Red; return }
+                try { & uv python install 3.11 2>&1 | Out-Null } catch { Write-Host "[FAIL] Failed" -ForegroundColor Red; return }
             }
         }
     } else {
         Write-Host "Installing Python 3.11..." -ForegroundColor Cyan
-        try { & uv python install 3.11 2>&1 | Out-Null } catch { Write-Host "[×] Failed" -ForegroundColor Red; return }
+        try { & uv python install 3.11 2>&1 | Out-Null } catch { Write-Host "[FAIL] Failed" -ForegroundColor Red; return }
     }
 
     Write-Host "Installing jiuwenswarm (this may take a few minutes)..." -ForegroundColor Cyan
@@ -220,10 +186,10 @@ function Do-Install {
     $versionPin = if ($latestStable) { "@$latestStable" } else { "" }
     & uv tool install "jiuwenswarm$versionPin" --with openjiuwen --prerelease=allow 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "[×] Failed to install jiuwenswarm" -ForegroundColor Red
+        Write-Host "[FAIL] Failed to install jiuwenswarm" -ForegroundColor Red
         return
     }
-    Write-Host "[√] jiuwenswarm installed" -ForegroundColor Green
+    Write-Host "[OK] jiuwenswarm installed" -ForegroundColor Green
 
     # Ensure uv Scripts directory is in PATH (both session and persistent)
     $jiuwenBin = Join-Path $env:APPDATA "uv\tools\jiuwenswarm\Scripts"
@@ -252,11 +218,11 @@ function Do-Install {
     Write-Host "`n========== Initializing Workspace ==========" -ForegroundColor Yellow
     Write-Host "Reinitializing workspace..." -ForegroundColor Cyan
     $env:PYTHONIOENCODING = "utf-8"
-    $initOutput = echo yes | jiuwenswarm-init -f 2>&1
+    "yes`nyes" | & jiuwenswarm-init -f 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[√] Workspace initialized" -ForegroundColor Green
+        Write-Host "[OK] Workspace initialized" -ForegroundColor Green
     } else {
-        Write-Host "[!] Workspace init had warnings (may already exist)" -ForegroundColor Yellow
+        Write-Host "[WARN] Workspace init had warnings (may already exist)" -ForegroundColor Yellow
     }
 
     # Write .env AFTER init (init regenerates template .env with placeholders)
@@ -348,10 +314,10 @@ JIUWENSWARM_ENABLE_ORIGIN_CHECK=0
 JIUWENSWARM_WS_ALLOWED_ORIGIN_HOSTS=127.0.0.1,localhost
 "@
     $envContent | Out-File -FilePath $envFile -Encoding UTF8
-    Write-Host "[√] .env written: $envFile" -ForegroundColor Green
+    Write-Host "[OK] .env written: $envFile" -ForegroundColor Green
 
     # Set system environment variables (config.yaml placeholders resolve from process env)
-    Write-Host "  Setting environment variables..." -ForegroundColor Gray
+    Write-Host "Setting environment variables..." -ForegroundColor Gray
     [System.Environment]::SetEnvironmentVariable("API_BASE", $BaseUrl, "User")
     [System.Environment]::SetEnvironmentVariable("API_KEY", $ApiKey, "User")
     [System.Environment]::SetEnvironmentVariable("MODEL_NAME", $Model, "User")
@@ -395,7 +361,7 @@ JIUWENSWARM_WS_ALLOWED_ORIGIN_HOSTS=127.0.0.1,localhost
     # Replace placeholders in config.yaml with actual values
     $configYaml = "$env:USERPROFILE\.jiuwenswarm\config\config.yaml"
     if (Test-Path $configYaml) {
-        Write-Host "  Injecting values into config.yaml..." -ForegroundColor Gray
+        Write-Host "Injecting values into config.yaml..." -ForegroundColor Gray
         $yamlContent = Get-Content $configYaml -Raw -Encoding UTF8
         $yamlContent = $yamlContent -replace '\$\{API_BASE\}', $BaseUrl
         $yamlContent = $yamlContent -replace '\$\{API_KEY\}', $ApiKey
@@ -416,103 +382,106 @@ JIUWENSWARM_WS_ALLOWED_ORIGIN_HOSTS=127.0.0.1,localhost
         $yamlContent = $yamlContent -replace '\$\{VISION_API_KEY\}', $ApiKey
         $yamlContent = $yamlContent -replace '\$\{VISION_MODEL_NAME\}', $Model
         $yamlContent = $yamlContent -replace '\$\{VISION_PROVIDER\}', 'OpenAI'
-        $yamlContent | Set-Content -Path $configYaml -Encoding UTF8 -Force
-        Write-Host "  config.yaml updated with real values" -ForegroundColor Green
+        Set-ContentNoBom -Path $configYaml -Value $yamlContent
+        Write-Host "config.yaml updated with real values" -ForegroundColor Green
     }
 
     if (Find-JiuwenSwarm) {
-        Write-Host "[√] JiuwenSwarm installed successfully" -ForegroundColor Green
+        Write-Host "[OK] JiuwenSwarm installed successfully" -ForegroundColor Green
         Get-Status | Out-Null
     } else {
-        Write-Host "[!] jiuwenswarm not found on PATH after install (unexpected)" -ForegroundColor Yellow
+        Write-Host "[WARN] jiuwenswarm not found on PATH after install (unexpected)" -ForegroundColor Yellow
     }
 
     # Kill any leftover services, then start fresh
     Write-Host ""
-    Write-Host " Stopping any leftover services..." -ForegroundColor Gray
-    Get-Process -Name "python" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 3
+    Write-Host "Stopping any leftover services..." -ForegroundColor Gray
+    $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    Start-Sleep 2
 
     Write-Host " Starting services (detached background)..." -ForegroundColor Cyan
     $procApp = Start-Process powershell.exe -WindowStyle Hidden -PassThru `
         -ArgumentList "-NoLogo -Command `$env:PYTHONIOENCODING='utf-8'; `$env:API_BASE='$BaseUrl'; `$env:API_KEY='$ApiKey'; `$env:MODEL_NAME='$Model'; `$env:MODEL_PROVIDER='OpenAI'; jiuwenswarm-app 2>&1 | Out-File -Append -FilePath `"$env:USERPROFILE\.jiuwenswarm\agent\.logs\app-service.log`""
     $procWeb = Start-Process powershell.exe -WindowStyle Hidden -PassThru `
         -ArgumentList "-NoLogo -Command `$env:PYTHONIOENCODING='utf-8'; `$env:API_BASE='$BaseUrl'; `$env:API_KEY='$ApiKey'; `$env:MODEL_NAME='$Model'; `$env:MODEL_PROVIDER='OpenAI'; jiuwenswarm-web 2>&1 | Out-File -Append -FilePath `"$env:USERPROFILE\.jiuwenswarm\agent\.logs\web-service.log`""
-    Write-Host "  App PID: $($procApp.Id), Web PID: $($procWeb.Id)" -ForegroundColor Gray
+    Write-Host "App PID: $($procApp.Id), Web PID: $($procWeb.Id)" -ForegroundColor Gray
 
     # Wait for services with retry (app can take 20-30s on first boot)
-    $maxWait = 35
+    $maxWait = 60
     $waited = 0
     $appOk = $false
     $webOk = $false
-    Write-Host "  Waiting for services..." -ForegroundColor Gray
+    Write-Host "Waiting for services (up to ${maxWait}s)..." -ForegroundColor Gray
     while ($waited -lt $maxWait -and (-not $appOk -or -not $webOk)) {
         Start-Sleep 5
         $waited += 5
         $appOk = netstat -ano 2>$null | Select-String "19000.*LISTENING"
         $webOk = netstat -ano 2>$null | Select-String "5173.*LISTENING"
+        # Break early if process died
+        if ($procApp.HasExited) { Write-Host "App process exited!" -ForegroundColor Red; break }
     }
 
-    if ($appOk) { Write-Host "  App :19000 - OK (after ${waited}s)" -ForegroundColor Green }
+    if ($appOk) { Write-Host "App :19000 - OK (after ${waited}s)" -ForegroundColor Green }
     else {
-        Write-Host "  App :19000 - not responding after ${waited}s" -ForegroundColor Red
+        Write-Host "App :19000 - not responding after ${waited}s" -ForegroundColor Red
         $logPath = "$env:USERPROFILE\.jiuwenswarm\agent\.logs\app-service.log"
-        Write-Host "  Last 5 lines of app log:" -ForegroundColor Yellow
+        Write-Host "Last 5 lines of app log:" -ForegroundColor Yellow
         if (Test-Path $logPath) {
-            Get-Content $logPath -Tail 5 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+            Get-Content $logPath -Tail 5 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
         } else {
-            Write-Host "    (no log file found)" -ForegroundColor Gray
+            Write-Host "  (no log file found)" -ForegroundColor Gray
         }
     }
-    if ($webOk) { Write-Host "  Web :5173 - OK (after ${waited}s)" -ForegroundColor Green }
+    if ($webOk) { Write-Host "Web :5173 - OK (after ${waited}s)" -ForegroundColor Green }
     else {
-        Write-Host "  Web :5173 - not responding after ${waited}s" -ForegroundColor Red
+        Write-Host "Web :5173 - not responding after ${waited}s" -ForegroundColor Red
         $logPath = "$env:USERPROFILE\.jiuwenswarm\agent\.logs\web-service.log"
-        Write-Host "  Last 5 lines of web log:" -ForegroundColor Yellow
+        Write-Host "Last 5 lines of web log:" -ForegroundColor Yellow
         if (Test-Path $logPath) {
-            Get-Content $logPath -Tail 5 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+            Get-Content $logPath -Tail 5 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
         } else {
-            Write-Host "    (no log file found)" -ForegroundColor Gray
+            Write-Host "  (no log file found)" -ForegroundColor Gray
         }
     }
 
     if ($webOk) {
-        Write-Host "  Opening web UI..." -ForegroundColor Cyan
+        Write-Host "Opening web UI..." -ForegroundColor Cyan
         Start-Process "http://localhost:5173"
-        Write-Host "  NOTE: If you see an old interface, press Ctrl+Shift+R to clear browser cache" -ForegroundColor Yellow
+        Write-Host "NOTE: If you see an old interface, press Ctrl+Shift+R to clear browser cache" -ForegroundColor Yellow
     }
     
     Write-Host ""
     Write-Host "========== JiuwenSwarm Usage Guide ==========" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "  WEB UI (what just opened in your browser):" -ForegroundColor White
-    Write-Host "    URL: http://localhost:5173" -ForegroundColor Cyan
-    Write-Host "    The main way to use JiuwenSwarm: chat, file operations," -ForegroundColor Gray
-    Write-Host "    agent configuration, session history, settings." -ForegroundColor Gray
+    Write-Host "WEB UI (what just opened in your browser):" -ForegroundColor White
+    Write-Host "  URL: http://localhost:5173" -ForegroundColor Cyan
+    Write-Host "  The main way to use JiuwenSwarm: chat, file operations," -ForegroundColor Gray
+    Write-Host "  agent configuration, session history, settings." -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  HOW IT WORKS:" -ForegroundColor White
-    Write-Host "    Two processes run in background (hidden windows):" -ForegroundColor Gray
-    Write-Host "    - jiuwenswarm-app  : backend (AgentServer + Gateway, port 19000)" -ForegroundColor Cyan
-    Write-Host "    - jiuwenswarm-web  : frontend UI (serves web page, port 5173)" -ForegroundColor Cyan
-    Write-Host "    The web frontend talks to the backend via http/ws proxy." -ForegroundColor Gray
-    Write-Host "    Both are needed. Without app, web has nothing to connect to." -ForegroundColor Gray
+    Write-Host "HOW IT WORKS:" -ForegroundColor White
+    Write-Host "  Two processes run in background (hidden windows):" -ForegroundColor Gray
+    Write-Host "  - jiuwenswarm-app  : backend (AgentServer + Gateway, port 19000)" -ForegroundColor Cyan
+    Write-Host "  - jiuwenswarm-web  : frontend UI (serves web page, port 5173)" -ForegroundColor Cyan
+    Write-Host "  The web frontend talks to the backend via http/ws proxy." -ForegroundColor Gray
+    Write-Host "  Both are needed. Without app, web has nothing to connect to." -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  START/STOP SERVICES:" -ForegroundColor White
-    Write-Host "    jiuwenswarm-start all   # start app + web together" -ForegroundColor Cyan
-    Write-Host "    jiuwenswarm-app         # backend only (backend on :19000)" -ForegroundColor Cyan
-    Write-Host "    jiuwenswarm-web         # frontend only (ui on :5173)" -ForegroundColor Cyan
-    Write-Host "    Close the hidden PowerShell windows to stop them." -ForegroundColor Gray
+    Write-Host "START/STOP SERVICES:" -ForegroundColor White
+    Write-Host "  jiuwenswarm-start all   # start app + web together" -ForegroundColor Cyan
+    Write-Host "  jiuwenswarm-app         # backend only (backend on :19000)" -ForegroundColor Cyan
+    Write-Host "  jiuwenswarm-web         # frontend only (ui on :5173)" -ForegroundColor Cyan
+    Write-Host "  Close the hidden PowerShell windows to stop them." -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  CLI TOOLS:" -ForegroundColor White
-    Write-Host "    jiuwenswarm-tui acp      # ACP stdio interface (protocol-level CLI)" -ForegroundColor Cyan
-    Write-Host "    jiuwenswarm-acp-chat     # Test the acp_agents profile (one-shot)" -ForegroundColor Cyan
-    Write-Host "      Usage: jiuwenswarm-acp-chat codex 'hello'" -ForegroundColor Gray
-    Write-Host "      (codex is the profile key under acp_agents in config.yaml)" -ForegroundColor Gray
+    Write-Host "CLI TOOLS:" -ForegroundColor White
+    Write-Host "  jiuwenswarm-tui acp      # ACP stdio interface (protocol-level CLI)" -ForegroundColor Cyan
+    Write-Host "  jiuwenswarm-acp-chat     # Test the acp_agents profile (one-shot)" -ForegroundColor Cyan
+    Write-Host "    Usage: jiuwenswarm-acp-chat codex 'hello'" -ForegroundColor Gray
+    Write-Host "    (codex is the profile key under acp_agents in config.yaml)" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  CONFIG:" -ForegroundColor White
-    Write-Host "    .env:  $env:USERPROFILE\.jiuwenswarm\config\.env" -ForegroundColor Cyan
-    Write-Host "    yaml:  $env:USERPROFILE\.jiuwenswarm\config\config.yaml" -ForegroundColor Cyan
-    Write-Host "    logs:  $env:USERPROFILE\.jiuwenswarm\agent\.logs\" -ForegroundColor Cyan
+    Write-Host "CONFIG:" -ForegroundColor White
+    Write-Host "  .env:  $env:USERPROFILE\.jiuwenswarm\config\.env" -ForegroundColor Cyan
+    Write-Host "  yaml:  $env:USERPROFILE\.jiuwenswarm\config\config.yaml" -ForegroundColor Cyan
+    Write-Host "  logs:  $env:USERPROFILE\.jiuwenswarm\agent\.logs\" -ForegroundColor Cyan
 }
 
 # ======================== Update ========================
@@ -525,7 +494,7 @@ function Do-Update {
 
     $latestVersion = Get-LatestVersion
     if (-not $latestVersion) {
-        Write-Host "[!] Could not check latest version (network issue?)" -ForegroundColor Yellow
+        Write-Host "[WARN] Could not check latest version (network issue?)" -ForegroundColor Yellow
         return
     }
 
@@ -536,7 +505,7 @@ function Do-Update {
     } catch { }
 
     if ($currentVersion -and ($currentVersion -eq $latestVersion)) {
-        Write-Host "[√] Already on latest version v$currentVersion" -ForegroundColor Green
+        Write-Host "[OK] Already on latest version v$currentVersion" -ForegroundColor Green
         return
     }
 
@@ -547,11 +516,11 @@ function Do-Update {
         if ($latestVersion -notmatch '[a-z]' -and $currentVersion -match '[a-z]') {
             # Same base, current is beta, latest is stable -> upgrade
         } elseif ($currentVersion -gt $latestVersion) {
-            Write-Host "[√] You have v$currentVersion (latest stable is v$latestVersion)" -ForegroundColor Green
+            Write-Host "[OK] You have v$currentVersion (latest stable is v$latestVersion)" -ForegroundColor Green
             return
         }
     } elseif ($curBase -gt $latBase) {
-        Write-Host "[√] You have v$currentVersion (latest stable is v$latestVersion)" -ForegroundColor Green
+        Write-Host "[OK] You have v$currentVersion (latest stable is v$latestVersion)" -ForegroundColor Green
         return
     }
 
@@ -559,25 +528,29 @@ function Do-Update {
     $env:PYTHONIOENCODING = "utf-8"
 
     # Kill running services (they lock files uv needs to replace)
-    Write-Host "  Stopping services..." -ForegroundColor Gray
-    Get-Process -Name "python" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 3
+    Write-Host "Stopping services..." -ForegroundColor Gray
+    $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    Start-Sleep 2
 
     uv tool install jiuwenswarm@$latestVersion --with openjiuwen --prerelease=allow --reinstall 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[√] JiuwenSwarm updated to v$latestVersion" -ForegroundColor Green
+        Write-Host "[OK] JiuwenSwarm updated to v$latestVersion" -ForegroundColor Green
     } else {
-        Write-Host "[×] Update failed (kill running services and try again)" -ForegroundColor Red
+        Write-Host "[FAIL] Update failed (kill running services and try again)" -ForegroundColor Red
     }
 }
 
 function Do-Uninstall {
+    Log-Operation 'uninstall' 'jiuwenswarm'
+
     Write-Host "`n========== Uninstalling JiuwenSwarm ==========" -ForegroundColor Yellow
 
     # Kill running services first (they hold file locks)
     Write-Host "Stopping running services..." -ForegroundColor Cyan
-    Get-Process -Name "python" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 3
+    $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    Start-Sleep 2
 
     # 1. Remove old jiuwenclaw (leftover from previous version)
     & uv tool uninstall jiuwenclaw 2>&1 | Out-Null
@@ -634,21 +607,21 @@ function Do-Uninstall {
 
     # Final verification
     if (Find-JiuwenSwarm) {
-        Write-Host "[!] Some remnants may remain. Restart your terminal." -ForegroundColor Yellow
+        Write-Host "[WARN] Some remnants may remain. Restart your terminal." -ForegroundColor Yellow
     } else {
-        Write-Host "[√] JiuwenSwarm uninstalled" -ForegroundColor Green
+        Write-Host "[OK] JiuwenSwarm uninstalled" -ForegroundColor Green
     }
 }
 
 function Show-Menu {
     Write-Host ""
-    Write-Host "  JiuwenSwarm Manager" -ForegroundColor Cyan
-    Write-Host "  ----------------" -ForegroundColor DarkGray
-    Write-Host "  [1] Install"   -ForegroundColor White
-    Write-Host "  [2] Uninstall" -ForegroundColor White
-    Write-Host "  [3] Status"    -ForegroundColor White
-    Write-Host "  [4] Update"    -ForegroundColor White
-    Write-Host "  [Q] Quit"      -ForegroundColor DarkGray
+    Write-Host "JiuwenSwarm Manager" -ForegroundColor Cyan
+    Write-Host "----------------" -ForegroundColor DarkGray
+    Write-Host "[1] Install"   -ForegroundColor White
+    Write-Host "[2] Uninstall" -ForegroundColor White
+    Write-Host "[3] Status"    -ForegroundColor White
+    Write-Host "[4] Update"    -ForegroundColor White
+    Write-Host "[Q] Quit"      -ForegroundColor DarkGray
     Write-Host ""
 
     $choice = Read-Host "Choose"
@@ -668,5 +641,6 @@ switch ($Action) {
     "update"    { Do-Update }
     default     { Show-Menu }
 }
+
 
 

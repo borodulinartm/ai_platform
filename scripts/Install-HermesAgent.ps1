@@ -5,10 +5,9 @@
     Install, uninstall, or check status of Hermes AI Agent (CLI or Desktop).
 .EXAMPLE
     .\Install-HermesAgent.ps1                 # interactive menu
-    .\Install-HermesAgent.ps1 install         # install CLI
-    .\Install-HermesAgent.ps1 install-desktop # install Desktop app
-    .\Install-HermesAgent.ps1 uninstall       # uninstall
-    .\Install-HermesAgent.ps1 status          # check if installed
+    .\Install-HermesAgent.ps1 install         # install Desktop app (with CLI + venv)
+    .\Install-HermesAgent.ps1 uninstall       # uninstall all (CLI + Desktop)
+    .\Install-HermesAgent.ps1 status          # check installed versions & updates
 #>
 
 param(
@@ -26,6 +25,13 @@ $HermesBin = Join-Path $HermesDir 'hermes.exe'
 $DesktopAppDir = "$env:LOCALAPPDATA\Programs\hermes-desktop"
 $DesktopAppExe = Join-Path $DesktopAppDir 'hermes-agent.exe'
 $GitHubReleases = 'https://api.github.com/repos/fathah/hermes-desktop/releases/latest'
+
+$LogDir = Join-Path $env:USERPROFILE 'agent-logs'
+New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyContinue | Out-Null
+function Log-Operation { param([string]$Op); $ts = Get-Date -Format 'yyyyMMdd-HHmmss'; $f = Join-Path $LogDir "hermes-$Op-$ts.log"; "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $Op start" | Out-File $f -Encoding UTF8 }
+
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+function Set-ContentNoBom { param([string]$Path, [string]$Value); [System.IO.File]::WriteAllText($Path, $Value, $Utf8NoBom) }
 
 function Find-Hermes {
     $cmd = Get-Command hermes -ErrorAction SilentlyContinue
@@ -171,53 +177,40 @@ function Get-Status {
     $cliPath = Find-Hermes
     $desktopPath = Find-HermesDesktop
 
+    Write-Host ''
     if (-not $cliPath -and -not $desktopPath) {
-        Write-Host 'NOT INSTALLED' -ForegroundColor Red
-        return $false
+        Write-Host 'Hermes: not installed' -ForegroundColor Red
+        return
     }
 
     if ($cliPath) {
         $currentVersion = $null
-        try {
-            $raw = uv tool list 2>&1 | Out-String
-            if ($raw -match 'hermes-agent\s+v?([^\s]+)') { $currentVersion = $matches[1] }
-        } catch { }
-
-        $latestVersion = Get-LatestVersion
-        Write-Host 'INSTALLED (CLI)' -ForegroundColor Green -NoNewline
-        if ($currentVersion) { Write-Host " v$currentVersion" -NoNewline -ForegroundColor Cyan }
-        Write-Host " - $cliPath"
-
-        if ($currentVersion -and $latestVersion) {
-            if ($latestVersion -eq $currentVersion) {
-                Write-Host "  Latest version (v$latestVersion), up to date" -ForegroundColor Green
-            } else {
-                Write-Host "  Latest: v$latestVersion (you have v$currentVersion)" -ForegroundColor Gray
+        try { $raw = uv tool list 2>&1 | Out-String; if ($raw -match 'hermes-agent\s+v?([^\s]+)') { $currentVersion = $matches[1] } } catch { }
+        Write-Host "CLI   : $cliPath" -ForegroundColor Green
+        if ($currentVersion) {
+            $latestVersion = Get-LatestVersion
+            $status = ""; if ($currentVersion -eq $latestVersion) { $status = " (latest)" }
+            Write-Host "Version: v$currentVersion$status" -ForegroundColor Cyan
+            if ($currentVersion -ne $latestVersion -and $latestVersion) {
+                Write-Host "Latest : v$latestVersion" -ForegroundColor Gray
             }
-        } elseif ($currentVersion -and -not $latestVersion) {
-            Write-Host '  Could not check for updates (offline?)' -ForegroundColor Gray
         }
+    } else {
+        Write-Host 'CLI   : not installed' -ForegroundColor Red
     }
 
     if ($desktopPath) {
         $desktopVersion = Get-DesktopVersion
         $desktopLatest = Get-LatestDesktopVersion
-        Write-Host 'INSTALLED (Desktop)' -ForegroundColor Green -NoNewline
-        if ($desktopVersion) { Write-Host " v$desktopVersion" -NoNewline -ForegroundColor Cyan }
-        Write-Host " - $desktopPath"
-
-        if ($desktopVersion -and $desktopLatest) {
-            if ($desktopLatest -eq $desktopVersion) {
-                Write-Host "  Latest version (v$desktopLatest), up to date" -ForegroundColor Green
-            } else {
-                Write-Host "  Latest: v$desktopLatest (you have v$desktopVersion)" -ForegroundColor Gray
-            }
-        } elseif ($desktopVersion -and -not $desktopLatest) {
-            Write-Host '  Could not check for updates (offline?)' -ForegroundColor Gray
+        Write-Host "Desktop: $desktopPath" -ForegroundColor Green
+        if ($desktopVersion) {
+            $status = ""; if ($desktopVersion -eq $desktopLatest) { $status = " (latest)" }
+            Write-Host "Version: v$desktopVersion$status" -ForegroundColor Cyan
         }
+    } else {
+        Write-Host 'Desktop: not installed' -ForegroundColor Red
     }
-
-    return $true
+    Write-Host ''
 }
 
 function Do-Install {
@@ -247,7 +240,7 @@ function Do-Install {
         if ($ApiKey)     { $lines += "api_key: $ApiKey" }
         if ($EmbedModel) { $lines += "embed_model: $EmbedModel" }
         if ($lines) {
-            Set-Content -Path $configYaml -Value ($lines -join "`n")
+            Set-ContentNoBom -Path $configYaml -Value ($lines -join "`n")
             Write-Host "[OK] Created $configYaml" -ForegroundColor Gray
         }
     }
@@ -260,13 +253,14 @@ function Do-InstallAll {
 }
 
 function Do-InstallDesktop {
-    Write-Host "`n========== Hermes Desktop ==========" -ForegroundColor Yellow
+    Log-Operation 'install'
+    Write-Host "`n========== Installing Hermes Desktop ==========" -ForegroundColor Yellow
 
     # If already installed, just open it
     $pythonw = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\pythonw.exe"
     $hermesExe = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\hermes.exe"
     if ((Test-Path $pythonw) -and (Test-Path $hermesExe) -and (Test-Path $DesktopAppExe)) {
-        Write-Host '  Already installed — opening Desktop...' -ForegroundColor Gray
+        Write-Host 'Already installed -- opening Desktop...' -ForegroundColor Gray
         if (-not (Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue)) {
             Start-Process $DesktopAppExe
         }
@@ -274,11 +268,39 @@ function Do-InstallDesktop {
         return
     }
 
-    # Kill running Desktop (it locks files in venv)
-    Write-Host '  Stopping existing processes...' -ForegroundColor Gray
-    Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Get-Process -Name 'python' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 3
+    # Kill running Desktop and ALL child processes (holds file locks on .pyd)
+    Write-Host 'Stopping existing processes...' -ForegroundColor Cyan
+    taskkill /F /T /IM hermes-agent.exe 2>$null
+    $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+    }
+    foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
+    # Unconditional wait -- Windows releases file handles AFTER process exit
+    Write-Host 'Waiting for Windows to release file handles...' -ForegroundColor Gray
+    Start-Sleep 5
+    # Remove entire stale hermes-agent directory (install.ps1 will fail if any .pyd is still locked)
+    $oldRepo = "$env:LOCALAPPDATA\hermes\hermes-agent"
+    if (Test-Path $oldRepo) {
+        $removed = $false
+        # Try direct removal first (fast path when no locks)
+        for ($i = 0; $i -lt 2; $i++) {
+            cmd /c "rmdir /S /Q `"$oldRepo`"" 2>$null
+            if (-not (Test-Path $oldRepo)) { $removed = $true; break }
+            Start-Sleep 3
+        }
+        # If still locked, rename out of the way -- Windows allows rename on locked files
+        if (-not $removed) {
+            $stampedName = "$oldRepo.stale.$(Get-Date -Format 'yyyyMMddHHmmss')"
+            Write-Host "Directory locked -- renaming to $stampedName" -ForegroundColor Yellow
+            Rename-Item -Path $oldRepo -NewName (Split-Path $stampedName -Leaf) -Force -ErrorAction SilentlyContinue
+            if (Test-Path $oldRepo) {
+                Write-Host '[FAIL] Cannot remove or rename hermes-agent directory' -ForegroundColor Red; return
+            }
+            Write-Host 'Renamed locked directory (will be cleaned up on next reboot)' -ForegroundColor Gray
+        } else {
+            Write-Host 'Removed stale hermes-agent directory' -ForegroundColor Gray
+        }
+    }
 
     # Desktop uses %LOCALAPPDATA%\hermes on Windows (not ~/.hermes)
     $cfgDir = Join-Path $env:LOCALAPPDATA 'hermes'
@@ -286,12 +308,13 @@ function Do-InstallDesktop {
 
     # Write .env with provider-specific keys from config.json
     $envFile = Join-Path $cfgDir '.env'
-    @"
+    $envContent = @"
 CUSTOM_API_KEY=${ApiKey}
 CUSTOM_BASE_URL=${BaseUrl}
 CUSTOM_DEFAULT_MODEL=${Model}
 API_SERVER_KEY=$([guid]::NewGuid().ToString())
-"@ | Set-Content -Path $envFile -Encoding UTF8 -Force
+"@
+    Set-ContentNoBom -Path $envFile -Value $envContent
     Write-Host "[OK] Written $envFile" -ForegroundColor Gray
 
     # Write config.yaml with direct values from config.json
@@ -306,11 +329,11 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
     $lines += "  $Provider`:"
     $lines += "    api_key: `"$ApiKey`""
     if ($BaseUrl) { $lines += "    base_url: `"$BaseUrl`"" }
-    ($lines -join "`n") | Set-Content -Path $configYaml -Encoding UTF8 -Force
+    Set-ContentNoBom -Path $configYaml -Value ($lines -join "`n")
     Write-Host "[OK] Written $configYaml (provider: $Provider)" -ForegroundColor Gray
 
     # Mark setup as complete so Desktop skips first-run wizard
-    @{ locale = "en"; setupComplete = $true } | ConvertTo-Json | Set-Content -Path (Join-Path $cfgDir 'desktop.json') -Encoding UTF8 -Force
+    Set-ContentNoBom -Path (Join-Path $cfgDir 'desktop.json') -Value (@{ locale = "en"; setupComplete = $true } | ConvertTo-Json)
     Write-Host "[OK] Written $cfgDir\desktop.json" -ForegroundColor Gray
 
     # Also mirror to ~/.hermes (Desktop may fall back here on NSIS launch)
@@ -342,14 +365,25 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
         Write-Host '[OK] Wizard install script completed' -ForegroundColor Green
     }
 
+    # Verify venv binaries exist (Desktop checks these to decide install vs chat)
+    $venvPython = "$cfgDir\hermes-agent\venv\Scripts\pythonw.exe"
+    $venvHermes = "$cfgDir\hermes-agent\venv\Scripts\hermes.exe"
+    if (-not ((Test-Path $venvPython) -and (Test-Path $venvHermes))) {
+        Write-Host '[FAIL] venv binaries not found after install -- cannot proceed' -ForegroundColor Red
+        Write-Host "  Missing: $venvPython or $venvHermes" -ForegroundColor Red
+        return
+    }
+    Write-Host '[OK] venv binaries verified' -ForegroundColor Green
+
     # Re-write config (install.ps1 may have overwritten it with templates)
     $envFile = Join-Path $cfgDir '.env'
-    @"
+    $envContent = @"
 CUSTOM_API_KEY=${ApiKey}
 CUSTOM_BASE_URL=${BaseUrl}
 CUSTOM_DEFAULT_MODEL=${Model}
 API_SERVER_KEY=$([guid]::NewGuid().ToString())
-"@ | Set-Content -Path $envFile -Encoding UTF8 -Force
+"@
+    Set-ContentNoBom -Path $envFile -Value $envContent
     $configYaml = Join-Path $cfgDir 'config.yaml'
     $lines = @(
         'model:',
@@ -361,14 +395,40 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
     $lines += "  $Provider`:"
     $lines += "    api_key: `"$ApiKey`""
     if ($BaseUrl) { $lines += "    base_url: `"$BaseUrl`"" }
-    ($lines -join "`n") | Set-Content -Path $configYaml -Encoding UTF8 -Force
+    Set-ContentNoBom -Path $configYaml -Value ($lines -join "`n")
+    # Re-write desktop.json (install.ps1 may have removed it, triggering first-run wizard)
+    Set-ContentNoBom -Path (Join-Path $cfgDir 'desktop.json') -Value (@{ locale = "en"; setupComplete = $true } | ConvertTo-Json)
     # Mirror to ~/.hermes
     $homeHermes = Join-Path $env:USERPROFILE '.hermes'
     New-Item -ItemType Directory -Path $homeHermes -Force | Out-Null
     Copy-Item "$cfgDir\.env" "$homeHermes\.env" -Force
     Copy-Item "$cfgDir\config.yaml" "$homeHermes\config.yaml" -Force
     Copy-Item "$cfgDir\desktop.json" "$homeHermes\desktop.json" -Force
-    Write-Host '  Config files re-written after install' -ForegroundColor Gray
+    Write-Host 'Config files re-written after install' -ForegroundColor Gray
+
+    # Write models catalog BEFORE Desktop launch
+    $modelsFile = Join-Path $cfgDir 'models.json'
+    $modelCatalog = Join-Path $PSScriptRoot 'models.json'
+    if (Test-Path $modelCatalog) {
+        $catalog = Get-Content $modelCatalog -Raw | ConvertFrom-Json
+        $desktopModels = @()
+        $ts = [int64]((Get-Date).ToUniversalTime() - (Get-Date '1970-01-01')).TotalMilliseconds
+        foreach ($m in $catalog.models) {
+            if ($m.type -ne 'embedding') {
+                $desktopModels += @{
+                    id = [guid]::NewGuid().ToString()
+                    name = $m.name
+                    provider = "custom"
+                    model = $m.id
+                    baseUrl = $catalog.providers."$($m.provider)".base_url
+                    createdAt = $ts
+                }
+            }
+        }
+        Set-ContentNoBom -Path $modelsFile -Value ($desktopModels | ConvertTo-Json -Depth 3)
+        Copy-Item $modelsFile "$env:USERPROFILE\.hermes\models.json" -Force -ErrorAction SilentlyContinue
+        Write-Host "Model catalog written ($($desktopModels.Count) models)" -ForegroundColor Gray
+    }
 
     # Download and install Desktop app
     Write-Host 'Looking up latest Desktop release...' -ForegroundColor Gray
@@ -383,8 +443,8 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
     $asset = $rel.assets | Where-Object { $_.name -match '-setup\.exe$' } | Select-Object -First 1
     if (-not $asset) { $asset = $rel.assets | Where-Object { $_.name -match '\.exe$' -and $_.name -notmatch 'blockmap' } | Select-Object -First 1 }
 
-    Write-Host "  v$ver ($([math]::Round($asset.size/1MB, 1)) MB)" -ForegroundColor Gray
-    Write-Host "  Downloading..." -ForegroundColor Gray
+    Write-Host "v$ver ($([math]::Round($asset.size/1MB, 1)) MB)" -ForegroundColor Gray
+    Write-Host "Downloading..." -ForegroundColor Gray
     $setupExe = Join-Path $env:TEMP $asset.name
     $ProgressPreference = 'SilentlyContinue'
     try {
@@ -400,16 +460,20 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
 
     Write-Host '[OK] Hermes Desktop installed' -ForegroundColor Green
 
+    # Force rewrite desktop.json NOW (Desktop auto-launched via NSIS)
+    Set-ContentNoBom -Path "$cfgDir\desktop.json" -Value (@{ locale = "en"; setupComplete = $true } | ConvertTo-Json)
+    Copy-Item "$cfgDir\desktop.json" "$env:USERPROFILE\.hermes\desktop.json" -Force -ErrorAction SilentlyContinue
+
     # NSIS one-click auto-launches Desktop. Wait for it, restart if crashed.
-    Write-Host '  Waiting for Desktop...' -ForegroundColor Gray
+    Write-Host 'Waiting for Desktop...' -ForegroundColor Gray
     $appeared = $false
     for ($i = 0; $i -lt 10; $i++) {
         Start-Sleep 3
         $p = Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue
-        if ($p) { $appeared = $true; Write-Host "  Desktop running (PID $($p.Id))" -ForegroundColor Green; break }
+        if ($p) { $appeared = $true; Write-Host "Desktop running (PID $($p.Id))" -ForegroundColor Green; break }
     }
     if (-not $appeared) {
-        Write-Host '  NSIS launch may have failed - starting manually' -ForegroundColor Yellow
+        Write-Host 'NSIS launch may have failed - starting manually' -ForegroundColor Yellow
         Start-Process $DesktopAppExe
     }
 }
@@ -483,8 +547,12 @@ function Do-UninstallCli {
 function Do-UninstallDesktop {
     Write-Host "`n========== Uninstalling Hermes Desktop ==========" -ForegroundColor Yellow
 
-    Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 2
+    taskkill /F /T /IM hermes-agent.exe 2>$null
+    $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+    }
+    foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
+    Start-Sleep 3
 
     $found = Find-HermesDesktop
     if (-not $found) {
@@ -519,12 +587,17 @@ function Do-UninstallDesktop {
 }
 
 function Do-UninstallAll {
+    Log-Operation 'uninstall'
     Write-Host "`n========== Uninstalling ALL Hermes ==========" -ForegroundColor Yellow
 
     # Kill running Desktop (locks files in venv)
-    Write-Host '  Stopping Desktop...' -ForegroundColor Gray
-    Get-Process -Name 'hermes-agent' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep 2
+    Write-Host 'Stopping Desktop...' -ForegroundColor Cyan
+    taskkill /F /T /IM hermes-agent.exe 2>$null
+    $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+    }
+    foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
+    Start-Sleep 3
 
     if (Find-Hermes) {
         Write-Host 'Removing CLI...' -ForegroundColor Gray
@@ -572,13 +645,13 @@ function Do-UninstallAll {
 
 function Show-Menu {
     Write-Host ''
-    Write-Host '  Hermes Agent Manager' -ForegroundColor Cyan
-    Write-Host '  -------------------' -ForegroundColor DarkGray
-    Write-Host '  [1] Install'   -ForegroundColor White
-    Write-Host '  [2] Uninstall' -ForegroundColor White
-    Write-Host '  [3] Status'    -ForegroundColor White
-    Write-Host '  [4] Update'    -ForegroundColor White
-    Write-Host '  [Q] Quit'      -ForegroundColor DarkGray
+    Write-Host 'Hermes Agent Manager' -ForegroundColor Cyan
+    Write-Host '-------------------' -ForegroundColor DarkGray
+    Write-Host '[1] Install'   -ForegroundColor White
+    Write-Host '[2] Uninstall' -ForegroundColor White
+    Write-Host '[3] Status'    -ForegroundColor White
+    Write-Host '[4] Update'    -ForegroundColor White
+    Write-Host '[Q] Quit'      -ForegroundColor DarkGray
     Write-Host ''
 
     $choice = Read-Host 'Choose'
@@ -598,4 +671,8 @@ switch ($Action) {
     'update'     { Do-Update }
     default      { Show-Menu }
 }
+
+
+
+
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     OpenClaw manager for Windows.
 .DESCRIPTION
@@ -38,6 +38,13 @@ $customProviderId = if ($Provider)  { $Provider }  else { "huawei" }
 
 $targetOpenClawVersion = $defaultOpenClawVersion
 $versionSuffix = if ($targetOpenClawVersion) { "@$targetOpenClawVersion" } else { "" }
+$LogDir = Join-Path $env:USERPROFILE 'agent-logs'
+New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyContinue | Out-Null
+function Log-Operation { param([string]$Op, [string]$Agent); $ts = Get-Date -Format 'yyyyMMdd-HHmmss'; $f = Join-Path $LogDir "$Agent-$Op-$ts.log"; "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $Op start" | Out-File $f -Encoding UTF8 }
+
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+function Set-ContentNoBom { param([string]$Path, [string]$Value); [System.IO.File]::WriteAllText($Path, $Value, $Utf8NoBom) }
+
 $openClawConfigPath = "$env:USERPROFILE\.openclaw\openclaw.json"
 
 # ======================== Management functions ========================
@@ -70,39 +77,25 @@ function Get-LatestVersion {
 
 function Get-Status {
     $path = Find-OpenClaw
+    Write-Host ''
     if ($path) {
-        $versionString = ""
-        try {
-            $versionString = & openclaw -v 2>&1
-        } catch { }
-
-        # Parse current version from output
         $currentVersion = $null
-        if ($versionString -match 'OpenClaw\s+(\d+\.\d+\.\d+)') {
-            $currentVersion = $matches[1]
-        } elseif ($versionString -match '(\d+\.\d+\.\d+)') {
-            $currentVersion = $matches[1]
-        }
+        try { $versionString = & openclaw -v 2>&1; if ($versionString -match 'OpenClaw\s+(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] } elseif ($versionString -match '(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] } } catch { }
 
         $latestVersion = Get-LatestVersion
-
-        Write-Host 'INSTALLED' -ForegroundColor Green -NoNewline
-        if ($currentVersion) { Write-Host " v$currentVersion" -NoNewline -ForegroundColor Cyan }
-        Write-Host " - $path"
-
-        if ($currentVersion -and $latestVersion) {
-            if (Compare-Version -Version1 $currentVersion -Version2 $latestVersion) {
-                Write-Host "  Latest version (v$latestVersion), up to date" -ForegroundColor Green
-            } else {
-                Write-Host "  Update available: v$currentVersion -> v$latestVersion" -ForegroundColor Yellow
-            }
-        } elseif ($currentVersion -and -not $latestVersion) {
-            Write-Host "  Could not check for updates (offline?)" -ForegroundColor Gray
+        Write-Host "OpenClaw: $path" -ForegroundColor Green
+        if ($currentVersion) {
+            $status = ""
+            if ($currentVersion -eq $latestVersion) { $status = " (latest)" }
+            Write-Host "Version : v$currentVersion$status" -ForegroundColor Cyan
         }
-        return $true
+        if ($currentVersion -and $latestVersion -and $currentVersion -ne $latestVersion) {
+            Write-Host "Latest  : v$latestVersion" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host 'OpenClaw: not installed' -ForegroundColor Red
     }
-    Write-Host 'NOT INSTALLED' -ForegroundColor Red
-    return $false
+    Write-Host ''
 }
 
 # ======================== Utility Functions ========================
@@ -297,7 +290,7 @@ function Install-OpenClawApp {
 
     if ($openClawInstalled) {
         if (Compare-Version -Version1 $openClawVersion -Version2 $targetOpenClawVersion) {
-            Write-Host "`n[√] Current OpenClaw version $openClawVersion is up to date (>= $targetOpenClawVersion), no action needed" -ForegroundColor Green
+            Write-Host "`n[âˆš] Current OpenClaw version $openClawVersion is up to date (>= $targetOpenClawVersion), no action needed" -ForegroundColor Green
             return
         }
         else {
@@ -308,10 +301,10 @@ function Install-OpenClawApp {
             $env:NPM_CONFIG_LOGLEVEL = "error"
             npm install -g openclaw$versionSuffix 2>&1 | Where-Object { $_ -notmatch "npm warn" }
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "`n[√] OpenClaw installed successfully!" -ForegroundColor Green
+                Write-Host "`n[âˆš] OpenClaw installed successfully!" -ForegroundColor Green
             }
             else {
-                Write-Host "`n[×] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
+                Write-Host "`n[Ã--] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
                 exit 1
             }
         }
@@ -324,10 +317,10 @@ function Install-OpenClawApp {
         $env:NPM_CONFIG_LOGLEVEL = "error"
         npm install -g openclaw$versionSuffix 2>&1 | Where-Object { $_ -notmatch "npm warn" }
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "`n[√] OpenClaw installed successfully!" -ForegroundColor Green
+            Write-Host "`n[âˆš] OpenClaw installed successfully!" -ForegroundColor Green
         }
         else {
-            Write-Host "`n[×] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
+            Write-Host "`n[Ã--] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
             exit 1
         }
     }
@@ -350,10 +343,10 @@ function Initialize-OpenClaw {
     Write-Host "Running: openclaw onboard" -ForegroundColor Gray
     Invoke-Expression $initCommand 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[√] OpenClaw initialized successfully!" -ForegroundColor Green
+        Write-Host "[âˆš] OpenClaw initialized successfully!" -ForegroundColor Green
     }
     else {
-        Write-Host "[×] OpenClaw initialization failed, check parameters" -ForegroundColor Red
+        Write-Host "[Ã--] OpenClaw initialization failed, check parameters" -ForegroundColor Red
         exit 1
     }
 
@@ -362,7 +355,7 @@ function Initialize-OpenClaw {
     if (Test-Path $configPath) {
         $configContent = Get-Content $configPath -Raw -Encoding UTF8
         $newConfigContent = $configContent -replace '"coding"', '"full"'
-        $newConfigContent | Set-Content $configPath -Encoding UTF8 -Force
+        Set-ContentNoBom -Path $configPath -Value $newConfigContent
     }
     else {
         Write-Host "[!] Config file not found: $configPath" -ForegroundColor Yellow
@@ -376,34 +369,36 @@ function Start-OpenClaw {
 
     Write-Host "Starting OpenClaw Gateway service..." -ForegroundColor Cyan
     Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -ExecutionPolicy Bypass -Command `"openclaw gateway stop 2>`$null; openclaw gateway --force`""
-    Write-Host "[√] OpenClaw Gateway service started (detached background)" -ForegroundColor Green
+    Write-Host "[âˆš] OpenClaw Gateway service started (detached background)" -ForegroundColor Green
 
     Write-Host "Waiting for service initialization (10 seconds)..." -ForegroundColor Cyan
     Start-Sleep -Seconds 10
 
     Write-Host "Opening OpenClaw Dashboard UI..." -ForegroundColor Cyan
     Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -Command `"openclaw dashboard`""
-    Write-Host "[√] OpenClaw Dashboard UI opened" -ForegroundColor Green
+    Write-Host "[âˆš] OpenClaw Dashboard UI opened" -ForegroundColor Green
 
     Write-Host "`n========== OpenClaw Startup Complete ==========" -ForegroundColor Yellow
 
     Write-Host "`n========== Usage Tips ==========" -ForegroundColor Yellow
     Write-Host "1. Start OpenClaw service:" -ForegroundColor White
-    Write-Host "   openclaw gateway --force" -ForegroundColor Cyan
+    Write-Host " openclaw gateway --force" -ForegroundColor Cyan
     Write-Host "2. Current workspace (generated files location):" -ForegroundColor White
-    Write-Host "   $env:USERPROFILE\.openclaw\workspace" -ForegroundColor Cyan
+    Write-Host " $env:USERPROFILE\.openclaw\workspace" -ForegroundColor Cyan
     Write-Host "3. OpenClaw Web UI URL:" -ForegroundColor White
-    Write-Host "   http://127.0.0.1:18789" -ForegroundColor Cyan
+    Write-Host " http://127.0.0.1:18789" -ForegroundColor Cyan
     Write-Host "4. Open OpenClaw Web UI:" -ForegroundColor White
-    Write-Host "   openclaw dashboard" -ForegroundColor Cyan
+    Write-Host " openclaw dashboard" -ForegroundColor Cyan
     Write-Host "5. OpenClaw local terminal:" -ForegroundColor White
-    Write-Host "   openclaw tui" -ForegroundColor Cyan
+    Write-Host " openclaw tui" -ForegroundColor Cyan
     Write-Host "6. Update OpenClaw to latest version (if needed):" -ForegroundColor White
-    Write-Host "   openclaw update" -ForegroundColor Cyan
+    Write-Host " openclaw update" -ForegroundColor Cyan
 }
 
 # ======================== Install (Full Setup Flow) ========================
 function Do-Install {
+    Log-Operation 'install' 'openclaw'
+
     if (Find-OpenClaw) {
         Write-Host "`n========== OpenClaw already installed ==========" -ForegroundColor Yellow
         Get-Status | Out-Null
@@ -414,12 +409,12 @@ function Do-Install {
             # Called from manager - just open WebUI
             $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
             if (-not $port) {
-                Write-Host '  Starting gateway in background...' -ForegroundColor Cyan
+                Write-Host 'Starting gateway in background...' -ForegroundColor Cyan
                 Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -Command openclaw gateway --force 2>`$null"
-                Write-Host '  Waiting 10s...' -ForegroundColor Gray
+                Write-Host 'Waiting 10s...' -ForegroundColor Gray
                 Start-Sleep 10
             }
-            Write-Host '  Opening WebUI...' -ForegroundColor Green
+            Write-Host 'Opening WebUI...' -ForegroundColor Green
             Start-Process "http://127.0.0.1:18789"
             return
         }
@@ -467,10 +462,10 @@ function Do-Install {
         Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
         Write-Host "`n========== All Operations Complete ==========" -ForegroundColor Yellow
-        Write-Host "[√] OpenClaw $targetOpenClawVersion installation and startup complete!" -ForegroundColor Green
+        Write-Host "[âˆš] OpenClaw $targetOpenClawVersion installation and startup complete!" -ForegroundColor Green
     }
     catch {
-        Write-Host "`n[×] Script execution error: $_" -ForegroundColor Red
+        Write-Host "`n[Ã--] Script execution error: $_" -ForegroundColor Red
         Write-Host "`n[?] Try manually deleting $env:USERPROFILE\.openclaw (if it exists) and re-run the script" -ForegroundColor Yellow
         if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue }
         exit 1
@@ -496,7 +491,7 @@ function Do-Update {
     if ($currentVerOutput -match '(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] }
 
     if ($currentVersion -and (Compare-Version -Version1 $currentVersion -Version2 $latestVersion)) {
-        Write-Host "[√] Already on latest version v$currentVersion" -ForegroundColor Green
+        Write-Host "[âˆš] Already on latest version v$currentVersion" -ForegroundColor Green
         return
     }
 
@@ -507,20 +502,23 @@ function Do-Update {
     $env:NPM_CONFIG_LOGLEVEL = "error"
     npm install -g openclaw@$latestVersion 2>&1 | Where-Object { $_ -notmatch "npm warn" }
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[√] OpenClaw updated to v$latestVersion" -ForegroundColor Green
-        Write-Host "  Restart running services: openclaw gateway stop; openclaw gateway --force" -ForegroundColor Gray
+        Write-Host "[âˆš] OpenClaw updated to v$latestVersion" -ForegroundColor Green
+        Write-Host "Restart running services: openclaw gateway stop; openclaw gateway --force" -ForegroundColor Gray
     } else {
-        Write-Host "[×] Update failed" -ForegroundColor Red
+        Write-Host "[Ã--] Update failed" -ForegroundColor Red
     }
 }
 
 # ======================== Uninstall ========================
 function Do-Uninstall {
+    Log-Operation 'uninstall' 'openclaw'
+
     if (-not (Find-OpenClaw)) {
         Write-Host "OpenClaw is not installed." -ForegroundColor Yellow
         return
     }
-    Write-Host "`n========== Uninstalling OpenClaw ==========" -ForegroundColor Yellow
+    Write-Host "
+========== Uninstalling OpenClaw ==========" -ForegroundColor Yellow
     
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         try {
@@ -539,19 +537,19 @@ function Do-Uninstall {
         Write-Host "Removed $openClawDir" -ForegroundColor Gray
     }
     
-    Write-Host "[√] OpenClaw uninstalled" -ForegroundColor Green
+    Write-Host "[âˆš] OpenClaw uninstalled" -ForegroundColor Green
 }
 
 # ======================== Menu ========================
 function Show-Menu {
     Write-Host ''
-    Write-Host '  OpenClaw Manager' -ForegroundColor Cyan
-    Write-Host '  ---------------' -ForegroundColor DarkGray
-    Write-Host '  [1] Install'   -ForegroundColor White
-    Write-Host '  [2] Uninstall' -ForegroundColor White
-    Write-Host '  [3] Status'    -ForegroundColor White
-    Write-Host '  [4] Update'    -ForegroundColor White
-    Write-Host '  [Q] Quit'      -ForegroundColor DarkGray
+    Write-Host 'OpenClaw Manager' -ForegroundColor Cyan
+    Write-Host '---------------' -ForegroundColor DarkGray
+    Write-Host '[1] Install'   -ForegroundColor White
+    Write-Host '[2] Uninstall' -ForegroundColor White
+    Write-Host '[3] Status'    -ForegroundColor White
+    Write-Host '[4] Update'    -ForegroundColor White
+    Write-Host '[Q] Quit'      -ForegroundColor DarkGray
     Write-Host ''
 
     $choice = Read-Host 'Choose'
@@ -572,3 +570,5 @@ switch ($Action) {
     'update'    { Do-Update }
     default     { Show-Menu }
 }
+
+
