@@ -2,6 +2,7 @@ package com.huawei.ai_platform.rss.application.service.impl;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.OperationResultEnum;
+import com.huawei.ai_platform.common.annotation.DbLock;
 import com.huawei.ai_platform.rss.application.service.RssCrawlService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +59,7 @@ public class RssCrawlServiceImpl implements RssCrawlService {
     private String datasourcePassword;
 
     @Override
+    @DbLock(category = "ai_crawl_lock")
     public OperationResult runCrawl() {
         log.info("Starting AI crawl");
 
@@ -127,6 +130,22 @@ public class RssCrawlServiceImpl implements RssCrawlService {
             return OperationResult.builder().state(OperationResultEnum.FAILURE)
                     .reason("AI crawl error: " + e.getMessage()).build();
         }
+    }
+
+    @Override
+    public OperationResult runCrawlAsync() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                OperationResult result = runCrawl();
+                if (result.isFailed()) {
+                    log.error("AI crawl failed: {}", result.getInfo());
+                }
+            } catch (Exception e) {
+                log.error("AI crawl error", e);
+            }
+        });
+        return OperationResult.builder().state(OperationResultEnum.SUCCESS)
+                .reason("AI crawl started").build();
     }
 
     private void ensureDependencies() throws Exception {

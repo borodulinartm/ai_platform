@@ -2,6 +2,7 @@ package com.huawei.ai_platform.rss.infrastructure.web;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
+import com.huawei.ai_platform.rss.application.service.RssCrawlService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.infrastructure.web.assembler.RssNewsAssembler;
@@ -33,6 +34,7 @@ public class RssController {
     private final RssConfigService rssConfigService;
     private final RssSyncService rssSyncService;
     private final RssTopArticlesService rssTopArticlesService;
+    private final RssCrawlService rssCrawlService;
     private final RssNewsAssembler rssNewsAssembler;
 
     /**
@@ -87,5 +89,11 @@ public class RssController {
         });
         
         return ResponseEntity.accepted().body("Processing started for date: " + processDate);
+    }
+
+    @PostMapping("/v1/run-crawl")
+    public ResponseEntity<?> runCrawl() {
+        OperationResult result = rssCrawlService.runCrawlAsync();
+        return ResponseEntity.accepted().body(result.getInfo());
     }
 }

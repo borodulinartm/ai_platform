@@ -4,4 +4,6 @@ import com.huawei.ai_platform.common.OperationResult;
 
 public interface RssCrawlService {
     OperationResult runCrawl();
+
+    OperationResult runCrawlAsync();
 }
