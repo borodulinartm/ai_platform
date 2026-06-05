@@ -89,6 +89,10 @@ public class RssCrawlServiceImpl implements RssCrawlService {
             }
             pb.environment().put("DB_USER", datasourceUsername);
             pb.environment().put("DB_PASSWORD", datasourcePassword);
+            pb.environment().put("PYTHONHTTPSVERIFY", "0");
+            pb.environment().put("REQUESTS_CA_BUNDLE", "");
+            pb.environment().put("CURL_CA_BUNDLE", "");
+            pb.environment().put("SSL_CERT_FILE", "");
 
             Process process = pb.start();
 
@@ -136,8 +140,15 @@ public class RssCrawlServiceImpl implements RssCrawlService {
         }
 
         log.info("Installing/updating Python dependencies");
-        ProcessBuilder pb = new ProcessBuilder(pipPath, "install", "--upgrade", "-r", reqFile.toString());
+        ProcessBuilder pb = new ProcessBuilder(pipPath, "install", "--upgrade",
+                "--trusted-host", "pypi.org",
+                "--trusted-host", "files.pythonhosted.org",
+                "-r", reqFile.toString());
         pb.redirectErrorStream(true);
+        pb.environment().put("PYTHONHTTPSVERIFY", "0");
+        pb.environment().put("REQUESTS_CA_BUNDLE", "");
+        pb.environment().put("CURL_CA_BUNDLE", "");
+        pb.environment().put("SSL_CERT_FILE", "");
         Process process = pb.start();
 
         try (BufferedReader reader = new BufferedReader(
