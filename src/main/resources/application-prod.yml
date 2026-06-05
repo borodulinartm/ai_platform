@@ -6,7 +6,8 @@ ai:
   crawl:
     enabled: true
     script-path: ai-crawl/vibe-main.py
-    python-path: python
+    python-path: python3.12
+    pip-path: pip3.12
     llm-url: ${LLM_URL:https://openrouter.ai/api/v1}
     llm-key: ${LLM_KEY:}
     llm-provider: ${LLM_PROVIDER:deepseek}
