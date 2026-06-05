@@ -133,6 +133,7 @@ public class RssCrawlServiceImpl implements RssCrawlService {
     }
 
     @Override
+    @DbLock(category = "ai_crawl_lock")
     public OperationResult runCrawlAsync() {
         CompletableFuture.runAsync(() -> {
             try {

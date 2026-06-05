@@ -93,7 +93,6 @@ public class RssJob {
      * Runs every hour at :05
      */
     @Scheduled(cron = "0 5 * * * ?", zone = "GMT")
-    @DbLock(category = "ai_crawl_lock")
     public void runAiCrawl() {
         if (!crawlEnabled) {
             log.debug("AI crawl job disabled");
