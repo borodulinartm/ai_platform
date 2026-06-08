@@ -69,7 +69,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          pip3.12 install --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org crawl4ai asyncpg pydantic litellm 2>/dev/null || true
+          python3.12 -m pip install --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org crawl4ai asyncpg pydantic litellm 2>/dev/null || true
           export BASE_PATH_CLOUD=${{ vars.BASE_PATH_CLOUD }}
           export LLM_URL=${{ vars.LLM_URL }}
           export LLM_KEY=${{ secrets.LLM_KEY }}

@@ -28,11 +28,8 @@ public class RssCrawlServiceImpl implements RssCrawlService {
     @Value("${ai.crawl.script-path:ai-crawl/vibe-main.py}")
     private String crawlScriptPath;
 
-    @Value("${ai.crawl.python-path:python}")
+    @Value("${ai.crawl.python-path:python3.12}")
     private String pythonPath;
-
-    @Value("${ai.crawl.pip-path:pip}")
-    private String pipPath;
 
     @Value("${ai.crawl.requirements-path:ai-crawl/requirements.txt}")
     private String requirementsPath;
@@ -156,7 +153,7 @@ public class RssCrawlServiceImpl implements RssCrawlService {
         }
 
         log.info("Installing/updating Python dependencies");
-        ProcessBuilder pb = new ProcessBuilder(pipPath, "install", "--upgrade",
+        ProcessBuilder pb = new ProcessBuilder(pythonPath, "-m", "pip", "install", "--upgrade",
                 "--trusted-host", "pypi.org",
                 "--trusted-host", "files.pythonhosted.org",
                 "-r", reqFile.toString());
