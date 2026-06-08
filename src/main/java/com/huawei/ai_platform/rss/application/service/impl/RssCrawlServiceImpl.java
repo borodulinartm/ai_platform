@@ -92,10 +92,6 @@ public class RssCrawlServiceImpl implements RssCrawlService {
             }
             pb.environment().put("DB_USER", datasourceUsername);
             pb.environment().put("DB_PASSWORD", datasourcePassword);
-            pb.environment().put("PYTHONHTTPSVERIFY", "0");
-            pb.environment().put("REQUESTS_CA_BUNDLE", "");
-            pb.environment().put("CURL_CA_BUNDLE", "");
-            pb.environment().put("SSL_CERT_FILE", "");
 
             Process process = pb.start();
 
@@ -165,10 +161,6 @@ public class RssCrawlServiceImpl implements RssCrawlService {
                 "--trusted-host", "files.pythonhosted.org",
                 "-r", reqFile.toString());
         pb.redirectErrorStream(true);
-        pb.environment().put("PYTHONHTTPSVERIFY", "0");
-        pb.environment().put("REQUESTS_CA_BUNDLE", "");
-        pb.environment().put("CURL_CA_BUNDLE", "");
-        pb.environment().put("SSL_CERT_FILE", "");
         Process process = pb.start();
 
         try (BufferedReader reader = new BufferedReader(
@@ -181,7 +173,7 @@ public class RssCrawlServiceImpl implements RssCrawlService {
 
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            log.warn("pip install exited with code {}", exitCode);
+            log.warn("pip install exited with code {} — packages may already be installed or ssl module is missing on server. Run: sudo apt install libssl-dev python3.12-venv python3.12-dev", exitCode);
         }
 
         Files.deleteIfExists(reqFile);
