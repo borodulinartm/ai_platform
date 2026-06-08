@@ -5,10 +5,10 @@
     Install, uninstall, or check status of OpenClaw.
     One-click Node.js 24.x+ environment check/install, Git detect-only, and OpenClaw 2026.3.13 install/update.
 .EXAMPLE
-    .\Install-OpenClaw.ps1              # interactive menu
-    .\Install-OpenClaw.ps1 install      # install (full setup)
-    .\Install-OpenClaw.ps1 uninstall    # uninstall
-    .\Install-OpenClaw.ps1 status       # check if installed
+    .\OpenClaw.ps1              # interactive menu
+    .\OpenClaw.ps1 install      # install (full setup)
+    .\OpenClaw.ps1 uninstall    # uninstall
+    .\OpenClaw.ps1 status       # check if installed
 #>
 
 param(
@@ -177,7 +177,7 @@ function Get-OpenClawVersion {
 
 # ======================== Node.js Installation ========================
 function Install-NodeJs {
-    Write-Host "`n========== Checking Node.js Environment ==========" -ForegroundColor Yellow
+    Write-Host "Checking Node.js..." -ForegroundColor Cyan
 
     $nodeInstalled = $false
     $nodeVersion = $null
@@ -226,7 +226,7 @@ function Install-NodeJs {
 
 # ======================== Git Installation (detect only) ========================
 function Install-Git {
-    Write-Host "`n========== Checking Git Environment ==========" -ForegroundColor Yellow
+    Write-Host "Checking Git..." -ForegroundColor Cyan
 
     $gitInstalled = $false
     try {
@@ -269,7 +269,7 @@ function Install-Git {
 
 # ======================== OpenClaw Installation/Update ========================
 function Install-OpenClawApp {
-    Write-Host "`n========== Checking OpenClaw Environment ==========" -ForegroundColor Yellow
+    Write-Host "Checking OpenClaw package..." -ForegroundColor Cyan
 
     $openClawInstalled = $false
     $openClawVersion = $null
@@ -290,7 +290,7 @@ function Install-OpenClawApp {
 
     if ($openClawInstalled) {
         if (Compare-Version -Version1 $openClawVersion -Version2 $targetOpenClawVersion) {
-            Write-Host "`n[âˆš] Current OpenClaw version $openClawVersion is up to date (>= $targetOpenClawVersion), no action needed" -ForegroundColor Green
+            Write-Host "`n[OK] Current OpenClaw version $openClawVersion is up to date (>= $targetOpenClawVersion), no action needed" -ForegroundColor Green
             return
         }
         else {
@@ -301,10 +301,10 @@ function Install-OpenClawApp {
             $env:NPM_CONFIG_LOGLEVEL = "error"
             npm install -g openclaw$versionSuffix 2>&1 | Where-Object { $_ -notmatch "npm warn" }
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "`n[âˆš] OpenClaw installed successfully!" -ForegroundColor Green
+                Write-Host "`n[OK] OpenClaw installed successfully!" -ForegroundColor Green
             }
             else {
-                Write-Host "`n[Ã--] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
+                Write-Host "`n[FAIL] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
                 exit 1
             }
         }
@@ -317,10 +317,10 @@ function Install-OpenClawApp {
         $env:NPM_CONFIG_LOGLEVEL = "error"
         npm install -g openclaw$versionSuffix 2>&1 | Where-Object { $_ -notmatch "npm warn" }
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "`n[âˆš] OpenClaw installed successfully!" -ForegroundColor Green
+            Write-Host "`n[OK] OpenClaw installed successfully!" -ForegroundColor Green
         }
         else {
-            Write-Host "`n[Ã--] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
+            Write-Host "`n[FAIL] OpenClaw installation failed, check network or permissions" -ForegroundColor Red
             exit 1
         }
     }
@@ -334,19 +334,98 @@ function Install-OpenClawApp {
     }
 }
 
+# ======================== Model Injection ========================
+function Inject-Models {
+    $modelCatalog = Join-Path $PSScriptRoot 'models.json'
+    if (-not (Test-Path $modelCatalog)) {
+        Write-Host "[!] models.json catalog not found, skipping injection" -ForegroundColor Yellow
+        return
+    }
+    try {
+        $catalog = Get-Content $modelCatalog -Raw | ConvertFrom-Json
+        $configPath = "$env:USERPROFILE\.openclaw\openclaw.json"
+        if (-not (Test-Path $configPath)) {
+            Write-Host "[!] No openclaw.json to inject models into" -ForegroundColor Yellow
+            return
+        }
+        $config = Get-Content $configPath -Raw | ConvertFrom-Json
+
+        $providerModels = @{}
+        $defaultModel = $null
+        foreach ($m in $catalog.models) {
+            if ($m.type -eq 'embedding') { continue }
+            $provKey = $m.provider
+            if (-not $providerModels.ContainsKey($provKey)) { $providerModels[$provKey] = @() }
+            $providerModels[$provKey] += $m
+            if ($m.is_default -and -not $defaultModel) { $defaultModel = $m }
+        }
+
+        if (-not $config.models) { $config | Add-Member -NotePropertyName 'models' -NotePropertyValue ([PSCustomObject]@{ providers = [PSCustomObject]@{} }) -Force }
+        if (-not $config.models.providers) { $config.models | Add-Member -NotePropertyName 'providers' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+
+        foreach ($provKey in $providerModels.Keys) {
+            $provInfo = $catalog.providers.$provKey
+            $ocModels = @()
+            foreach ($m in $providerModels[$provKey]) {
+                $ocModels += @{
+                    id = $m.id
+                    name = $m.name
+                    reasoning = $false
+                    input = @("text")
+                    cost = @{ input = 0; output = 0; cacheRead = 0; cacheWrite = 0 }
+                    contextWindow = $m.context_length
+                    maxTokens = $m.max_tokens
+                }
+            }
+
+            $provLower = $provKey.ToLower()
+            $provEntry = @{
+                baseUrl = $provInfo.base_url
+                apiKey = $customApiKey
+                api = "openai-completions"
+                models = $ocModels
+            }
+            $config.models.providers | Add-Member -NotePropertyName $provLower -NotePropertyValue $provEntry -Force
+        }
+
+        if ($defaultModel) {
+            if (-not $config.agents) { $config | Add-Member -NotePropertyName 'agents' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+            if (-not $config.agents.defaults) { $config.agents | Add-Member -NotePropertyName 'defaults' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+            if (-not $config.agents.defaults.model) { $config.agents.defaults | Add-Member -NotePropertyName 'model' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+            $provLower = $defaultModel.provider.ToLower()
+            $config.agents.defaults.model | Add-Member -NotePropertyName 'primary' -NotePropertyValue "$provLower/$($defaultModel.id)" -Force
+
+            $allowlist = @{}
+            foreach ($pk in $providerModels.Keys) {
+                $provL = $pk.ToLower()
+                foreach ($m in $providerModels[$pk]) {
+                    $allowlist["$provL/$($m.id)"] = @{ alias = $m.name }
+                }
+            }
+            $config.agents.defaults | Add-Member -NotePropertyName 'models' -NotePropertyValue ([PSCustomObject]$allowlist) -Force
+        }
+
+        Set-ContentNoBom -Path $configPath -Value ($config | ConvertTo-Json -Depth 10)
+        $modelCount = ($providerModels.Values | ForEach-Object { $_.Count } | Measure-Object -Sum).Sum
+        Write-Host "[OK] Injected $modelCount models into openclaw config" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARN] Failed to inject models: $_" -ForegroundColor Yellow
+    }
+}
+
 # ======================== OpenClaw Init + Config ========================
 function Initialize-OpenClaw {
-    Write-Host "`n========== Initializing OpenClaw ==========" -ForegroundColor Yellow
+    Write-Host "Initializing OpenClaw..." -ForegroundColor Cyan
 
     Write-Host "Running OpenClaw init command..." -ForegroundColor Cyan
     $initCommand = "openclaw onboard --non-interactive --accept-risk --custom-base-url $customBaseUrl --custom-api-key $customApiKey --custom-model-id $customModelId --custom-provider-id $customProviderId --skip-health --skip-channels --skip-skills"
     Write-Host "Running: openclaw onboard" -ForegroundColor Gray
     Invoke-Expression $initCommand 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[âˆš] OpenClaw initialized successfully!" -ForegroundColor Green
+        Write-Host "[OK] OpenClaw initialized successfully!" -ForegroundColor Green
     }
     else {
-        Write-Host "[Ã--] OpenClaw initialization failed, check parameters" -ForegroundColor Red
+        Write-Host "[FAIL] OpenClaw initialization failed, check parameters" -ForegroundColor Red
         exit 1
     }
 
@@ -361,22 +440,44 @@ function Initialize-OpenClaw {
         Write-Host "[!] Config file not found: $configPath" -ForegroundColor Yellow
         Write-Host "Please manually create the file and set `"tools`": { `"default`": `"full`" }" -ForegroundColor Yellow
     }
+
+    Inject-Models
 }
 
 # ======================== OpenClaw Startup ========================
 function Start-OpenClaw {
-    Write-Host "`n========== Starting OpenClaw Services ==========" -ForegroundColor Yellow
+    Write-Host "Starting OpenClaw services..." -ForegroundColor Cyan
 
     Write-Host "Starting OpenClaw Gateway service..." -ForegroundColor Cyan
-    Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -ExecutionPolicy Bypass -Command `"openclaw gateway stop 2>`$null; openclaw gateway --force`""
-    Write-Host "[âˆš] OpenClaw Gateway service started (detached background)" -ForegroundColor Green
+    $npmDir = Join-Path $env:APPDATA 'npm'
+    $gwScript = "$env:TEMP\openclaw-gateway.bat"
+    Set-Content -LiteralPath $gwScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw gateway --force") -Encoding ASCII
+    Start-Process cmd.exe -ArgumentList "/k `"$gwScript`""
+    Write-Host "[OK] OpenClaw Gateway service started (detached background)" -ForegroundColor Green
 
-    Write-Host "Waiting for service initialization (10 seconds)..." -ForegroundColor Cyan
-    Start-Sleep -Seconds 10
+    Write-Host "Waiting for gateway to accept connections..." -ForegroundColor Cyan
+    $waited = 0
+    while ($waited -lt 30) {
+        $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
+        if ($port) {
+            Write-Host "[OK] Gateway is listening on port 18789" -ForegroundColor Green
+            break
+        }
+        Start-Sleep -Seconds 1
+        $waited++
+    }
+    if ($waited -ge 30) {
+        Write-Host "[WARN] Gateway did not start within 30 seconds" -ForegroundColor Yellow
+    }
+
+    Start-Sleep -Seconds 2
 
     Write-Host "Opening OpenClaw Dashboard UI..." -ForegroundColor Cyan
-    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -Command `"openclaw dashboard`""
-    Write-Host "[âˆš] OpenClaw Dashboard UI opened" -ForegroundColor Green
+    $dashScript = "$env:TEMP\openclaw-dashboard.bat"
+    $npmDir = Join-Path $env:APPDATA 'npm'
+    Set-Content -LiteralPath $dashScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw dashboard") -Encoding ASCII
+    Start-Process cmd.exe -WindowStyle Hidden -ArgumentList "/c `"$dashScript`""
+    Write-Host "[OK] OpenClaw Dashboard UI opened" -ForegroundColor Green
 
     Write-Host "`n========== OpenClaw Startup Complete ==========" -ForegroundColor Yellow
 
@@ -398,6 +499,7 @@ function Start-OpenClaw {
 # ======================== Install (Full Setup Flow) ========================
 function Do-Install {
     Log-Operation 'install' 'openclaw'
+    Write-Host "`n========== Installing OpenClaw ==========" -ForegroundColor Yellow
 
     if (Find-OpenClaw) {
         Write-Host "`n========== OpenClaw already installed ==========" -ForegroundColor Yellow
@@ -409,13 +511,25 @@ function Do-Install {
             # Called from manager - just open WebUI
             $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
             if (-not $port) {
-                Write-Host 'Starting gateway in background...' -ForegroundColor Cyan
-                Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -Command openclaw gateway --force 2>`$null"
-                Write-Host 'Waiting 10s...' -ForegroundColor Gray
-                Start-Sleep 10
+Write-Host 'Starting gateway in background...' -ForegroundColor Cyan
+                $npmDir = Join-Path $env:APPDATA 'npm'
+                $gwScript = "$env:TEMP\openclaw-gateway.bat"
+                Set-Content -LiteralPath $gwScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw gateway --force") -Encoding ASCII
+                Start-Process cmd.exe -ArgumentList "/k `"$gwScript`""
+                Write-Host 'Waiting for gateway...' -ForegroundColor Gray
+                $waited = 0
+                while ($waited -lt 30) {
+                    $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
+                    if ($port) { break }
+                    Start-Sleep -Seconds 1
+                    $waited++
+                }
             }
             Write-Host 'Opening WebUI...' -ForegroundColor Green
-            Start-Process "http://127.0.0.1:18789"
+            $dashScript = "$env:TEMP\openclaw-dashboard.bat"
+            $npmDir = Join-Path $env:APPDATA 'npm'
+            Set-Content -LiteralPath $dashScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw dashboard") -Encoding ASCII
+            Start-Process cmd.exe -WindowStyle Hidden -ArgumentList "/c `"$dashScript`""
             return
         }
     }
@@ -450,7 +564,8 @@ function Do-Install {
 
         if (Test-Path $openClawConfigPath) {
             Write-Host "`nOpenClaw config file already exists: $openClawConfigPath" -ForegroundColor Green
-            Write-Host "Skipping init, starting services directly..." -ForegroundColor Cyan
+            Write-Host "Injecting models from catalog..." -ForegroundColor Cyan
+            Inject-Models
         }
         else {
             Initialize-OpenClaw
@@ -462,10 +577,10 @@ function Do-Install {
         Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
         Write-Host "`n========== All Operations Complete ==========" -ForegroundColor Yellow
-        Write-Host "[âˆš] OpenClaw $targetOpenClawVersion installation and startup complete!" -ForegroundColor Green
+        Write-Host "[OK] OpenClaw $targetOpenClawVersion installation and startup complete!" -ForegroundColor Green
     }
     catch {
-        Write-Host "`n[Ã--] Script execution error: $_" -ForegroundColor Red
+        Write-Host "`n[FAIL] Script execution error: $_" -ForegroundColor Red
         Write-Host "`n[?] Try manually deleting $env:USERPROFILE\.openclaw (if it exists) and re-run the script" -ForegroundColor Yellow
         if (Test-Path $tempDir) { Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue }
         exit 1
@@ -491,7 +606,7 @@ function Do-Update {
     if ($currentVerOutput -match '(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] }
 
     if ($currentVersion -and (Compare-Version -Version1 $currentVersion -Version2 $latestVersion)) {
-        Write-Host "[âˆš] Already on latest version v$currentVersion" -ForegroundColor Green
+        Write-Host ("[OK] Already on latest version v" + $currentVersion) -ForegroundColor Green
         return
     }
 
@@ -502,10 +617,10 @@ function Do-Update {
     $env:NPM_CONFIG_LOGLEVEL = "error"
     npm install -g openclaw@$latestVersion 2>&1 | Where-Object { $_ -notmatch "npm warn" }
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[âˆš] OpenClaw updated to v$latestVersion" -ForegroundColor Green
+        Write-Host ("[OK] OpenClaw updated to v" + $latestVersion) -ForegroundColor Green
         Write-Host "Restart running services: openclaw gateway stop; openclaw gateway --force" -ForegroundColor Gray
     } else {
-        Write-Host "[Ã--] Update failed" -ForegroundColor Red
+        Write-Host "[FAIL] Update failed" -ForegroundColor Red
     }
 }
 
@@ -517,12 +632,19 @@ function Do-Uninstall {
         Write-Host "OpenClaw is not installed." -ForegroundColor Yellow
         return
     }
-    Write-Host "
-========== Uninstalling OpenClaw ==========" -ForegroundColor Yellow
-    
+    Write-Host "`n========== Uninstalling OpenClaw ==========" -ForegroundColor Yellow
+
+    # Kill gateway process and children first (holds file locks)
+    $pids = netstat -ano 2>$null | Select-String "18789.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
+    foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
+    Start-Sleep 2
+
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         try {
-            $null = & npm uninstall -g openclaw 2>&1
+            $env:NPM_CONFIG_FUND = "false"
+            $env:NPM_CONFIG_AUDIT = "false"
+            $env:NPM_CONFIG_LOGLEVEL = "error"
+            $null = & cmd /c 'npm uninstall -g openclaw <nul' 2>$null
             Write-Host "Removed via npm" -ForegroundColor Gray
         } catch {
             Write-Host "npm uninstall failed: $_" -ForegroundColor Gray
@@ -533,11 +655,16 @@ function Do-Uninstall {
     
     $openClawDir = "$env:USERPROFILE\.openclaw"
     if (Test-Path $openClawDir) {
-        Remove-Item $openClawDir -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "Removed $openClawDir" -ForegroundColor Gray
+        cmd /c "rmdir /S /Q `"$openClawDir`"" 2>$null
+        if (Test-Path $openClawDir) {
+            Rename-Item -Path $openClawDir -NewName ".openclaw.stale.$(Get-Date -Format 'yyyyMMddHHmmss')" -Force -ErrorAction SilentlyContinue
+            Write-Host "Renamed locked directory" -ForegroundColor Yellow
+        } else {
+            Write-Host "Removed $openClawDir" -ForegroundColor Gray
+        }
     }
     
-    Write-Host "[âˆš] OpenClaw uninstalled" -ForegroundColor Green
+    Write-Host "[OK] OpenClaw uninstalled" -ForegroundColor Green
 }
 
 # ======================== Menu ========================

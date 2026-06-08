@@ -4,10 +4,10 @@
 .DESCRIPTION
     Install, uninstall, or check status of Hermes AI Agent (CLI or Desktop).
 .EXAMPLE
-    .\Install-HermesAgent.ps1                 # interactive menu
-    .\Install-HermesAgent.ps1 install         # install Desktop app (with CLI + venv)
-    .\Install-HermesAgent.ps1 uninstall       # uninstall all (CLI + Desktop)
-    .\Install-HermesAgent.ps1 status          # check installed versions & updates
+    .\HermesDesktop.ps1                 # interactive menu
+    .\HermesDesktop.ps1 install         # install Desktop app (with CLI + venv)
+    .\HermesDesktop.ps1 uninstall       # uninstall all (CLI + Desktop)
+    .\HermesDesktop.ps1 status          # check installed versions & updates
 #>
 
 param(

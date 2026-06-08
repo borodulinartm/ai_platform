@@ -28,9 +28,9 @@ if (Test-Path $ConfigFile) {
 }
 
 # ======================== Script paths ========================
-$HermesScript = Join-Path $ScriptDir 'Install-HermesAgent.ps1'
-$JiuwenSwarmScript = Join-Path $ScriptDir 'Install-JiuwenSwarm.ps1'
-$OpenClawScript = Join-Path $ScriptDir 'Install-OpenClaw.ps1'
+$HermesScript = Join-Path $ScriptDir 'HermesDesktop.ps1'
+$JiuwenSwarmScript = Join-Path $ScriptDir 'JiuwenSwarm.ps1'
+$OpenClawScript = Join-Path $ScriptDir 'OpenClaw.ps1'
 
 # ======================== Helper functions ========================
 function Invoke-ToolAction {
@@ -131,7 +131,7 @@ function Open-JiuwenSwarmUI {
 function Stop-JiuwenSwarm {
     $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
     if ($pids) {
-        foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+        foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
         Write-Host 'JiuwenSwarm services stopped' -ForegroundColor Green
     }
     else { Write-Host 'No JiuwenSwarm services running' -ForegroundColor Gray }
@@ -141,18 +141,30 @@ function Open-OpenClawUI {
     $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
     if (-not $port) {
         Write-Host "Starting openclaw gateway in background..." -ForegroundColor Cyan
-        Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoLogo -NoProfile -Command openclaw gateway --force 2>`$null"
-        Write-Host "Waiting (10s)..." -ForegroundColor Gray
-        Start-Sleep 10
+        $npmDir = Join-Path $env:APPDATA 'npm'
+        $gwScript = "$env:TEMP\openclaw-gateway.bat"
+        Set-Content -LiteralPath $gwScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw gateway --force") -Encoding ASCII
+        Start-Process cmd.exe -ArgumentList "/k `"$gwScript`""
+        Write-Host "Waiting for gateway..." -ForegroundColor Gray
+        $waited = 0
+        while ($waited -lt 30) {
+            $port = netstat -ano 2>$null | Select-String "18789.*LISTENING"
+            if ($port) { break }
+            Start-Sleep -Seconds 1
+            $waited++
+        }
     }
     Write-Host "Opening http://127.0.0.1:18789" -ForegroundColor Green
-    Start-Process "http://127.0.0.1:18789"
+    $dashScript = "$env:TEMP\openclaw-dashboard.bat"
+    $npmDir = Join-Path $env:APPDATA 'npm'
+    Set-Content -LiteralPath $dashScript -Value ("@echo off`r`nset PATH=%PATH%;" + $npmDir + "`r`nopenclaw dashboard") -Encoding ASCII
+    Start-Process cmd.exe -WindowStyle Hidden -ArgumentList "/c `"$dashScript`""
 }
 
 function Stop-OpenClaw {
     $pids = netstat -ano 2>$null | Select-String "18789.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
     if ($pids) {
-        foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+        foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
         Write-Host 'OpenClaw stopped' -ForegroundColor Green
     }
     else { Write-Host 'OpenClaw not running' -ForegroundColor Gray }

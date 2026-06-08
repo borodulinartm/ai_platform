@@ -1,0 +1,83 @@
+{
+  "providers": {
+    "ModelArts": {
+      "base_url": "API_URL",
+      "api_key_env": "API_KEY",
+      "provider_type": "custom",
+      "description": "Huawei ModelArts — OpenAI-compatible endpoint"
+    }
+  },
+  "models": [
+    {
+      "id": "glm-5.1",
+      "name": "GLM-5.1",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": true
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": false
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": false
+    },
+    {
+      "id": "deepseek-v3.2",
+      "name": "DeepSeek V3.2",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": false
+    },
+    {
+      "id": "deepseek-v3.1-terminus",
+      "name": "DeepSeek V3.1 Terminus",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": false
+    },
+    {
+      "id": "kimi-k2.6",
+      "name": "Kimi K2.6",
+      "provider": "ModelArts",
+      "context_length": 128000,
+      "max_tokens": 4096,
+      "supports_vision": false,
+      "supports_tools": true,
+      "is_default": false
+    },
+    {
+      "id": "bge-m3",
+      "name": "BGE-M3",
+      "provider": "ModelArts",
+      "context_length": 8192,
+      "max_tokens": 512,
+      "supports_vision": false,
+      "supports_tools": false,
+      "is_default": false,
+      "type": "embedding"
+    }
+  ]
+}

@@ -4,10 +4,10 @@
 .DESCRIPTION
     Install, uninstall, or check status of JiuwenSwarm.
 .EXAMPLE
-    .\Install-JiuwenSwarm.ps1              # interactive menu
-    .\Install-JiuwenSwarm.ps1 install      # install jiuwenswarm
-    .\Install-JiuwenSwarm.ps1 uninstall    # uninstall jiuwenswarm
-    .\Install-JiuwenSwarm.ps1 status       # check if installed
+    .\JiuwenSwarm.ps1              # interactive menu
+    .\JiuwenSwarm.ps1 install      # install jiuwenswarm
+    .\JiuwenSwarm.ps1 uninstall    # uninstall jiuwenswarm
+    .\JiuwenSwarm.ps1 status       # check if installed
 #>
 
 param(
@@ -397,7 +397,7 @@ JIUWENSWARM_WS_ALLOWED_ORIGIN_HOSTS=127.0.0.1,localhost
     Write-Host ""
     Write-Host "Stopping any leftover services..." -ForegroundColor Gray
     $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
-    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
     Start-Sleep 2
 
     Write-Host " Starting services (detached background)..." -ForegroundColor Cyan
@@ -530,7 +530,7 @@ function Do-Update {
     # Kill running services (they lock files uv needs to replace)
     Write-Host "Stopping services..." -ForegroundColor Gray
     $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
-    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
     Start-Sleep 2
 
     uv tool install jiuwenswarm@$latestVersion --with openjiuwen --prerelease=allow --reinstall 2>&1 | Out-Null
@@ -549,7 +549,7 @@ function Do-Uninstall {
     # Kill running services first (they hold file locks)
     Write-Host "Stopping running services..." -ForegroundColor Cyan
     $pids = netstat -ano 2>$null | Select-String "19000.*LISTENING","5173.*LISTENING" | ForEach-Object { ($_ -split '\s+')[-1] } | Sort-Object -Unique
-    foreach ($pid in $pids) { taskkill /F /T /PID $pid 2>$null }
+    foreach ($p in $pids) { taskkill /F /T /PID $p 2>$null }
     Start-Sleep 2
 
     # 1. Remove old jiuwenclaw (leftover from previous version)
