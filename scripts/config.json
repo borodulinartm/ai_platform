@@ -1,21 +1,77 @@
 {
+  "providers": {
+    "ModelArts": {
+      "base_url": "BASE_URL",
+      "api_key": "API_KEY",
+      "provider_type": "custom",
+      "description": "OpenAI-compatible endpoint"
+    }
+  },
+  "models": [
+    {
+      "id": "glm-5.1",
+      "name": "GLM-5.1",
+      "provider": "ModelArts",
+      "context_length": 200000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_reasoning": true
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "provider": "ModelArts",
+      "context_length": 1000000,
+      "max_output_tokens": 384000,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_reasoning": false
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "provider": "ModelArts",
+      "context_length": 1000000,
+      "max_output_tokens": 384000,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_reasoning": false
+    },
+    {
+      "id": "kimi-k2.6",
+      "name": "Kimi K2.6",
+      "provider": "ModelArts",
+      "context_length": 262144,
+      "max_output_tokens": 262144,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_reasoning": false
+    },
+    {
+      "id": "bge-m3",
+      "name": "BGE-M3",
+      "provider": "ModelArts",
+      "context_length": 8192,
+      "max_output_tokens": 0,
+      "supports_vision": false,
+      "supports_tools": false,
+      "type": "embedding"
+    }
+  ],
+  "agents": {
     "Hermes": {
-        "Provider": "huawei",
-        "ApiKey": "",
-        "Model": "glm-5.1",
-        "BaseUrl": ""
+      "provider": "ModelArts",
+      "model": "glm-5.1"
     },
     "JiuwenSwarm": {
-        "Provider": "huawei",
-        "ApiKey": "",
-        "Model": "glm-5.1",
-        "EmbedModel": "bge-m3",
-        "BaseUrl": ""
+      "provider": "ModelArts",
+      "model": "glm-5.1",
+      "embed_model": "bge-m3"
     },
     "OpenClaw": {
-        "Provider": "huawei",
-        "ApiKey": "",
-        "Model": "glm-5.1",
-        "BaseUrl": ""
+      "provider": "ModelArts",
+      "model": "glm-5.1"
     }
+  }
 }

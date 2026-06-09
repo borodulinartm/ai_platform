@@ -19,6 +19,20 @@ param(
     [string]$BaseUrl = ''
 )
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Load defaults from config.json if params are empty
+$ModelsFile = Join-Path $ScriptDir 'config.json'
+if (Test-Path $ModelsFile) {
+    $Models = Get-Content $ModelsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    $agent = $Models.agents.Hermes
+    $prov = $Models.providers.($agent.provider)
+    if (-not $Provider) { $Provider = $agent.provider }
+    if (-not $ApiKey) { $ApiKey = $prov.api_key }
+    if (-not $BaseUrl) { $BaseUrl = $prov.base_url }
+    if (-not $Model) { $Model = $agent.model }
+}
+
 $ProgressPreference = 'SilentlyContinue'
 $HermesDir = Join-Path $env:LOCALAPPDATA 'hermes'
 $HermesBin = Join-Path $HermesDir 'hermes.exe'
@@ -177,7 +191,6 @@ function Get-Status {
     $cliPath = Find-Hermes
     $desktopPath = Find-HermesDesktop
 
-    Write-Host ''
     if (-not $cliPath -and -not $desktopPath) {
         Write-Host 'Hermes: not installed' -ForegroundColor Red
         return
@@ -272,7 +285,7 @@ function Do-InstallDesktop {
     Write-Host 'Stopping existing processes...' -ForegroundColor Cyan
     taskkill /F /T /IM hermes-agent.exe 2>$null
     $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes-agent|hermes\.exe'
     }
     foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
     # Unconditional wait -- Windows releases file handles AFTER process exit
@@ -408,7 +421,7 @@ API_SERVER_KEY=$([guid]::NewGuid().ToString())
 
     # Write models catalog BEFORE Desktop launch
     $modelsFile = Join-Path $cfgDir 'models.json'
-    $modelCatalog = Join-Path $PSScriptRoot 'models.json'
+    $modelCatalog = Join-Path $ScriptDir 'config.json'
     if (Test-Path $modelCatalog) {
         $catalog = Get-Content $modelCatalog -Raw | ConvertFrom-Json
         $desktopModels = @()
@@ -527,7 +540,15 @@ function Do-UninstallCli {
     & uv tool uninstall hermes-agent 2>&1 | Out-Null
     Write-Host 'Removed hermes-agent via uv' -ForegroundColor Gray
 
-    if (Test-Path $HermesDir) { Remove-Item $HermesDir -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $HermesDir) {
+        cmd /c "rmdir /S /Q `"$HermesDir`"" 2>$null
+        if (Test-Path $HermesDir) {
+            Rename-Item -Path $HermesDir -NewName "hermes.stale.$(Get-Date -Format 'yyyyMMddHHmmss')" -Force -ErrorAction SilentlyContinue
+            Write-Host "Renamed locked $HermesDir" -ForegroundColor Yellow
+        } else {
+            Write-Host "Removed $HermesDir" -ForegroundColor Gray
+        }
+    }
     Get-Item "$env:USERPROFILE\.local\bin\hermes*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
     $hermesConfigDir = "$env:USERPROFILE\.hermes"
@@ -549,7 +570,7 @@ function Do-UninstallDesktop {
 
     taskkill /F /T /IM hermes-agent.exe 2>$null
     $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes-agent|hermes\.exe'
     }
     foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
     Start-Sleep 3
@@ -594,7 +615,7 @@ function Do-UninstallAll {
     Write-Host 'Stopping Desktop...' -ForegroundColor Cyan
     taskkill /F /T /IM hermes-agent.exe 2>$null
     $hermesProcs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.Name -match 'python' -and $_.CommandLine -match 'hermes'
+        $_.Name -match 'python' -and $_.CommandLine -match 'hermes-agent|hermes\.exe'
     }
     foreach ($proc in $hermesProcs) { taskkill /F /T /PID $proc.ProcessId 2>$null }
     Start-Sleep 3
@@ -605,7 +626,15 @@ function Do-UninstallAll {
         Write-Host 'Removed hermes-agent via uv' -ForegroundColor Gray
     }
 
-    if (Test-Path $HermesDir) { Remove-Item $HermesDir -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $HermesDir) {
+        cmd /c "rmdir /S /Q `"$HermesDir`"" 2>$null
+        if (Test-Path $HermesDir) {
+            Rename-Item -Path $HermesDir -NewName "hermes.stale.$(Get-Date -Format 'yyyyMMddHHmmss')" -Force -ErrorAction SilentlyContinue
+            Write-Host "Renamed locked $HermesDir" -ForegroundColor Yellow
+        } else {
+            Write-Host "Removed $HermesDir" -ForegroundColor Gray
+        }
+    }
     Get-Item "$env:USERPROFILE\.local\bin\hermes*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
     $hermesConfigDir = "$env:USERPROFILE\.hermes"

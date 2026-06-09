@@ -19,6 +19,21 @@ param(
     [string]$BaseUrl = ""
 )
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Load defaults from config.json if params are empty
+$ModelsFile = Join-Path $ScriptDir 'config.json'
+if (Test-Path $ModelsFile) {
+    $Models = Get-Content $ModelsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    $agent = $Models.agents.JiuwenSwarm
+    $prov = $Models.providers.($agent.provider)
+    if (-not $Provider) { $Provider = $agent.provider }
+    if (-not $ApiKey) { $ApiKey = $prov.api_key }
+    if (-not $BaseUrl) { $BaseUrl = $prov.base_url }
+    if (-not $Model) { $Model = $agent.model }
+    if (-not $EmbedModel) { $EmbedModel = $agent.embed_model }
+}
+
 $LogDir = Join-Path $env:USERPROFILE 'agent-logs'
 New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyContinue | Out-Null
 function Log-Operation { param([string]$Op, [string]$Agent); $ts = Get-Date -Format 'yyyyMMdd-HHmmss'; $f = Join-Path $LogDir "$Agent-$Op-$ts.log"; "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $Op start" | Out-File $f -Encoding UTF8 }
@@ -99,7 +114,6 @@ function Get-LatestVersion {
 
 function Get-Status {
     $path = Find-JiuwenSwarm
-    Write-Host ''
     if ($path) {
         $currentVersion = $null
         try {
@@ -118,9 +132,8 @@ function Get-Status {
             Write-Host "Latest     : v$latestVersion" -ForegroundColor Gray
         }
     } else {
-        Write-Host 'JiuwenSwarm: not installed' -ForegroundColor Red
+Write-Host 'JiuwenSwarm: not installed' -ForegroundColor Red
     }
-    Write-Host ''
 }
 
 function Do-Install {

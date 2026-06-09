@@ -10,21 +10,33 @@
 
 # ======================== Load configuration ========================
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ConfigFile = Join-Path $ScriptDir 'config.json'
+$ModelsFile = Join-Path $ScriptDir 'config.json'
 
-if (Test-Path $ConfigFile) {
-    $Config = Get-Content $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
+if (Test-Path $ModelsFile) {
+    $Models = Get-Content $ModelsFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
-    Write-Host "[Ã--] Config file not found: $ConfigFile" -ForegroundColor Red
-    Write-Host "Create config.json with the following structure:" -ForegroundColor Yellow
-    @'
-{
-    "Hermes": { "Provider": "", "ApiKey": "", "Model": "" },
-    "JiuwenSwarm": { "Provider": "", "ApiKey": "", "Model": "", "EmbedModel": "" },
-    "OpenClaw": { "Provider": "", "ApiKey": "", "Model": "", "Version": "" }
-}
-'@
+    Write-Host "[FAIL] config.json not found: $ModelsFile" -ForegroundColor Red
     exit 1
+}
+
+function Get-AgentConfig {
+    param([string]$Name)
+    $provName = $Models.agents.$Name.provider
+    $prov = $Models.providers.$provName
+    $model = $Models.models | Where-Object { $_.provider -eq $provName -and $_.id -eq $Models.agents.$Name.model } | Select-Object -First 1
+    if (-not $model) { $model = $Models.models | Where-Object { $_.provider -eq $provName -and $_.is_default } | Select-Object -First 1 }
+    $embed = $null
+    if ($Models.agents.$Name.embed_model) {
+        $embed = $Models.models | Where-Object { $_.provider -eq $provName -and $_.id -eq $Models.agents.$Name.embed_model } | Select-Object -First 1
+    }
+    return @{
+        Provider = $provName
+        ApiKey = $prov.api_key
+        BaseUrl = $prov.base_url
+        Model = $model.id
+        EmbedModel = if ($embed) { $embed.id } else { $null }
+        Version = $Models.agents.$Name.Version
+    }
 }
 
 # ======================== Script paths ========================
@@ -41,19 +53,14 @@ function Invoke-ToolAction {
         return
     }
     
-    $provider = $Config.$Label.Provider
-    $apiKey = $Config.$Label.ApiKey
-    $model = $Config.$Label.Model
-    $embedModel = $Config.$Label.EmbedModel
-    $version = $Config.$Label.Version
-    $baseUrl = $Config.$Label.BaseUrl
-
+$cfg = Get-AgentConfig $Label
+    
     # Validate required config for install/update actions
     if ($Action -in @('install', 'update')) {
         $missing = @()
-        if (-not $apiKey)  { $missing += 'ApiKey' }
-        if (-not $baseUrl) { $missing += 'BaseUrl' }
-        if (-not $model)   { $missing += 'Model' }
+        if (-not $cfg.ApiKey)  { $missing += 'ApiKey' }
+        if (-not $cfg.BaseUrl) { $missing += 'BaseUrl' }
+        if (-not $cfg.Model)   { $missing += 'Model' }
         if ($missing) {
             Write-Host "[WARN] Config missing for $Label`: $($missing -join ', ')" -ForegroundColor Yellow
             Write-Host "Edit config.json and add the missing fields." -ForegroundColor Gray
@@ -63,13 +70,13 @@ function Invoke-ToolAction {
     
     $args = @(
         '-Action', $Action,
-        '-Provider', $provider,
-        '-ApiKey', $apiKey,
-        '-Model', $model,
-        '-BaseUrl', $baseUrl
+        '-Provider', $cfg.Provider,
+        '-ApiKey', $cfg.ApiKey,
+        '-Model', $cfg.Model,
+        '-BaseUrl', $cfg.BaseUrl
     )
-    if ($embedModel) { $args += @('-EmbedModel', $embedModel) }
-    if ($version) { $args += @('-Version', $version) }
+    if ($cfg.EmbedModel) { $args += @('-EmbedModel', $cfg.EmbedModel) }
+    if ($cfg.Version) { $args += @('-Version', $cfg.Version) }
     
     & powershell -NoProfile -ExecutionPolicy Bypass -File $Script @args
 }

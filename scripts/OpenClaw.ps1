@@ -20,6 +20,21 @@ param(
     [string]$BaseUrl = ''
 )
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Load defaults from config.json if params are empty
+$ModelsFile = Join-Path $ScriptDir 'config.json'
+if (Test-Path $ModelsFile) {
+    $Models = Get-Content $ModelsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    $agent = $Models.agents.OpenClaw
+    $prov = $Models.providers.($agent.provider)
+    if (-not $Provider) { $Provider = $agent.provider }
+    if (-not $ApiKey) { $ApiKey = $prov.api_key }
+    if (-not $BaseUrl) { $BaseUrl = $prov.base_url }
+    if (-not $Model) { $Model = $agent.model }
+    if (-not $Version) { $Version = $agent.Version }
+}
+
 # ======================== Core Encoding Configuration ========================
 chcp 65001 > $null
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -77,7 +92,6 @@ function Get-LatestVersion {
 
 function Get-Status {
     $path = Find-OpenClaw
-    Write-Host ''
     if ($path) {
         $currentVersion = $null
         try { $versionString = & openclaw -v 2>&1; if ($versionString -match 'OpenClaw\s+(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] } elseif ($versionString -match '(\d+\.\d+\.\d+)') { $currentVersion = $matches[1] } } catch { }
@@ -95,7 +109,6 @@ function Get-Status {
     } else {
         Write-Host 'OpenClaw: not installed' -ForegroundColor Red
     }
-    Write-Host ''
 }
 
 # ======================== Utility Functions ========================
@@ -336,9 +349,9 @@ function Install-OpenClawApp {
 
 # ======================== Model Injection ========================
 function Inject-Models {
-    $modelCatalog = Join-Path $PSScriptRoot 'models.json'
+    $modelCatalog = Join-Path $ScriptDir 'config.json'
     if (-not (Test-Path $modelCatalog)) {
-        Write-Host "[!] models.json catalog not found, skipping injection" -ForegroundColor Yellow
+        Write-Host "[!] config.json catalog not found, skipping injection" -ForegroundColor Yellow
         return
     }
     try {
@@ -370,11 +383,11 @@ function Inject-Models {
                 $ocModels += @{
                     id = $m.id
                     name = $m.name
-                    reasoning = $false
+                    reasoning = [bool]$m.supports_reasoning
                     input = @("text")
                     cost = @{ input = 0; output = 0; cacheRead = 0; cacheWrite = 0 }
-                    contextWindow = $m.context_length
-                    maxTokens = $m.max_tokens
+                    contextWindow = if ($m.context_length) { $m.context_length } else { 128000 }
+                    maxTokens = if ($m.max_output_tokens) { $m.max_output_tokens } else { 4096 }
                 }
             }
 
@@ -388,22 +401,25 @@ function Inject-Models {
             $config.models.providers | Add-Member -NotePropertyName $provLower -NotePropertyValue $provEntry -Force
         }
 
-        if ($defaultModel) {
-            if (-not $config.agents) { $config | Add-Member -NotePropertyName 'agents' -NotePropertyValue ([PSCustomObject]@{}) -Force }
-            if (-not $config.agents.defaults) { $config.agents | Add-Member -NotePropertyName 'defaults' -NotePropertyValue ([PSCustomObject]@{}) -Force }
-            if (-not $config.agents.defaults.model) { $config.agents.defaults | Add-Member -NotePropertyName 'model' -NotePropertyValue ([PSCustomObject]@{}) -Force }
-            $provLower = $defaultModel.provider.ToLower()
-            $config.agents.defaults.model | Add-Member -NotePropertyName 'primary' -NotePropertyValue "$provLower/$($defaultModel.id)" -Force
+        if (-not $config.agents) { $config | Add-Member -NotePropertyName 'agents' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+        if (-not $config.agents.defaults) { $config.agents | Add-Member -NotePropertyName 'defaults' -NotePropertyValue ([PSCustomObject]@{}) -Force }
+        if (-not $config.agents.defaults.model) { $config.agents.defaults | Add-Member -NotePropertyName 'model' -NotePropertyValue ([PSCustomObject]@{}) -Force }
 
-            $allowlist = @{}
-            foreach ($pk in $providerModels.Keys) {
-                $provL = $pk.ToLower()
-                foreach ($m in $providerModels[$pk]) {
-                    $allowlist["$provL/$($m.id)"] = @{ alias = $m.name }
-                }
-            }
-            $config.agents.defaults | Add-Member -NotePropertyName 'models' -NotePropertyValue ([PSCustomObject]$allowlist) -Force
+        # Set primary: use defaultModel if found, otherwise first chat model
+        if (-not $defaultModel) {
+            foreach ($v in $providerModels.Values) { $defaultModel = $v[0]; break }
         }
+        $provLower = $defaultModel.provider.ToLower()
+        $config.agents.defaults.model | Add-Member -NotePropertyName 'primary' -NotePropertyValue "$provLower/$($defaultModel.id)" -Force
+
+        $allowlist = @{}
+        foreach ($pk in $providerModels.Keys) {
+            $provL = $pk.ToLower()
+            foreach ($m in $providerModels[$pk]) {
+                $allowlist["$provL/$($m.id)"] = @{ alias = $m.name }
+            }
+        }
+        $config.agents.defaults | Add-Member -NotePropertyName 'models' -NotePropertyValue ([PSCustomObject]$allowlist) -Force
 
         Set-ContentNoBom -Path $configPath -Value ($config | ConvertTo-Json -Depth 10)
         $modelCount = ($providerModels.Values | ForEach-Object { $_.Count } | Measure-Object -Sum).Sum
