@@ -38,4 +38,4 @@ jobs:
           export DB_NAME=${{ vars.DB_NAME }}
           export DB_HOST=${{ vars.DB_HOST }}
           export DB_PORT=${{ vars.DB_PORT }}
-          docker-compose up -d --build
+          docker compose up -d --build 2>/dev/null || docker-compose up -d --build
