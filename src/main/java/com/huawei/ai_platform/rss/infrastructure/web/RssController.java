@@ -2,7 +2,6 @@ package com.huawei.ai_platform.rss.infrastructure.web;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.rss.application.service.RssConfigService;
-import com.huawei.ai_platform.rss.application.service.RssCrawlService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.infrastructure.web.assembler.RssNewsAssembler;
@@ -11,10 +10,15 @@ import com.huawei.ai_platform.rss.model.RssCategory;
 import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -34,8 +38,10 @@ public class RssController {
     private final RssConfigService rssConfigService;
     private final RssSyncService rssSyncService;
     private final RssTopArticlesService rssTopArticlesService;
-    private final RssCrawlService rssCrawlService;
     private final RssNewsAssembler rssNewsAssembler;
+
+    @Value("${ai.crawl.api-url:http://localhost:8090}")
+    private String crawlApiUrl;
 
     /**
      * Uploads news to the cloud
@@ -93,7 +99,24 @@ public class RssController {
 
     @PostMapping("/v1/run-crawl")
     public ResponseEntity<?> runCrawl() {
-        OperationResult result = rssCrawlService.runCrawlAsync();
-        return ResponseEntity.accepted().body(result.getInfo());
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(crawlApiUrl + "/run"))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 202) {
+                return ResponseEntity.accepted().body(response.body());
+            } else if (response.statusCode() == 409) {
+                return ResponseEntity.status(409).body(response.body());
+            } else {
+                return ResponseEntity.status(response.statusCode()).body(response.body());
+            }
+        } catch (Exception e) {
+            log.error("Failed to trigger crawl", e);
+            return ResponseEntity.internalServerError().body("Crawl service unavailable: " + e.getMessage());
+        }
     }
 }
