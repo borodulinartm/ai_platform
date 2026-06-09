@@ -20,21 +20,27 @@ public abstract class RssArticleTranslationMapper {
      * @param statusEnum status of the translation article
      * @return entity
      */
-    @Mapping(target = "articleCreateDate", source = "articleId")
-    @Mapping(target = "titleZh", source = "articleTitleZh")
-    @Mapping(target = "contentZh", source = "articleContentZh")
-    @Mapping(target = "contentEn", source = "articleContent")
-    public abstract RssArticleTranslationEntity convert(RssData rssData, @Context ArticleTranslationStatusEnum statusEnum);
+    @Mapping(target = "articleCreateDate", source = "rssData.articleId")
+    @Mapping(target = "titleZh", source = "rssData.articleTitleZh")
+    @Mapping(target = "titleEn", source = "rssData.articleTitleEn")
+    @Mapping(target = "contentZh", source = "rssData.articleContentZh")
+    @Mapping(target = "contentEn", source = "rssData.articleContent")
+    @Mapping(target = "reason", source = "reason")
+    @Mapping(target = "status", source = "statusEnum")
+    public abstract RssArticleTranslationEntity convert(RssData rssData, String reason, ArticleTranslationStatusEnum statusEnum);
 
     /**
-     * Extra method - article translation
+     * Performs converting data from aggregate to translation entity
      *
-     * @param entity     entity
-     * @param statusEnum status
+     * @param rssData    aggregate
+     * @param statusEnum status of the translation article
+     * @return entity
      */
-    @AfterMapping
-    public void afterMapping(@MappingTarget RssArticleTranslationEntity entity,
-                             @Context ArticleTranslationStatusEnum statusEnum) {
-        entity.setStatus(statusEnum);
-    }
+    @Mapping(target = "articleCreateDate", source = "rssData.articleId")
+    @Mapping(target = "titleZh", source = "rssData.articleTitleZh")
+    @Mapping(target = "titleEn", source = "rssData.articleTitleEn")
+    @Mapping(target = "contentZh", source = "rssData.articleContentZh")
+    @Mapping(target = "contentEn", source = "rssData.articleContent")
+    @Mapping(target = "status", source = "statusEnum")
+    public abstract RssArticleTranslationEntity convert(RssData rssData, ArticleTranslationStatusEnum statusEnum);
 }

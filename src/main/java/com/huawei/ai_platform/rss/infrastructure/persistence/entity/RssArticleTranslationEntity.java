@@ -26,5 +26,6 @@ public class RssArticleTranslationEntity {
     private String titleZh;
     private String contentZh;
     private String contentEn;
+    private String reason;
     private ArticleTranslationStatusEnum status;
 }

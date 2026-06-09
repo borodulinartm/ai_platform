@@ -131,7 +131,7 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     @Override
     public List<RssData> getNotTranslatedNews() {
         List<RssFetchData> fetchDataList = persistenceRepo.getNotTranslatedNews();
-        return rssAssembler.convertFromFetchToRssData(fetchDataList);
+        return rssAssembler.convertToRssDataWithoutTranslations(fetchDataList);
     }
 
     @Override
@@ -153,5 +153,10 @@ public class RssFacade implements RssRepository, RssArticleTranslatorRepository 
     @Override
     public void insertNewArticleTranslations(List<RssData> rssDataList, ArticleTranslationStatusEnum statusEnum) {
         persistenceRepo.insertArticleTranslations(rssDataList, INIT);
+    }
+
+    @Override
+    public void insertOrUpdateArticleTranslation(RssData rssData, ArticleTranslationStatusEnum statusEnum, String reason) {
+        persistenceRepo.insertOrUpdateArticleTranslation(rssData, statusEnum, reason);
     }
 }

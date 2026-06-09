@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.ArticleReportDao">
+    <select id="queryByCategoryAndDate" resultType="com.huawei.ai_platform.rss.infrastructure.persistence.entity.ArticleReportEntity">
+        SELECT * FROM article_report
+        WHERE category_id = #{categoryId} AND report_date = #{reportDate}
+        ORDER BY position ASC
+    </select>
+
+    <delete id="deleteByCategoryAndDate">
+        DELETE FROM article_report
+        WHERE category_id = #{categoryId} AND report_date = #{reportDate}
+    </delete>
+
+    <insert id="insertReports" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO article_report
+            (category_id, report_date, article_id, position, relevance_score,
+             article_title_en, article_title_zh, article_abstract_en, article_abstract_zh,
+             article_link, background_en, background_zh, effects_en, effects_zh,
+             event_summary_en, event_summary_zh, technology_and_innovation_en, technology_and_innovation_zh,
+             value_and_impact_en, value_and_impact_zh,
+             category_summary_en, category_summary_zh)
+        VALUES
+        <foreach collection="data" separator="," item="item">
+            (#{item.categoryId}, #{item.reportDate}, #{item.articleId}, #{item.position}, #{item.relevanceScore},
+             #{item.articleTitleEn}, #{item.articleTitleZh}, #{item.articleAbstractEn}, #{item.articleAbstractZh},
+             #{item.articleLink}, #{item.backgroundEn}, #{item.backgroundZh}, #{item.effectsEn}, #{item.effectsZh},
+             #{item.eventSummaryEn}, #{item.eventSummaryZh}, #{item.technologyAndInnovationEn}, #{item.technologyAndInnovationZh},
+             #{item.valueAndImpactEn}, #{item.valueAndImpactZh},
+             #{item.categorySummaryEn}, #{item.categorySummaryZh})
+        </foreach>
+    </insert>
+</mapper>

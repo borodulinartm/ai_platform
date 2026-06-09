@@ -9,6 +9,7 @@ import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationOrchestration;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
 import com.huawei.ai_platform.rss.infrastructure.ai.assembler.AiTranslationMapper;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.ArticleDedupService;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
 import com.huawei.ai_platform.rss.infrastructure.ai.model.translation.AiTranslationResponse;
 import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
@@ -19,6 +20,7 @@ import com.huawei.ai_platform.rss.model.RssNewsSummary;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -26,14 +28,22 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.FAILURE;
 import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.INIT;
+import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum.SKIPPED;
 
 /**
  * Business logic layer
@@ -45,12 +55,14 @@ import static com.huawei.ai_platform.rss.infrastructure.persistence.enums.Articl
 @RequiredArgsConstructor
 @Slf4j
 public class RssServiceImpl implements RssSyncService, RssConfigService, RssTranslationService {
-    public static final int COUNT_THREADS = 15;
+    @Value("${ai.settings.countConcurrentConnections}")
+    private int semaphoreMax;
 
     private final RssRepository rssRepository;
     private final RssArticleTranslatorRepository rssArticleTranslatorRepository;
     private final RssTranslationOrchestration rssTranslationOrchestration;
     private final AiTranslationMapper aiTranslationMapper;
+    private final ArticleDedupService articleDedupService;
 
     @Override
     public OperationResult uploadReport(@Nonnull List<RssNewsSummary> reports, @Nonnull LocalDate reportDate) {
@@ -149,23 +161,33 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
 
         log.info("Need translate {} articles", rssTranslationList.size());
 
-        try (ExecutorService executorService = Executors.newFixedThreadPool(COUNT_THREADS)) {
+        List<RssData> articlesToProcess = deduplicateWithinCategories(rssTranslationList);
+
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            Semaphore semaphore = new Semaphore(semaphoreMax);
+
             List<Future<OperationResult>> listFutures = new ArrayList<>();
-            for (RssData item : rssTranslationList) {
+            for (RssData item : articlesToProcess) {
                 listFutures.add(
                         executorService.submit(() -> {
-                            if (item.getTranslationStatusEnum() == null) {
-                                return rssTranslationOrchestration.initTranslation(item);
-                            } else {
-                                if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
-                                    AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
-                                    rssTranslationOrchestration.checkRelevance(relevanceRequest);
+                            semaphore.acquire();
 
-                                    return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
+                            try {
+                                if (item.getTranslationStatusEnum() == null) {
+                                    return rssTranslationOrchestration.initTranslation(item);
+                                } else {
+                                    if (item.getTranslationStatusEnum() == INIT || item.getTranslationStatusEnum() == FAILURE) {
+                                        AiCleaningRequest relevanceRequest = aiTranslationMapper.convert(item);
+                                        rssTranslationOrchestration.checkRelevance(relevanceRequest);
+
+                                        return OperationResult.builder().reason("Success").state(OperationResultEnum.SUCCESS).build();
+                                    }
+
+                                    log.warn("No handling for the ID = {}. Status is not an INIT or null", item.getArticleId());
+                                    return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Ignore").build();
                                 }
-
-                                log.warn("No handling for the ID = {}. Status is not an INIT or null", item.getArticleId());
-                                return OperationResult.builder().state(OperationResultEnum.FAILURE).reason("Ignore").build();
+                            } finally {
+                                semaphore.release();
                             }
                         }));
             }
@@ -175,11 +197,83 @@ public class RssServiceImpl implements RssSyncService, RssConfigService, RssTran
             }
 
             return OperationResult.builder().state(OperationResultEnum.SUCCESS)
-                    .reason(String.format("Translation has completed successfully. Count records = %s", rssTranslationList.size()))
+                    .reason(String.format(
+                            "Translation has completed successfully. Count records = %s (duplicates skipped: %s)",
+                            articlesToProcess.size(), rssTranslationList.size() - articlesToProcess.size()))
                     .build();
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Deduplicates articles within each category.
+     * Duplicates are immediately marked as SKIPPED in the database.
+     *
+     * @return list of unique articles that should proceed to translation
+     */
+    private List<RssData> deduplicateWithinCategories(List<RssData> articles) {
+        // Deduplicate by article ID first (same article may appear from different query paths)
+        articles = articles.stream()
+                .collect(Collectors.groupingBy(RssData::getArticleId, LinkedHashMap::new, Collectors.toList()))
+                .values().stream()
+                .map(List::getFirst)
+                .toList();
+
+        Map<String, List<RssData>> byCategory = articles.stream()
+                .filter(a -> a.getRssCategory() != null)
+                .collect(Collectors.groupingBy(a -> a.getRssCategory().getCategoryNameEn()));
+
+        List<RssData> result = new ArrayList<>();
+        Map<Long, Long> duplicateToOriginal = new HashMap<>();
+
+        for (List<RssData> categoryArticles : byCategory.values()) {
+            if (categoryArticles.size() <= 1) {
+                result.addAll(categoryArticles);
+                continue;
+            }
+
+            Map<String, RssData> byHash = new HashMap<>();
+            List<RssData> noHashMatch = new ArrayList<>();
+
+            // First pass: exact dedup by hash
+            for (RssData article : categoryArticles) {
+                String hash = article.getHash();
+                if (byHash.containsKey(hash)) {
+                    duplicateToOriginal.put(article.getArticleId(), byHash.get(hash).getArticleId());
+                } else {
+                    if (!hash.isEmpty()) byHash.put(hash, article);
+                    noHashMatch.add(article);
+                }
+            }
+
+            // Second pass: Jaccard similarity via inverted index
+            Map<Long, Long> jaccardDuplicates = articleDedupService.findDuplicates(noHashMatch);
+            duplicateToOriginal.putAll(jaccardDuplicates);
+
+            Set<Long> allDuplicateIds = new HashSet<>(duplicateToOriginal.keySet());
+            result.addAll(categoryArticles.stream()
+                    .filter(a -> !allDuplicateIds.contains(a.getArticleId()))
+                    .toList());
+        }
+
+        // Articles without category bypass dedup
+        result.addAll(articles.stream()
+                .filter(a -> a.getRssCategory() == null)
+                .toList());
+
+        if (!duplicateToOriginal.isEmpty()) {
+            for (Map.Entry<Long, Long> entry : duplicateToOriginal.entrySet()) {
+                String reason = "Duplicate of article " + entry.getValue();
+                articles.stream()
+                    .filter(a -> a.getArticleId() == entry.getKey())
+                    .findFirst()
+                    .ifPresent(dup -> rssArticleTranslatorRepository.insertOrUpdateArticleTranslation(dup, SKIPPED, reason));
+            }
+            log.info("Dedup: marked {} articles as SKIPPED", duplicateToOriginal.size());
+        }
+
+        return result;
     }
 
     @Override

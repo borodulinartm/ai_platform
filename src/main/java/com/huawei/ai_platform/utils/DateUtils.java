@@ -1,8 +1,7 @@
 package com.huawei.ai_platform.utils;
 
 import jakarta.annotation.Nonnull;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -11,7 +10,7 @@ import java.time.ZoneId;
 /**
  * Static helpful class for working with datetime section
  */
-@NoArgsConstructor(access = AccessLevel.NONE)
+@UtilityClass
 public class DateUtils {
     /**
      * Performs translation news
@@ -38,5 +37,17 @@ public class DateUtils {
     public static long getAsSeconds(@Nonnull LocalDateTime forDate, @Nonnull ZoneId zoneId) {
         Instant instant = forDate.atZone(zoneId).toInstant();
         return instant.getEpochSecond();
+    }
+
+    /**
+     * Extracts local datetime structure from the instant side
+     *
+     * @param micro  microseconds
+     * @param zoneId zone ID
+     * @return local date time
+     */
+    public static LocalDateTime getFromMicro(long micro, ZoneId zoneId) {
+        Instant instant = Instant.ofEpochMilli(micro / 1000).plusNanos(micro % 1000);
+        return LocalDateTime.ofInstant(instant, zoneId);
     }
 }

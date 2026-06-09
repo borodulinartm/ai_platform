@@ -106,8 +106,11 @@ public class RssPersistenceRepo {
      */
     public List<RssFetchData> getNotTranslatedNews() {
         Long latestRegisteredArticle = rssDao.getMaxTranslatedTimestamp();
+        LocalDateTime startDate = DateUtils.getFromMicro(latestRegisteredArticle, ZONE).with(LocalTime.MIN);
+        Long startSeconds = DateUtils.getAsSeconds(startDate, ZONE);
 
-        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, null);
+        List<RssFetchData> fetchDataList = rssDao.getAfter(latestRegisteredArticle, startSeconds);
+//        List<RssFetchData> fetchDataList = new ArrayList<>();
 
         fetchDataList.addAll(rssDao.getNewsWithTranslationByStatus(INIT, null));
         // For failed state try to retranslate news within window size
@@ -126,14 +129,29 @@ public class RssPersistenceRepo {
      * @param statusEnum  status. Must be not null
      */
     @Transactional
-    public void insertArticleTranslations(@Nonnull List<RssData> rssDataList, @Nonnull ArticleTranslationStatusEnum statusEnum) {
+    public void insertArticleTranslations(@Nonnull List<RssData> rssDataList,
+                                          @Nonnull ArticleTranslationStatusEnum statusEnum) {
         List<RssArticleTranslationEntity> translatedToEntity = rssDataList.stream()
-                .map(v -> rssArticleTranslationMapper.convert(v, statusEnum)).toList();
+            .map(v -> rssArticleTranslationMapper.convert(v, statusEnum)).toList();
         if (!CollectionUtils.isEmpty(translatedToEntity)) {
-            rssDao.insertNewArticleTranslations(translatedToEntity);
+            rssDao.insertOrUpdateArticleTranslations(translatedToEntity);
         } else {
             log.info("insertArticleTranslations(): nothing to insert");
         }
+    }
+
+    /**
+     * Performs inserting data into datasource
+     *
+     * @param rssData RSS data. Must be not null
+     * @param statusEnum  status. Must be not null
+     */
+    @Transactional
+    public void insertOrUpdateArticleTranslation(@Nonnull RssData rssData,
+                                                 @Nonnull ArticleTranslationStatusEnum statusEnum,
+                                                 String reason) {
+        RssArticleTranslationEntity translatedToEntity = rssArticleTranslationMapper.convert(rssData, reason, statusEnum);
+        rssDao.insertOrUpdateArticleTranslation(translatedToEntity);
     }
 
     /**

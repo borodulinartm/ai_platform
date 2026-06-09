@@ -73,7 +73,14 @@ public interface RssDao extends BaseMapper<RssEntity> {
      *
      * @param data list of data. Check for null before insert
      */
-    void insertNewArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
+    void insertOrUpdateArticleTranslations(@Nonnull @Param("data") List<RssArticleTranslationEntity> data);
+
+    /**
+     * Inserts article translations, or updates status if already exists
+     *
+     * @param data list of data
+     */
+    void insertOrUpdateArticleTranslation(@Nonnull @Param("data") RssArticleTranslationEntity data);
 
     /**
      * Performs updating article translation in appropriate DB

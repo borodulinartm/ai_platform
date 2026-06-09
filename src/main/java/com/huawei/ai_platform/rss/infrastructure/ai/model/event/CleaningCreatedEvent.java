@@ -1,8 +1,6 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.model.event;
 
 import com.huawei.ai_platform.rss.infrastructure.ai.model.cleaning.AiCleaningRequest;
-import com.huawei.ai_platform.rss.infrastructure.persistence.enums.ArticleTranslationStatusEnum;
-import com.huawei.ai_platform.rss.model.RssData;
 import lombok.*;
 
 /**

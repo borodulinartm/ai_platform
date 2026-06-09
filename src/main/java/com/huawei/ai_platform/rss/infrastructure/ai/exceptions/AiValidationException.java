@@ -1,6 +1,7 @@
 package com.huawei.ai_platform.rss.infrastructure.ai.exceptions;
 
 
+import lombok.Getter;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
@@ -14,8 +15,22 @@ import java.util.List;
 public class AiValidationException extends RuntimeException {
     private List<String> result;
 
-    public AiValidationException(List<String> message) {
+    @Getter
+    private String input;
+
+    @Getter
+    private String output;
+
+    public AiValidationException(List<String> message, String input, String output) {
         this.result = message;
+        this.input = input;
+        this.output = output;
+    }
+
+    public AiValidationException(String message, String input, String output) {
+        this.result = List.of(message);
+        this.input = input;
+        this.output = output;
     }
 
     @Override

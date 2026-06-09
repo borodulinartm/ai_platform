@@ -57,7 +57,7 @@ public class RssJob {
     /**
      * Job for adding translations for newest articles or scientific papers
      */
-    @Scheduled(cron = "0 15 * * * ?", zone = "GMT")
+    @Scheduled(cron = "0 25 * * * ?", zone = "GMT")
     @DbLock(category = "articles_translating_lock")
     public void runTranslation() {
         log.info("Run Translation Job");

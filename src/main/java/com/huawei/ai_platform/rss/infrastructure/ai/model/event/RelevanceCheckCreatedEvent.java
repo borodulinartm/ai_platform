@@ -6,7 +6,7 @@ import lombok.*;
 /**
  * Wrapper class for relevance check start event
  *
- * @author Borodulin Artem
+ * @author Kobtsev Nikita
  * @since 2026.04.22
  */
 @Getter

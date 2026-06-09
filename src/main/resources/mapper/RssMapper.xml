@@ -1,20 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.huawei.ai_platform.rss.infrastructure.persistence.dao.RssDao">
-    <insert id="insertNewArticleTranslations" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+    <insert id="insertOrUpdateArticleTranslations" keyColumn="id" keyProperty="id">
         INSERT INTO article_translations
-            (article_create_date, title_en, title_zh, status, content_zh, content_en)
+            (article_create_date, title_en, title_zh, content_en, content_zh, status, reason)
         VALUES
         <foreach collection="data" separator="," item="item">
             (
-                #{item.articleCreateDate},
-                #{item.titleEn},
-                #{item.titleZh},
-                #{item.status},
-                #{item.contentZh},
-                #{item.contentEn}
+            #{item.articleCreateDate},
+            #{item.titleEn},
+            #{item.titleZh},
+            #{item.contentEn},
+            #{item.contentZh},
+            #{item.status},
+            #{item.reason}
             )
         </foreach>
+        ON CONFLICT (article_create_date) DO UPDATE SET
+            title_en = EXCLUDED.title_en, title_zh = EXCLUDED.title_zh,
+            content_en = EXCLUDED.content_en, content_zh = EXCLUDED.content_zh, status = EXCLUDED.status,
+            reason = EXCLUDED.reason
+    </insert>
+
+    <insert id="insertOrUpdateArticleTranslation" keyColumn="id" keyProperty="id">
+        INSERT INTO article_translations
+            (article_create_date, title_en, title_zh, content_en, content_zh, status, reason)
+        VALUES
+            (
+                #{data.articleCreateDate},
+                #{data.titleEn},
+                #{data.titleZh},
+                #{data.contentEn},
+                #{data.contentZh},
+                #{data.status},
+                #{data.reason}
+            )
+        ON CONFLICT (article_create_date) DO UPDATE SET status = #{data.status}, reason = #{data.reason}
     </insert>
     
     <update id="queryUpdateArticleTranslation">
@@ -40,7 +61,11 @@
     </update>
 
     <select id="getAfter" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, entry.attributes from admin_entry entry
+        SELECT entry.id, entry.hash, entry.title, entry.content, entry.attributes, category.id as categoryId,
+               category.name as categoryName
+        FROM admin_entry entry
+        LEFT JOIN admin_feed feed ON entry.id_feed = feed.id
+        LEFT JOIN admin_category category ON feed.category = category.id
 
         <where>
             <if test="timestamp != null">
@@ -56,8 +81,12 @@
     </select>
 
     <select id="getNewsWithTranslationByStatus" resultMap="rssFetchDataMap">
-        SELECT entry.id, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes from admin_entry entry
-            INNER JOIN public.article_translations a on entry.id = a.article_create_date
+        SELECT entry.id, entry.hash, entry.title, entry.content, a.status as translationStatusEnum, entry.attributes,
+               category.id as categoryId, category.name as categoryName
+        FROM admin_entry entry
+        INNER JOIN public.article_translations a on entry.id = a.article_create_date
+        LEFT JOIN admin_feed feed ON entry.id_feed = feed.id
+        LEFT JOIN admin_category category ON feed.category = category.id
 
         <where>
             a.status = #{statusName}

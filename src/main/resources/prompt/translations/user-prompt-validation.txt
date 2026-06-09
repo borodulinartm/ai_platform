@@ -1,0 +1,7 @@
+----BEGIN SOURCE-------
+%s
+----END SOURCE-------
+
+----BEGIN TRANSLATED-------
+%s
+----END TRANSLATED-------

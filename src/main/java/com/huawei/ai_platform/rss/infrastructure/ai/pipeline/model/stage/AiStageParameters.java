@@ -14,12 +14,14 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class AiStageParameters {
-    private long id;
-    private String name;
+    private String stageName;
+    private Long id;
+
     private String systemPrompt;
     private String userPrompt;
-    private String userPayload;
     private String model;
     private double temperature;
     private int maxAttempts;
+
+    private String previousFailureMessage;
 }

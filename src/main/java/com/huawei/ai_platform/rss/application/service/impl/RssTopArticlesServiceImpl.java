@@ -5,7 +5,7 @@ import com.huawei.ai_platform.common.OperationResultEnum;
 import com.huawei.ai_platform.rss.infrastructure.cloud.model.RssNewsSummaryCloud;
 import com.huawei.ai_platform.rss.application.repo.RssRepository;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
-import com.huawei.ai_platform.rss.infrastructure.ai.repo.AiTopArticlesOrchestrator;
+import com.huawei.ai_platform.rss.infrastructure.ai.executor.AiTopArticlesOrchestrator;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

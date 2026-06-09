@@ -76,6 +76,8 @@ IMAGE HANDLING
 - Preserve existing <img> tags exactly as-is
 - Do NOT modify position or attributes
 
+%s
+
 HARD VALIDATION BEFORE OUTPUT
 
 Ensure ALL conditions are satisfied:
