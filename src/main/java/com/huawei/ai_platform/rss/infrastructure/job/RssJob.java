@@ -2,7 +2,6 @@ package com.huawei.ai_platform.rss.infrastructure.job;
 
 import com.huawei.ai_platform.common.OperationResult;
 import com.huawei.ai_platform.common.annotation.DbLock;
-import com.huawei.ai_platform.rss.application.service.RssCrawlService;
 import com.huawei.ai_platform.rss.application.service.RssSyncService;
 import com.huawei.ai_platform.rss.application.service.RssTopArticlesService;
 import com.huawei.ai_platform.rss.application.service.RssTranslationService;
@@ -33,13 +32,9 @@ public class RssJob {
     @Value("${cloud.windowSize:1}")
     private long windowSize;
 
-    @Value("${ai.crawl.enabled:false}")
-    private boolean crawlEnabled;
-
     private final RssSyncService rssService;
     private final RssTranslationService rssTranslationService;
     private final RssTopArticlesService rssTopArticlesService;
-    private final RssCrawlService rssCrawlService;
 
     /**
      * Job for uploading into data storage components of our RSS
@@ -86,22 +81,5 @@ public class RssJob {
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
         log.info("Finish TOP-10 Articles Processing Job");
-    }
-
-    /**
-     * Job for crawling scraped:: sources via Python script
-     * Runs every hour at :05
-     */
-    @Scheduled(cron = "0 5 * * * ?", zone = "GMT")
-    public void runAiCrawl() {
-        if (!crawlEnabled) {
-            log.debug("AI crawl job disabled");
-            return;
-        }
-
-        log.info("Run AI Crawl Job");
-        OperationResult result = rssCrawlService.runCrawl();
-        log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
-        log.info("Finish AI Crawl Job");
     }
 }
