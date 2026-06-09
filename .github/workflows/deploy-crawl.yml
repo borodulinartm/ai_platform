@@ -17,8 +17,8 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
-        target: "/usr1/ai-platform"
-        strip_components: 1
+        target: "/usr1/ai-platform/ai-crawl"
+        strip_components: 0
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
@@ -27,6 +27,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          mkdir -p /usr1/ai-platform/ai-crawl
           cd /usr1/ai-platform/ai-crawl
           export LLM_KEY=${{ secrets.LLM_KEY }}
           export LLM_URL=${{ vars.LLM_URL }}
@@ -37,4 +38,4 @@ jobs:
           export DB_NAME=${{ vars.DB_NAME }}
           export DB_HOST=${{ vars.DB_HOST }}
           export DB_PORT=${{ vars.DB_PORT }}
-          docker compose up -d --build
+          docker-compose up -d --build
