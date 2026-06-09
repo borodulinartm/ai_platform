@@ -1,13 +1,3 @@
 app:
   scheduling:
     enabled: true
-
-ai:
-  crawl:
-    enabled: true
-    script-path: ai-crawl/vibe-main.py
-    python-path: python
-    llm-url: ${LLM_URL:}
-    llm-key: ${LLM_KEY:}
-    llm-provider: deepseek
-    llm-model: deepseek-v4-flash

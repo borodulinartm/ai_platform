@@ -1,0 +1,21 @@
+services:
+  ai-crawl:
+    build: .
+    container_name: ai-crawl
+    restart: unless-stopped
+    environment:
+      - CRON_MINUTE=${CRON_MINUTE:-5}
+      - LLM_URL=${LLM_URL:-https://openrouter.ai/api/v1}
+      - LLM_KEY=${LLM_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-v4-flash}
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - DB_USER=${DB_USER:-freshrss}
+      - DB_PASSWORD=${DB_PASSWORD:-freshrss}
+      - DB_NAME=${DB_NAME:-freshrss}
+      - DB_HOST=${DB_HOST:-183.87.45.129}
+      - DB_PORT=${DB_PORT:-5432}
+      - HTTP_PORT=${HTTP_PORT:-8090}
+    ports:
+      - "${HTTP_PORT:-8090}:8090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
