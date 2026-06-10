@@ -40,7 +40,7 @@ jobs:
           export DB_NAME=${{ vars.DB_NAME }}
           export DB_HOST=${{ vars.DB_HOST }}
           export DB_PORT=${{ vars.DB_PORT }}
-          docker build -t ai-crawl /usr1/ai-platform/ai-crawl
+          docker build --no-cache -t ai-crawl /usr1/ai-platform/ai-crawl
           docker stop ai-crawl 2>/dev/null || true
           docker rm ai-crawl 2>/dev/null || true
           docker run -d \
