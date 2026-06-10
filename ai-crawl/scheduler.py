@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import logging
 import os
 import sys
 import threading
@@ -7,6 +8,11 @@ from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 

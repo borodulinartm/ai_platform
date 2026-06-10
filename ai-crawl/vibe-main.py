@@ -1,6 +1,7 @@
 import asyncio
 import json
 import argparse
+import logging
 from collections import defaultdict
 from datetime import datetime, date, timedelta
 import asyncpg
@@ -12,6 +13,11 @@ import hashlib
 import sys
 import os
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
