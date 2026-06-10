@@ -15,6 +15,7 @@ jobs:
           # 第一步：在远程服务器把日志打包
           script: |
             cd /usr1/logs/ai_platform
+            docker logs ai-crawl > ai-crawl.log 2>&1 || true
             tar -zcf logs.tar.gz *.log
       
       - name: Download file from remote server
