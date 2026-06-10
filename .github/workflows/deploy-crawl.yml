@@ -18,6 +18,7 @@ jobs:
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
         target: "/usr1/ai-platform"
+        rm: true
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
@@ -26,8 +27,6 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          rm -rf /usr1/ai-platform/ai-crawl
-          mkdir -p /usr1/ai-platform/ai-crawl
           echo "=== Dockerfile contents ==="
           cat /usr1/ai-platform/ai-crawl/Dockerfile || echo "No Dockerfile yet"
           echo "=== All files ==="
