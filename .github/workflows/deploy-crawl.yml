@@ -30,6 +30,9 @@ jobs:
           mkdir -p /usr1/ai-platform/ai-crawl
           cp -r /usr1/ai-platform/ai-crawl/ai-crawl/* /usr1/ai-platform/ai-crawl/ 2>/dev/null || true
           rm -rf /usr1/ai-platform/ai-crawl/ai-crawl 2>/dev/null || true
+          echo "=== Dockerfile contents ==="
+          cat /usr1/ai-platform/ai-crawl/Dockerfile
+          echo "=== All files ==="
           ls -la /usr1/ai-platform/ai-crawl/
           export LLM_KEY=${{ secrets.LLM_KEY }}
           export LLM_URL=${{ vars.LLM_URL }}
