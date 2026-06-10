@@ -58,7 +58,7 @@ jobs:
         host: ${{ vars.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "target/ai_platform-1.0.0.jar"
+        source: "target/ai_platform-1.0.0.jar,run.sh"
         target: "/usr1/ai-platform"
         strip_components: 1
 
@@ -69,6 +69,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          chmod +x /usr1/ai-platform/run.sh
           export BASE_PATH_CLOUD=${{ vars.BASE_PATH_CLOUD }}
           export LLM_URL=${{ vars.LLM_URL }}
           export LLM_KEY=${{ secrets.LLM_KEY }}
