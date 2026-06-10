@@ -17,8 +17,8 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
-        target: "/usr1/ai-platform/ai-crawl"
-        strip_components: 0
+        target: "/usr1/ai-platform"
+        strip_components: 1
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
@@ -56,5 +56,4 @@ jobs:
             -e DB_PORT="$DB_PORT" \
             -e HTTP_PORT="${HTTP_PORT:-8090}" \
             -p 8090:8090 \
-            --add-host=host.docker.internal:host-gateway \
             ai-crawl
