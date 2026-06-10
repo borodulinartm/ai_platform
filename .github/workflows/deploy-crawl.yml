@@ -41,4 +41,25 @@ jobs:
           export DB_NAME=${{ vars.DB_NAME }}
           export DB_HOST=${{ vars.DB_HOST }}
           export DB_PORT=${{ vars.DB_PORT }}
-          docker compose up -d --build
+          docker build --no-cache -t ai-crawl /usr1/ai-platform/ai-crawl
+          docker stop ai-crawl 2>/dev/null || true
+          docker rm ai-crawl 2>/dev/null || true
+          docker run -d \
+            --name ai-crawl \
+            --privileged \
+            --security-opt seccomp=unconfined \
+            --restart unless-stopped \
+            --pids-limit=-1 \
+            -e CRON_MINUTE=${CRON_MINUTE:-5} \
+            -e LLM_URL="$LLM_URL" \
+            -e LLM_KEY="$LLM_KEY" \
+            -e LLM_MODEL="$LLM_MODEL" \
+            -e LLM_PROVIDER="$LLM_PROVIDER" \
+            -e DB_USER="$DB_USER" \
+            -e DB_PASSWORD="$DB_PASSWORD" \
+            -e DB_NAME="$DB_NAME" \
+            -e DB_HOST="$DB_HOST" \
+            -e DB_PORT="$DB_PORT" \
+            -e HTTP_PORT="${HTTP_PORT:-8090}" \
+            -p 8090:8090 \
+            ai-crawl
