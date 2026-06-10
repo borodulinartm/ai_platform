@@ -2,11 +2,11 @@ import asyncpg
 import os
 
 DB_CONFIG = {
-    "user": os.environ.get("DB_USER", "freshrss"),
-    "password": os.environ.get("DB_PASSWORD", "freshrss"),
-    "database": os.environ.get("DB_NAME", "freshrss"),
-    "host": os.environ.get("DB_HOST", "183.87.45.129"),
-    "port": int(os.environ.get("DB_PORT", "5432"))
+    "user": os.environ.get("DB_USER") or "freshrss",
+    "password": os.environ.get("DB_PASSWORD") or "freshrss",
+    "database": os.environ.get("DB_NAME") or "freshrss",
+    "host": os.environ.get("DB_HOST") or "183.87.45.129",
+    "port": int(os.environ.get("DB_PORT") or "5432")
 }
 
 

@@ -31,6 +31,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          rm -f /usr1/logs/ai_platform/log-ai-crawl-*.log
           cd /usr1/ai-platform/ai-crawl
           export LLM_KEY=${{ secrets.LLM_KEY }}
           export LLM_URL=${{ vars.LLM_URL }}
