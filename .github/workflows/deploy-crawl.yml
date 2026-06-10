@@ -17,7 +17,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
-        target: "/usr1/ai-platform"
+        target: "/usr1/ai-platform/ai-crawl"
         strip_components: 1
 
     - name: Build and run container
@@ -27,11 +27,10 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          rm -rf /usr1/ai-platform/ai-crawl
           mkdir -p /usr1/ai-platform/ai-crawl
-          cp -r /usr1/ai-platform/ai-crawl/ai-crawl/* /usr1/ai-platform/ai-crawl/ 2>/dev/null || true
-          rm -rf /usr1/ai-platform/ai-crawl/ai-crawl 2>/dev/null || true
           echo "=== Dockerfile contents ==="
-          cat /usr1/ai-platform/ai-crawl/Dockerfile
+          cat /usr1/ai-platform/ai-crawl/Dockerfile || echo "No Dockerfile yet"
           echo "=== All files ==="
           ls -la /usr1/ai-platform/ai-crawl/
           export LLM_KEY=${{ secrets.LLM_KEY }}
