@@ -28,6 +28,8 @@ jobs:
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           mkdir -p /usr1/ai-platform/ai-crawl
+          cp -r /usr1/ai-platform/ai-crawl/ai-crawl/* /usr1/ai-platform/ai-crawl/ 2>/dev/null || true
+          rm -rf /usr1/ai-platform/ai-crawl/ai-crawl 2>/dev/null || true
           ls -la /usr1/ai-platform/ai-crawl/
           export LLM_KEY=${{ secrets.LLM_KEY }}
           export LLM_URL=${{ vars.LLM_URL }}
@@ -38,10 +40,10 @@ jobs:
           export DB_NAME=${{ vars.DB_NAME }}
           export DB_HOST=${{ vars.DB_HOST }}
           export DB_PORT=${{ vars.DB_PORT }}
-          sudo docker build -t ai-crawl /usr1/ai-platform/ai-crawl
-          sudo docker stop ai-crawl 2>/dev/null || true
-          sudo docker rm ai-crawl 2>/dev/null || true
-          sudo docker run -d \
+          docker build -t ai-crawl /usr1/ai-platform/ai-crawl
+          docker stop ai-crawl 2>/dev/null || true
+          docker rm ai-crawl 2>/dev/null || true
+          docker run -d \
             --name ai-crawl \
             --restart unless-stopped \
             -e CRON_MINUTE=${CRON_MINUTE:-5} \
