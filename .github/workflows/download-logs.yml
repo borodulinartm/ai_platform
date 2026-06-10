@@ -14,6 +14,7 @@ jobs:
           password: ${{ secrets.SSH_PRIVATE_KEY }}
           # 第一步：在远程服务器把日志打包
           script: |
+            docker logs ai-crawl > /usr1/logs/ai_platform/log-ai-crawl-$(date +%Y-%m-%d).log 2>&1 || true
             cd /usr1/logs/ai_platform
             tar -zcf logs.tar.gz *.log
       
