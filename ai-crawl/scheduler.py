@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import logging
 import os
 import sys
@@ -16,23 +15,27 @@ logging.basicConfig(
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
-vibe_main = importlib.import_module("vibe-main")
-from db_lock import DbLock
 
 CRON_MINUTE = int(os.environ.get("CRON_MINUTE", "5"))
 HTTP_PORT = int(os.environ.get("HTTP_PORT", "8090"))
 LOCK_CATEGORY = "ai_crawl_lock"
 
+vibe_main = None
 crawl_running = False
 
 
 def run_crawl():
-    global crawl_running
+    global crawl_running, vibe_main
     if crawl_running:
         print("[scheduler] Crawl already running locally, skipping")
         return
     crawl_running = True
 
+    if vibe_main is None:
+        import importlib
+        vibe_main = importlib.import_module("vibe-main")
+
+    from db_lock import DbLock
     lock = DbLock(LOCK_CATEGORY)
     try:
         acquired = asyncio.run(lock.acquire())
