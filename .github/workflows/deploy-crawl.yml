@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
         target: "/usr1/ai-platform"
-        strip_components: 1
+        rm: true
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
