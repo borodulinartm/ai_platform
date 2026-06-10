@@ -46,6 +46,7 @@ jobs:
           docker run -d \
             --name ai-crawl \
             --restart unless-stopped \
+            --pids-limit=-1 \
             -e CRON_MINUTE=${CRON_MINUTE:-5} \
             -e LLM_URL="$LLM_URL" \
             -e LLM_KEY="$LLM_KEY" \
