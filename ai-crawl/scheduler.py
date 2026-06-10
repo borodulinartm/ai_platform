@@ -22,6 +22,7 @@ async def run_crawl():
         print("[scheduler] Crawl already running locally, skipping")
         return
     crawl_running = True
+    await asyncio.sleep(0.5)
 
     if vibe_main is None:
         vibe_main = importlib.import_module("vibe-main")
@@ -64,6 +65,9 @@ async def handle_request(reader, writer):
                 asyncio.ensure_future(run_crawl())
                 body = b"Crawl started"
                 writer.write(b"HTTP/1.1 202 Accepted\r\nContent-Length: %d\r\n\r\n%s" % (len(body), body))
+                await writer.drain()
+                await writer.close()
+                return
         elif method == "GET" and path == "/status":
             status = b"running" if crawl_running else b"idle"
             writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" % (len(status), status))
