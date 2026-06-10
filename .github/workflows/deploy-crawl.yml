@@ -1,11 +1,15 @@
 name: Deploy AI Crawl
 
 on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'ai-crawl/**'
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -18,7 +22,7 @@ jobs:
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
         target: "/usr1/ai-platform"
-        rm: true
+        strip_components: 1
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
@@ -27,10 +31,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "=== Dockerfile contents ==="
-          cat /usr1/ai-platform/ai-crawl/Dockerfile || echo "No Dockerfile yet"
-          echo "=== All files ==="
-          ls -la /usr1/ai-platform/ai-crawl/
+          cd /usr1/ai-platform/ai-crawl
           export LLM_KEY=${{ secrets.LLM_KEY }}
           export LLM_URL=${{ vars.LLM_URL }}
           export LLM_MODEL=${{ vars.LLM_MODEL }}
@@ -45,6 +46,8 @@ jobs:
           docker rm ai-crawl 2>/dev/null || true
           docker run -d \
             --name ai-crawl \
+            --privileged \
+            --security-opt seccomp=unconfined \
             --restart unless-stopped \
             --pids-limit=-1 \
             -e CRON_MINUTE=${CRON_MINUTE:-5} \

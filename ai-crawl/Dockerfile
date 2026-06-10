@@ -1,6 +1,7 @@
 FROM unclecode/crawl4ai:latest
 
 ENV OPENBLAS_NUM_THREADS=1
+ENV TZ=Europe/Moscow
 
 WORKDIR /app
 

@@ -18,6 +18,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+log = logging.getLogger("crawl")
+
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
@@ -26,13 +28,9 @@ litellm.suppress_debug_info = True
 
 
 def generate_article_hash(feed_id: int, title: str, published_date: str, category_name: str) -> bytes:
-    """Generate unique hash for article to detect duplicates."""
     content = f"{feed_id}:{title}:{published_date}:{category_name}"
     return hashlib.md5(content.encode()).digest()
 
-# ==========================================
-# POSTGRESQL CONNECTION CONFIG
-# ==========================================
 DB_CONFIG = {
     "user": os.environ.get("DB_USER", "freshrss"),
     "password": os.environ.get("DB_PASSWORD", "freshrss"),
@@ -41,9 +39,6 @@ DB_CONFIG = {
     "port": int(os.environ.get("DB_PORT", "5432"))
 }
 
-# ==========================================
-# 1. PYDANTIC SCHEMA FOR MULTI-CATEGORIZATION
-# ==========================================
 class CategoryVerdict(BaseModel):
     category_name: str = Field(description="The EXACT name of the category being evaluated from the provided list.")
     is_relevant: bool = Field(description="TRUE if the article strictly matches this specific category's description. Otherwise FALSE.")
@@ -56,9 +51,6 @@ class MultiFilteredArticle(BaseModel):
     verdicts: list[CategoryVerdict] = Field(description="A list of verdicts for EVERY category requested in the prompt.")
 
 
-# ==========================================
-# 2. MAIN ASYNC PROCESS
-# ==========================================
 async def main(log_only=False):
     conn = await asyncpg.connect(**DB_CONFIG)
     
@@ -71,7 +63,7 @@ async def main(log_only=False):
     rows = await conn.fetch(query)
     
     if not rows:
-        print("[-] No matching 'scraped::' sources found in admin_feed.")
+        log.warning("No matching 'scraped::' sources found in admin_feed")
         await conn.close()
         return
 
@@ -85,7 +77,7 @@ async def main(log_only=False):
         })
         
     mode_str = "[LOG-ONLY]" if log_only else "[SAVE-TO-DB]"
-    print(f"[*] {mode_str} DB records: {len(rows)}. Unique URLs to check: {len(url_groups)}")     
+    log.info("%s DB records: %d. Unique URLs to check: %d", mode_str, len(rows), len(url_groups))
 
     yesterday = date.today() - timedelta(days=1)
     source_counts = defaultdict(int)
@@ -97,10 +89,9 @@ async def main(log_only=False):
         )
         async with AsyncWebCrawler(config=browser_config) as crawler:
             for original_url, target_feeds in url_groups.items():
-                print(f"\n" + "="*60)
-                print(f"[*] SCANNING: {original_url}")
-                print(f"[*] Checking categories: {[f['cat_name'] for f in target_feeds]}")
-                print("="*60)
+                log.info("=" * 60)
+                log.info("SCANNING: %s", original_url)
+                log.info("Checking categories: %s", [f['cat_name'] for f in target_feeds])
                 
                 categories_block = ""
                 for f in target_feeds:
@@ -206,15 +197,14 @@ async def main(log_only=False):
                     max_retries=3,
                 )
 
-                print(f"[*] Loading all articles for {original_url}")
+                log.info("Loading all articles for %s", original_url)
                 result = await crawler.arun(url=original_url, config=run_config)
 
                 if not result.success or not result.extracted_content:
-                    print(f"[-] Crawl4AI error: {result.error_message}")
+                    log.error("Crawl4AI error: %s", result.error_message)
                     if result.markdown:
-                        md_len = len(result.markdown)
-                        print(f"[DEBUG] Markdown length: {md_len}")
-                        print(f"[DEBUG] Markdown preview: {result.markdown[:300]}")
+                        log.debug("Markdown length: %d", len(result.markdown))
+                        log.debug("Markdown preview: %s", result.markdown[:300])
                     continue
 
                 try:
@@ -222,12 +212,12 @@ async def main(log_only=False):
                     if not isinstance(all_articles, list):
                         all_articles = [all_articles] if all_articles else []
                 except Exception as e:
-                    print(f"[-] JSON parsing error: {e}")
-                    print(f"[RAW] {result.extracted_content[:500]}")
+                    log.error("JSON parsing error: %s", e)
+                    log.debug("Raw content: %s", result.extracted_content[:500])
                     continue
 
                 if not all_articles:
-                    print(f"[-] No articles found on {original_url}")
+                    log.warning("No articles found on %s", original_url)
                     continue
 
                 def parse_date_sort(a):
@@ -250,31 +240,30 @@ async def main(log_only=False):
                         yesterday_articles.append(a)
 
                 if not yesterday_articles:
-                    print(f"[-] No articles for yesterday ({yesterday}) on {original_url}")
+                    log.info("No articles for yesterday (%s) on %s", yesterday, original_url)
                     continue
 
-                print(f"[*] Found {len(yesterday_articles)} articles for yesterday ({yesterday}) (total loaded: {len(all_articles)})")
+                log.info("Found %d articles for yesterday (%s) (total loaded: %d)", len(yesterday_articles), yesterday, len(all_articles))
 
                 for idx, article_data in enumerate(yesterday_articles):
                     raw_date = article_data.get("published_date", "")
                     article_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
 
-                    print(f"\n  [ARTICLE #{idx+1}] Date: {article_date}")
-                    print(f"  [DATA] Title:  {article_data.get('title')}")
-                    print(f"  [DATA] Author: {article_data.get('author')}")
+                    log.info("ARTICLE #%d Date: %s", idx + 1, article_date)
+                    log.info("Title:  %s", article_data.get('title'))
+                    log.info("Author: %s", article_data.get('author'))
                     if article_data.get('content'):
                         short_text = article_data.get('content')[:150].replace('\n', ' ')
-                        print(f"  [DATA] Preview: {short_text}...")
+                        log.info("Preview: %s...", short_text)
                     
-                    print("\n  [AI VERDICTS]:")
                     verdicts = article_data.get("verdicts", [])
                     
                     for v in verdicts:
                         if v['is_relevant']:
                             if log_only:
-                                print(f"    -> Category: \"{v['category_name']}\" -> ✅ MATCH (log)")
+                                log.info("Category: \"%s\" -> MATCH (log)", v['category_name'])
                             else:
-                                print(f"    -> Category: \"{v['category_name']}\" -> ✅ MATCH (saving to DB)")
+                                log.info("Category: \"%s\" -> MATCH (saving to DB)", v['category_name'])
                                 article_hash = generate_article_hash(
                                     target_feeds[0]['feed_id'],
                                     article_data.get('title') or '',
@@ -299,7 +288,7 @@ async def main(log_only=False):
                                     )
                                     
                                     if existing:
-                                        print(f"    -> Duplicate detected (hash: {article_hash.hex()[:8]}) - skipping")
+                                        log.info("Duplicate detected (hash: %s) - skipping", article_hash.hex()[:8])
                                         continue
                                     
                                     await conn.execute(
@@ -319,28 +308,28 @@ async def main(log_only=False):
                                     )
                                     source_counts[original_url] += 1
                                 except Exception as e:
-                                    print(f"    -> DB Error: {e}")
+                                    log.error("DB Error: %s", e)
                                     continue
                         else:
-                            print(f"    -> Category: \"{v['category_name']}\" -> ❌ REJECTED (skip)")
+                            log.info("Category: \"%s\" -> REJECTED", v['category_name'])
     except Exception as e:
-        print(f"[-] Browser error: {e}")
+        log.error("Browser error: %s", e)
     finally:
         await conn.close()
         if source_counts:
-            print("\n" + "=" * 60)
-            print("[SUMMARY] Articles saved per source:")
+            log.info("=" * 60)
+            log.info("SUMMARY - Articles saved per source:")
             for url, count in sorted(source_counts.items(), key=lambda x: -x[1]):
-                print(f"  {count:>3}  {url}")
-            print(f"  {'─' * 40}")
-            print(f"  {sum(source_counts.values()):>3}  total")
-            print("=" * 60)
+                log.info("  %3d  %s", count, url)
+            log.info("  %s", '-' * 40)
+            log.info("  %3d  total", sum(source_counts.values()))
+            log.info("=" * 60)
         if log_only:
-            print("\n[*] Done. Log-only mode — no data saved.")
+            log.info("Done. Log-only mode - no data saved.")
         elif source_counts:
-            print(f"\n[*] Done. {sum(source_counts.values())} articles saved to DB.")
+            log.info("Done. %d articles saved to DB.", sum(source_counts.values()))
         else:
-            print("\n[*] Done. No articles saved to DB.")
+            log.info("Done. No articles saved to DB.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Crawl and filter articles by category")
