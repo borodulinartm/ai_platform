@@ -17,8 +17,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "ai-crawl/*"
-        target: "/usr1/ai-platform/ai-crawl"
-        strip_components: 1
+        target: "/usr1/ai-platform"
 
     - name: Build and run container
       uses: appleboy/ssh-action@master
