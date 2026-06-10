@@ -1,9 +1,17 @@
 import asyncio
 import importlib
+import logging
 import os
 import sys
 from datetime import datetime
 from db_lock import DbLock
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("scheduler")
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
@@ -13,15 +21,17 @@ HTTP_PORT = int(os.environ.get("HTTP_PORT", "8090"))
 LOCK_CATEGORY = "ai_crawl_lock"
 
 crawl_running = False
+crawl_trigger = None
 vibe_main = None
 
 
-async def run_crawl():
-    global crawl_running, vibe_main
+async def run_crawl(trigger="cron"):
+    global crawl_running, crawl_trigger, vibe_main
     if crawl_running:
-        print("[scheduler] Crawl already running locally, skipping")
+        log.info("Crawl already running locally, skipping")
         return
     crawl_running = True
+    crawl_trigger = trigger
     await asyncio.sleep(0.5)
 
     if vibe_main is None:
@@ -31,21 +41,22 @@ async def run_crawl():
     try:
         acquired = await lock.acquire()
         if not acquired:
-            print(f"[scheduler] Lock '{LOCK_CATEGORY}' is held by another instance, skipping")
+            log.info("Lock '%s' is held by another instance, skipping", LOCK_CATEGORY)
             return
-        print(f"\n{'=' * 60}")
-        print(f"[{datetime.now().isoformat()}] Starting crawl")
-        print(f"{'=' * 60}")
+        log.info("=" * 60)
+        log.info("Starting crawl [trigger=%s]", trigger)
+        log.info("=" * 60)
         await vibe_main.main(log_only=False)
-        print(f"[{datetime.now().isoformat()}] Crawl finished")
+        log.info("Crawl finished [trigger=%s]", trigger)
     except Exception as e:
-        print(f"[-] Crawl error: {e}")
+        log.error("Crawl error: %s", e)
     finally:
         try:
             await lock.release()
         except Exception:
             pass
         crawl_running = False
+        crawl_trigger = None
 
 
 async def handle_request(reader, writer):
@@ -62,7 +73,7 @@ async def handle_request(reader, writer):
                 body = b"Crawl already running"
                 writer.write(b"HTTP/1.1 409 Conflict\r\nContent-Length: %d\r\n\r\n%s" % (len(body), body))
             else:
-                asyncio.ensure_future(run_crawl())
+                asyncio.ensure_future(run_crawl(trigger="manual"))
                 body = b"Crawl started"
                 writer.write(b"HTTP/1.1 202 Accepted\r\nContent-Length: %d\r\n\r\n%s" % (len(body), body))
                 await writer.drain()
@@ -81,7 +92,7 @@ async def handle_request(reader, writer):
 
 
 async def cron_loop():
-    print(f"[scheduler] Running every hour at :{CRON_MINUTE:02d}")
+    log.info("Running every hour at :%02d", CRON_MINUTE)
     while True:
         now = datetime.now()
         target = now.replace(minute=CRON_MINUTE, second=0, microsecond=0)
@@ -93,21 +104,21 @@ async def cron_loop():
         wait_seconds = (target - now).total_seconds()
         if wait_seconds < 0:
             wait_seconds += 3600
-        print(f"[scheduler] Next crawl at {target.isoformat()} (in {int(wait_seconds)}s)")
+        log.info("Next crawl at %s (in %ds)", target.isoformat(), int(wait_seconds))
         await asyncio.sleep(wait_seconds)
-        await run_crawl()
+        await run_crawl(trigger="cron")
 
 
 async def main():
     if "--now" in sys.argv:
-        await run_crawl()
+        await run_crawl(trigger="manual")
         return
 
     server = await asyncio.start_server(handle_request, "0.0.0.0", HTTP_PORT)
-    print(f"[scheduler] HTTP API on port {HTTP_PORT}")
-    print(f"[scheduler]   POST /run    - trigger crawl manually")
-    print(f"[scheduler]   GET  /status  - check crawl status")
-    print(f"[scheduler] Use --now to run immediately")
+    log.info("HTTP API on port %d", HTTP_PORT)
+    log.info("  POST /run    - trigger crawl manually")
+    log.info("  GET  /status  - check crawl status")
+    log.info("Use --now to run immediately")
 
     asyncio.ensure_future(cron_loop())
     async with server:
