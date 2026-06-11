@@ -79,6 +79,10 @@ async def main(log_only=False):
         
     mode_str = "[LOG-ONLY]" if log_only else "[SAVE-TO-DB]"
     log.info("%s DB records: %d. Unique URLs to check: %d", mode_str, len(rows), len(url_groups))
+    log.info("LLM config: provider=%s model=%s url=%s",
+             os.environ.get("LLM_PROVIDER") or "deepseek",
+             os.environ.get("LLM_MODEL") or "deepseek-v4-flash",
+             os.environ.get("LLM_URL") or "https://openrouter.ai/api/v1")
 
     yesterday = date.today() - timedelta(days=1)
     source_counts = defaultdict(int)
