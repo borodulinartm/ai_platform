@@ -25,6 +25,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
 litellm.suppress_debug_info = True
+logging.getLogger("litellm").setLevel(logging.WARNING)
 
 
 def generate_article_hash(feed_id: int, title: str, published_date: str, category_name: str) -> bytes:
@@ -112,12 +113,12 @@ async def main(log_only=False):
                 5. If ALL categories are FALSE, you can leave title and content empty.
                 6. You MUST extract ALL articles on the page, ordered from newest to oldest.
                 """
-                llm_provider = os.environ.get("LLM_PROVIDER", "deepseek")
-                llm_model = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+                llm_provider = os.environ.get("LLM_PROVIDER") or "deepseek"
+                llm_model = os.environ.get("LLM_MODEL") or "deepseek-v4-flash"
                 llm_config = LLMConfig(
                     provider=f"openrouter/{llm_provider}/{llm_model}",
-                    api_token=os.environ.get("LLM_KEY", ""),
-                    base_url=os.environ.get("LLM_URL", "https://openrouter.ai/api/v1")
+                    api_token=os.environ.get("LLM_KEY") or "",
+                    base_url=os.environ.get("LLM_URL") or "https://openrouter.ai/api/v1"
                 )
                 llm_strategy = LLMExtractionStrategy(
                     llm_config=llm_config,
