@@ -33,7 +33,8 @@ if not os.environ.get("DEBUG"):
 
 
 def generate_article_hash(feed_id: int, title: str, published_date: str, category_name: str) -> bytes:
-    content = f"{feed_id}:{title}:{published_date}:{category_name}"
+    normalized = title.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
+    content = f"{feed_id}:{normalized}:{published_date}:{category_name}"
     return hashlib.md5(content.encode()).digest()
 
 DB_CONFIG = {
