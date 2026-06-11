@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import logging
 import os
+import signal
 import sys
 from datetime import datetime
 from db_lock import DbLock
@@ -23,6 +24,26 @@ LOCK_CATEGORY = "ai_crawl_lock"
 crawl_running = False
 crawl_trigger = None
 vibe_main = None
+active_lock = None
+
+
+async def release_lock():
+    global active_lock
+    if active_lock:
+        try:
+            await active_lock.release()
+            log.info("Released lock '%s' on shutdown", LOCK_CATEGORY)
+        except Exception:
+            pass
+        active_lock = None
+
+
+def sync_release_lock():
+    if active_lock:
+        try:
+            asyncio.run(release_lock())
+        except Exception:
+            pass
 
 
 async def run_crawl(trigger="cron"):
@@ -38,6 +59,8 @@ async def run_crawl(trigger="cron"):
         vibe_main = importlib.import_module("vibe-main")
 
     lock = DbLock(LOCK_CATEGORY)
+    global active_lock
+    active_lock = lock
     try:
         acquired = await lock.acquire()
         if not acquired:
@@ -55,6 +78,7 @@ async def run_crawl(trigger="cron"):
             await lock.release()
         except Exception:
             pass
+        active_lock = None
         crawl_running = False
         crawl_trigger = None
 
@@ -116,6 +140,9 @@ async def cron_loop():
 
 
 async def main():
+    signal.signal(signal.SIGTERM, lambda *_: sync_release_lock())
+    signal.signal(signal.SIGINT, lambda *_: sync_release_lock())
+
     if "--now" in sys.argv:
         await run_crawl(trigger="manual")
         return
