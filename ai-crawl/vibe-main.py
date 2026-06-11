@@ -14,7 +14,7 @@ import sys
 import os
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG if os.environ.get("DEBUG") else logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -27,8 +27,9 @@ sys.stderr.reconfigure(encoding='utf-8')
 
 litellm.suppress_debug_info = True
 litellm.set_verbose = False
-for name in ["litellm", "LiteLLM", "litellm.llm_api_call", "litellm.utils"]:
-    logging.getLogger(name).setLevel(logging.WARNING)
+if not os.environ.get("DEBUG"):
+    for name in ["litellm", "LiteLLM", "litellm.llm_api_call", "litellm.utils"]:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def generate_article_hash(feed_id: int, title: str, published_date: str, category_name: str) -> bytes:
@@ -125,10 +126,13 @@ async def main(log_only=False):
                 """
                 llm_provider = os.environ.get("LLM_PROVIDER") or "deepseek"
                 llm_model = os.environ.get("LLM_MODEL") or "deepseek-v4-flash"
+                llm_base_url = os.environ.get("LLM_URL") or "https://openrouter.ai/api/v1"
+                if not llm_base_url.endswith("/v1"):
+                    llm_base_url = llm_base_url.rstrip("/") + "/v1"
                 llm_config = LLMConfig(
                     provider=f"openrouter/{llm_provider}/{llm_model}",
                     api_token=os.environ.get("LLM_KEY") or "",
-                    base_url=os.environ.get("LLM_URL") or "https://openrouter.ai/api/v1"
+                    base_url=llm_base_url
                 )
                 llm_strategy = LLMExtractionStrategy(
                     llm_config=llm_config,
@@ -215,7 +219,7 @@ async def main(log_only=False):
                     log.error("Crawl4AI error: %s", result.error_message)
                     if result.markdown:
                         log.debug("Markdown length: %d", len(result.markdown))
-                        log.debug("Markdown preview: %s", result.markdown[:300])
+                        log.debug("Markdown preview: %s", result.markdown[:500])
                     continue
 
                 try:
@@ -224,7 +228,7 @@ async def main(log_only=False):
                         all_articles = [all_articles] if all_articles else []
                 except Exception as e:
                     log.error("JSON parsing error: %s", e)
-                    log.debug("Raw content: %s", result.extracted_content[:500])
+                    log.debug("Raw content: %s", result.extracted_content)
                     continue
 
                 if not all_articles:
@@ -234,7 +238,7 @@ async def main(log_only=False):
                 raw_dates = [a.get("published_date", "") for a in all_articles]
                 log.info("Extracted dates from LLM: %s", raw_dates)
                 if any(d == "" for d in raw_dates):
-                    log.info("Raw extracted content (first 1000 chars): %s", result.extracted_content[:1000])
+                    log.info("Raw extracted content: %s", result.extracted_content)
 
                 def parse_date_sort(a):
                     d = a.get("published_date", "")

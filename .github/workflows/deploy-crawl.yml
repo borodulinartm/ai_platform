@@ -62,5 +62,6 @@ jobs:
             -e DB_HOST="$DB_HOST" \
             -e DB_PORT="$DB_PORT" \
             -e HTTP_PORT="${HTTP_PORT:-8090}" \
+            -e DEBUG="${DEBUG:-}" \
             -p 8090:8090 \
             ai-crawl
