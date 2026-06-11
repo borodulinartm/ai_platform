@@ -88,6 +88,7 @@ async def main(log_only=False):
              os.environ.get("LLM_URL") or "https://openrouter.ai/api/v1")
 
     yesterday = date.today() - timedelta(days=1)
+    log.info("Today: %s, filtering for yesterday: %s", date.today(), yesterday)
     source_counts = defaultdict(int)
 
     try:
@@ -227,6 +228,9 @@ async def main(log_only=False):
                 if not all_articles:
                     log.warning("No articles found on %s", original_url)
                     continue
+
+                raw_dates = [a.get("published_date", "") for a in all_articles]
+                log.info("Extracted dates from LLM: %s", raw_dates)
 
                 def parse_date_sort(a):
                     d = a.get("published_date", "")
