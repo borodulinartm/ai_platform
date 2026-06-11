@@ -231,6 +231,8 @@ async def main(log_only=False):
 
                 raw_dates = [a.get("published_date", "") for a in all_articles]
                 log.info("Extracted dates from LLM: %s", raw_dates)
+                if any(d == "" for d in raw_dates):
+                    log.info("Raw extracted content (first 1000 chars): %s", result.extracted_content[:1000])
 
                 def parse_date_sort(a):
                     d = a.get("published_date", "")
