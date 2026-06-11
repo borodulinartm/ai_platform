@@ -21,11 +21,14 @@ logging.basicConfig(
 log = logging.getLogger("crawl")
 
 os.environ['PYTHONIOENCODING'] = 'utf-8'
+os.environ['LITELLM_LOG'] = 'WARNING'
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
 litellm.suppress_debug_info = True
-logging.getLogger("litellm").setLevel(logging.WARNING)
+litellm.set_verbose = False
+for name in ["litellm", "LiteLLM", "litellm.llm_api_call", "litellm.utils"]:
+    logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def generate_article_hash(feed_id: int, title: str, published_date: str, category_name: str) -> bytes:
