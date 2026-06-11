@@ -104,7 +104,13 @@ async def cron_loop():
         wait_seconds = (target - now).total_seconds()
         if wait_seconds < 0:
             wait_seconds += 3600
-        log.info("Next crawl at %s (in %ds)", target.isoformat(), int(wait_seconds))
+        h, rem = divmod(int(wait_seconds), 3600)
+        m, s = divmod(rem, 60)
+        parts = []
+        if h: parts.append(f"{h}h")
+        if m: parts.append(f"{m}m")
+        parts.append(f"{s}s")
+        log.info("Next crawl at %s (in %s)", target.strftime("%H:%M:%S"), " ".join(parts))
         await asyncio.sleep(wait_seconds)
         await run_crawl(trigger="cron")
 
