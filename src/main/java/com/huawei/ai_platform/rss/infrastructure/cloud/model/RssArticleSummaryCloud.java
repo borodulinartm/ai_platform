@@ -12,6 +12,9 @@ import java.util.List;
 @Builder
 public class RssArticleSummaryCloud {
     
+    @JsonProperty("articleId")
+    private Long articleId;
+    
     @JsonProperty("articleTitleEn")
     private String articleTitleEn;
     

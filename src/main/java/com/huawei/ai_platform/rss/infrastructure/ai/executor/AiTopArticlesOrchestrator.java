@@ -482,6 +482,7 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
             );
             
             return RssArticleSummaryCloud.builder()
+                .articleId(article.id())
                 .articleTitleEn(article.title())
                 .articleTitleZh(article.titleZh())
                 .articleAbstractEn(article.content())
@@ -502,6 +503,7 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
         } catch (Exception e) {
             log.warn("Translation failed: {}", e.getMessage());
             return RssArticleSummaryCloud.builder()
+                .articleId(article.id())
                 .articleTitleEn(article.title())
                 .articleTitleZh(article.titleZh())
                 .articleAbstractEn(article.content())
