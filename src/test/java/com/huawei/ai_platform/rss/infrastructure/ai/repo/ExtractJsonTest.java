@@ -197,9 +197,10 @@ class ExtractJsonTest {
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
             null, null, null, null, null, null,
-            100, 10, 5, 60000, 120000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
-            "deepseek/deepseek-v3.2", 0.3, 10, 30000
+            100, 10, 5, 60000, 120000,
+            "./logs/llm", "deepseek/deepseek-v3.2", 0.1,
+            "deepseek/deepseek-v3.2", 0.4, "deepseek/deepseek-v3.2",
+            0.3, 10, 30000, 20
         );
         return (String) method.invoke(orchestrator, response);
     }
@@ -208,9 +209,11 @@ class ExtractJsonTest {
         Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("extractArrayFromObject", String.class);
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
-            null, null, null, null, null, null,100, 10, 5, 60000, 120000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
-            "deepseek/deepseek-v3.2", 0.3, 10, 30000
+            null, null, null, null, null, null,
+            100, 10, 5, 60000, 120000,
+            "./logs/llm", "deepseek/deepseek-v3.2", 0.1,
+            "deepseek/deepseek-v3.2", 0.4, "deepseek/deepseek-v3.2",
+            0.3, 10, 30000, 20
         );
         return (String) method.invoke(orchestrator, json);
     }
@@ -219,9 +222,11 @@ class ExtractJsonTest {
         Method method = AiTopArticlesOrchestrator.class.getDeclaredMethod("loadResource", String.class);
         method.setAccessible(true);
         AiTopArticlesOrchestrator orchestrator = new AiTopArticlesOrchestrator(
-            null, null, null, null, null, null, 100, 10, 5, 60000, 120000, "./logs/llm",
-            "deepseek/deepseek-v3.2", 0.1, "deepseek/deepseek-v3.2", 0.4,
-            "deepseek/deepseek-v3.2", 0.3, 10, 30000
+            null, null, null, null, null, null,
+            100, 10, 5, 60000, 120000,
+            "./logs/llm", "deepseek/deepseek-v3.2", 0.1,
+            "deepseek/deepseek-v3.2", 0.4, "deepseek/deepseek-v3.2",
+            0.3, 10, 30000, 20
         );
         return (String) method.invoke(orchestrator, location);
     }
