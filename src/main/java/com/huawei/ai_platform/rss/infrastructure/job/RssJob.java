@@ -29,6 +29,8 @@ import java.time.LocalDateTime;
         havingValue = "true"
 )
 public class RssJob {
+    @Value("${ai.digest.top-articles-count:20}")
+    private int topArticlesCount;
     @Value("${cloud.windowSize:1}")
     private long windowSize;
 
@@ -69,17 +71,17 @@ public class RssJob {
     }
 
     /**
-     * Job for processing TOP-10 articles per category with summaries
+     * Job for processing TOP-N articles per category with summaries
      * Runs daily at 00:01 AM GMT
      */
     @Scheduled(cron = "0 1 0 * * ?", zone = "GMT")
     @DbLock(category = "top_articles_processing_lock")
     public void runTopArticlesProcessing() {
-        log.info("Run TOP-10 Articles Processing Job");
+        log.info("Run TOP-{} Articles Processing Job", topArticlesCount);
 
         OperationResult result = rssTopArticlesService.processTopArticles(LocalDate.now().minusDays(1));
         log.atLevel(result.getState().getLogLevel()).log(result.getInfo());
 
-        log.info("Finish TOP-10 Articles Processing Job");
+        log.info("Finish TOP-{} Articles Processing Job", topArticlesCount);
     }
 }

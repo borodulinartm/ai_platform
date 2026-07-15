@@ -43,6 +43,9 @@ public class RssController {
     @Value("${ai.crawl.api-url:http://localhost:8090}")
     private String crawlApiUrl;
 
+    @Value("${ai.digest.top-articles-count:20}")
+    private int topArticlesCount;
+
     /**
      * Uploads news to the cloud
      *
@@ -68,29 +71,29 @@ public class RssController {
     }
 
     /**
-     * Manually triggers TOP-10 articles processing (async)
+     * Manually triggers TOP-N articles processing (async)
      *
      * @param reportDate for which date to process (defaults to yesterday)
      * @return accepted response immediately
      */
     @PostMapping("/v1/process-top-articles")
     public ResponseEntity<?> processTopArticles(
-            @RequestParam(name = "report_date", required = false) LocalDate reportDate
+        @RequestParam(name = "report_date", required = false) LocalDate reportDate
     ) {
         LocalDate processDate = reportDate != null ? reportDate : LocalDate.now().minusDays(1);
         
-        log.info("Starting async TOP-10 processing for date: {}", processDate);
+        log.info("Starting async TOP-{} processing for date: {}", topArticlesCount, processDate);
         
         CompletableFuture.runAsync(() -> {
             try {
                 OperationResult result = rssTopArticlesService.processTopArticles(processDate);
                 if (result.isFailed()) {
-                    log.error("TOP-10 processing failed for date {}: {}", processDate, result.getInfo());
+                    log.error("TOP-{} processing failed for date {}: {}", topArticlesCount, processDate, result.getInfo());
                 } else {
-                    log.info("TOP-10 processing completed for date {}: {}", processDate, result.getInfo());
+                    log.info("TOP-{} processing completed for date {}: {}", topArticlesCount, processDate, result.getInfo());
                 }
             } catch (Exception e) {
-                log.error("TOP-10 processing error for date {}", processDate, e);
+                log.error("TOP-{} processing error for date {}", topArticlesCount, processDate, e);
             }
         });
         
@@ -99,8 +102,7 @@ public class RssController {
 
     @PostMapping("/v1/run-crawl")
     public ResponseEntity<?> runCrawl() {
-        try {
-            HttpClient client = HttpClient.newHttpClient();
+        try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(crawlApiUrl + "/run"))
                     .POST(HttpRequest.BodyPublishers.noBody())

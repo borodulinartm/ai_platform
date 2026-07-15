@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 public interface RssTopArticlesService {
     /**
-     * Processes TOP-10 articles per category and generates reports
+     * Processes TOP-N articles per category and generates reports
      *
      * @param forWhichDate date for processing
      * @return OperationResult with status

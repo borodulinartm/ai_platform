@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AiTopArticlesOrchestrator {
     private static final int MAX_ATTEMPTS = 5;
-    private static final int TOP_ARTICLES_COUNT = 10;
+    private final int topArticlesCount;
 
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
@@ -81,13 +81,15 @@ public class AiTopArticlesOrchestrator {
         @Value("${ai.digest.translation-model:deepseek/deepseek-v3.2}") String translationModel,
         @Value("${ai.digest.translation-temperature:0.3}") Double translationTemperature,
         @Value("${ai.digest.translation-thread-pool-size:10}") int translationThreadPoolSize,
-        @Value("${ai.digest.translation-timeout:30000}") int translationTimeoutMs) {
+        @Value("${ai.digest.translation-timeout:30000}") int translationTimeoutMs,
+        @Value("${ai.digest.top-articles-count:20}") int topArticlesCount) {
         this.chatClient = chatClient;
         this.objectMapper = objectMapper;
         this.rssCategoryDao = rssCategoryDao;
         this.rssDao = rssDao;
         this.webScraperService = webScraperService;
         this.articleDedupService = articleDedupService;
+        this.topArticlesCount = topArticlesCount;
         this.batchSize = batchSize;
         this.rankingThreadPoolSize = rankingThreadPoolSize;
         this.summaryThreadPoolSize = summaryThreadPoolSize;
@@ -212,7 +214,7 @@ public class AiTopArticlesOrchestrator {
                 List<RssFetchData> allFetchData = rssDao.queryArticlesByIds(allSortedIds);
                 List<ArticleData> allSortedArticles = toArticleDataListWithScores(allFetchData, scoreMap);
                 List<ArticleData> topArticles = articleDedupService.deduplicateToTopN(
-                    allSortedArticles, TOP_ARTICLES_COUNT, ca.categoryName()
+                    allSortedArticles, topArticlesCount, ca.categoryName()
                 );
 
                 summaryFutures.add(CompletableFuture.supplyAsync(() -> {
@@ -290,7 +292,7 @@ private List<ArticleScore> rankBatch(int categoryId, String categoryName,
         List<ArticleScore> selectedArticles = new ArrayList<>();
         List<ArticleData> remaining = new ArrayList<>(batch);
         
-        int toSelect = Math.min(TOP_ARTICLES_COUNT, batch.size());
+        int toSelect = Math.min(topArticlesCount, batch.size());
         
         for (int i = 0; i < toSelect && !remaining.isEmpty(); i++) {
             log.info("Selecting article {}/{} from {} remaining in category {} batch {}", 
